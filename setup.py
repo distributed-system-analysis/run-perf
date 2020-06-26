@@ -37,7 +37,10 @@ def get_version():
     return version
 
 
-VERSION = get_version()
+if os.environ.get('RUNPERF_RELEASE'):
+    VERSION = 0.9
+else:
+    VERSION = get_version()
 
 
 def get_long_description():

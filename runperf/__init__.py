@@ -34,8 +34,9 @@ from .machine import Controller
 
 
 PROG = 'run-perf'
-DESCRIPTION = ("Tool to execute perf tests under given profiles using "
-               "beaker, libvirt and other useful tools.")
+DESCRIPTION = ("A tool to execute the same tasks on pre-defined scenarios/"
+               "profiles and store the results together with metadata in "
+               "a suitable structure for compare-perf to compare them.")
 
 
 def get_abs_path(path):
