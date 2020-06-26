@@ -1,0 +1,9 @@
+[copr-pbench]
+name=Copr repo for pbench
+baseurl=https://copr-be.cloud.fedoraproject.org/results/ndokos/pbench/%s-$releasever-$basearch/
+skip_if_unavailable=True
+gpgcheck= 1
+gpgkey=https://copr-be.cloud.fedoraproject.org/results/ndokos/pbench/pubkey.gpg
+enabled=1
+enabled_metadata=1
+skip_if_unavailable=1

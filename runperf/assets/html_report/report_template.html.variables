@@ -1,0 +1,81 @@
+# Description of variables
+builds: [src, reference1, reference2, ..., dst]     # List of all involved builds (src, references and dst), where each item must contain at lest:
+
+    reference1: {
+        build: 57   # build number
+        machine: testmachine.example.org     # Full machine name
+        url: "https://jenkins.example.org/view/runperf/job/rp-testmachine/57"  # url to build results
+        distro: Fedora-32     # Host distribution version
+        distro_short: A                 # Short version of distro (usuall A, A, B, ... where all A-s are the same)
+        guest_distro: DISTRO            # Guest distro (DISTRO == the same as distro)
+        runperf_version: 04ef7ec9f93fc3929e82d413cccf8230222b3382   # Sha of the runperf version
+        runperf_cmd: "python3 scripts/run-perf -vvv --hosts testmachine.example.org --distro DISTRO --remote --beaker --default-password password --profiles DefaultLibvirt TunedLibvirt -- fio uperf"  # command that generated those results
+        runperf_cmd_short: "A"  # Short version of the cmd (usually A, A, A, B, ... where all A-s share the same cmd and B-s are different than A-s)
+        failures: 3     # Number of failures in this build
+        group_failures: 0   # Number of group failures in this build
+        total: 357      # Overall number of checks
+        score: 31       # Overall build score (calculated from failures, group_failures, ...
+        relative_score: 2   # Relative score to other builds (sorted list 0-n), multiple same entries possible
+    }
+
+src: {  # Base build info
+    build: 57   # build number
+    url: "https://jenkins.example.org/view/runperf/job/rp-testmachine/57"  # url to build results
+    distro: "Fedora-32"     # Used distro
+    guest_distro: "DISTRO"        # guest distro (or DISTRO when matching)
+    description: "linear model from builds 57,58,59,60,61,62,63,64,65,66 using 4% tolerances"     # Human description of the src data and/or model used for comparison
+}
+
+dst: {  # Target build info
+    build: 71   # build number
+    url: "https://jenkins.example.org/view/runperf/job/rp-testmachine/71"  # url to build results
+    distro: "Fedora-32"     # Used distro
+    guest_distro: "DISTRO"    # guest distro (or DISTRO when matching)
+    list_of_failures: [{...}, {...}, ...]   # list of failure details
+    list_of_group_failures: [{...}, {...}, ...]     # list of group failures, where:
+        failure: {
+            summary: "DefaultLibvirt/uperf/0000:./tcp_stream-64B-64i/throughput/Gb_sec.stddev (BIG model 23.36%>10.0% GOOD mraw -2.58%~~10.0%, raw -2.11%~~10.0%)"      # Human readable summary of the failure
+            facts: ["No failure in reference builds", "No DefaultLibvirt/uperf/0000:./tcp_stream-* failures in reference builds"]       # List of extra facts about the failure
+        }
+}
+
+charts: ["Section name", {...}, {...}, "Section name", {...}, ...]   # dict of charts and section names, where:
+    "Section name": "Overall charts"    # String means it's not a chart, but section divider
+    chart: {   # Details about individual chart
+        id: "averages"  # Id of the chart
+                        # when chart name endswith "_cont", it's displayed in-line with the previous chart(s)
+        type: "area"  # type of the chart (line|area|...)
+        description: "Average values per section"   # description of the chart
+        xAxis: ["57", "67", "68", "69", "70", "71"]     # X axis item names
+        xAxisDescription: "Builds"  # X axis description
+        YAxisDescription: "Percentage"  # Description of X axis
+        stacked: False  # Whether to stack series on top of each others
+        backgroundColor: "white"    # Background color
+        series: [{...}, {...}, ...]   # list of series (defined below)
+        invisible: False    # Make it invisible by default (optional)
+    }
+
+    serie: {
+        name: "avg_equals"  # name of the serie
+        color: "red"    # HTML color (optional)
+        data: [3, 8, 5, 5, 3, 2]     # Values
+        invisible: False    # Make it invisible by default (optional)
+
+builds_statuses: [results_of_test1, results_of_test2, ...]  # List of results of all tests of all builds
+results_of_test1: [test_name, result_of_build1, result_of_build2, ... (-1, "foo", 0)]
+result_of_build1: (-1, "foo", -3.1)    # where:
+    # -1 is a build status, which should be in status_map and str_status_map
+    # "foo" is the description of the failure/pass
+    # -3.1 is the build score (%.1f)
+
+filters: {category: [tag1, tag2, ...], "profiles": ["TunedLibvirt", "DefaultLibvirt"], ...}     # filters based on test name, always have to be unique and are used mainly in table_of_failures
+
+# Description of extra rules
+* chart_* HTML ids are reserved for list of charts
+* chart ids must be unique
+* chart_section_* HTML ids are reserved for list of chart sections
+* chart section names must be unique
+* table_of_failures* are reserved for table_of_failures handling
+* table_of_failures_button* are reserved for name-filtering button ids
+* status_* classes are intended for reported test statuses
+* any_status_* classes also maps to status_* but indicates any of the items are of those status
