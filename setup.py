@@ -21,8 +21,6 @@ from setuptools import setup, find_packages
 
 BASE_PATH = os.path.dirname(__file__)
 
-VERSION = "Unknown"
-
 
 def get_version():
     try:

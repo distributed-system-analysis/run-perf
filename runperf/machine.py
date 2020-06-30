@@ -197,10 +197,10 @@ class BaseMachine:
 
         :warning: This won't check/setup keys
         """
-        cmd = ["rsync", "-amrh", "-e", "ssh -o StrictHostKeyChecking=no "
-               "-o UserKnownHostsFile=/dev/null -o ControlMaster=auto "
-               "-o ControlPath='/var/tmp/%%r@%%h-%%p' -o ControlPersist=60 "
-               "-o BatchMode=yes", "root@%s:%s" % (self.get_addr(), src),
+        cmd = ["rsync", "-amrh", "-e", "ssh -o StrictHostKeyChecking=no " +
+               "-o UserKnownHostsFile=/dev/null -o ControlMaster=auto " +
+               "-o ControlPath='/var/tmp/%%r@%%h-%%p' -o ControlPersist=60" +
+               " -o BatchMode=yes", "root@%s:%s" % (self.get_addr(), src),
                dst]
         utils.check_output(cmd)
 
