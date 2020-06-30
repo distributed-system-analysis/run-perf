@@ -13,10 +13,8 @@
 # Copyright: Red Hat Inc. 2018
 # Author: Lukas Doktor <ldoktor@redhat.com>
 
-import sys
-
 from runperf import main
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    main()
