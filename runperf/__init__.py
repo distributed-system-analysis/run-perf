@@ -74,7 +74,10 @@ def _parse_args():
     base_dir = os.path.abspath(os.path.dirname(__file__))
     parser = ArgumentParser(prog=PROG,
                             description=DESCRIPTION)
-    parser.add_argument("tests", help="Set of tests to be executed", nargs='+')
+    parser.add_argument("tests", help="Set of tests to be executed; one can "
+                        "optionally specify extra params using json format "
+                        "separated by `:` (eg. 'fio:{\"type\":\"read\"}'",
+                        nargs='+')
     parser.add_argument("--profiles", help="Which profiles to use to execute "
                         "the tests (some might require reboot)", nargs='+',
                         default=['default'])
@@ -187,7 +190,9 @@ def create_metadata(output_dir, args):
 
 def main():
     """
-    Execute the test according to sys.argv
+    A tool to execute the same tasks on pre-defined scenarios/
+    profiles and store the results together with metadata in
+    a suitable structure for compare-perf to compare them.
     """
     args = _parse_args()
     setup_logging(args.verbose)
