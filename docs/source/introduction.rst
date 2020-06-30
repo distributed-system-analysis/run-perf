@@ -56,3 +56,18 @@ some tasks the `result*` results are also added as reference for better
 visualization of the changes::
 
     compare-perf -vvv --tolerance 5 --stddev-tolerance 10 -l model1.json --xunit result.xml --html result.html --references result* -- src dst
+
+
+----------
+
+.. image:: https://readthedocs.org/projects/run-perf/badge/?version=latest
+   :target: https://run-perf.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
+
+.. image:: https://img.shields.io/lgtm/alerts/g/distributed-system-analysis/run-perf.svg?logo=lgtm&logoWidth=18
+   :target: https://lgtm.com/projects/g/distributed-system-analysis/run-perf/alerts/
+   :alt: LGTM alerts
+
+.. image:: https://img.shields.io/lgtm/grade/python/g/distributed-system-analysis/run-perf.svg?logo=lgtm&logoWidth=18
+   :target: https://lgtm.com/projects/g/distributed-system-analysis/run-perf/context:python
+   :alt: LGTM Python code quality
