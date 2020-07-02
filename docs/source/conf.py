@@ -131,6 +131,8 @@ html_theme = 'classic'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+html_theme_options = {'body_max_width': '90%'}
+
 intersphinx_mapping = {'http://docs.python.org/3': None}  # pylint: disable=C0103
 
 autoclass_content = 'both'  # pylint: disable=C0103
