@@ -173,7 +173,7 @@ def create_metadata(output_dir, args):
             output.write("".join("%s:%s\n" % _ for _ in args.metadata.items()))
         # Now store certain hardcoded values
         output.write("distro:%s\n" % args.distro)
-        if args.guest_distro == args.distro:
+        if args.guest_distro is None or args.guest_distro == args.distro:
             output.write("guest_distro:DISTRO\n")
         else:
             output.write("guest_distro:%s\n" % args.guest_distro)
