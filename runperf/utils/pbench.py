@@ -97,19 +97,27 @@ class Dnf:  # pylint: disable=R0903
                     "pbench-sysstat", timeout=600)
         self._update_pbench()
 
+    def _check_test_installed(self, test):
+        """Report whether test pkg is installed"""
+        if not self.session.cmd_status("rpm -q %s" % self.test):
+            return True
+        if not self.session.cmd_status("rpm -q pbench-%s" % self.test):
+            return True
+        return False
+
     def _install_test(self):
         """Install pbench-$test package"""
         if not self.test:
             return ""
-        if not self.session.cmd_status("rpm -q %s" % self.test):
+        # TODO: Report discovered version
+        if self._check_test_installed(self.test):
             return ""
-        if not self.session.cmd_status("rpm -q pbench-%s" % self.test):
+        if self.session.cmd_status("dnf install -y --skip-broken --nobest %s "
+                                   "pbench-%s" % (self.test, self.test)):
+            return "Failed to install %s" % self.test
+        if self._check_test_installed(test):
             return ""
-        if self.session.cmd_status("dnf install -y --nobest %s" % self.test):
-            if self.session.cmd_status("dnf install -y --nobest pbench-%s"
-                                       % self.test):
-                return "Failed to install pbench-%s" % self.test
-        return ""
+        return "Faled to install %s" % self.test
 
 
 def install_on(session, extra=None, test=None):
