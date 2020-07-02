@@ -13,7 +13,7 @@
 # Copyright: Red Hat Inc. 2018
 # Author: Lukas Doktor <ldoktor@redhat.com>
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Action
 import collections
 import glob
 import hashlib
@@ -57,14 +57,23 @@ def parse_host(host):
     return (host.split('.', 1)[0], host)
 
 
-def split_metadata(item):
+class DictAction(Action):
     """
-    Split item to key=value pairs
+    Split items by '=' and store them as a single dictionary
     """
-    split = item.split('=', 1)
-    if len(split) != 2:
-        raise ValueError("Unable to parse key=value pair from %s" % item)
-    return split
+    def __call__(self, parser, namespace, values, option_string=None):
+        def split_metadata(item):
+            """Split item to key=value pairs"""
+            split = item.split('=', 1)
+            if len(split) != 2:
+                raise ValueError("Unable to parse key=value pair from %s"
+                                 % item)
+            return split
+        dictionary = dict(split_metadata(_) for _ in values)
+        if isinstance(getattr(namespace, self.dest, None), dict):
+            getattr(namespace, self.dest).update(dictionary)
+        else:
+            setattr(namespace, self.dest, dictionary)
 
 
 def _parse_args():
@@ -124,7 +133,7 @@ def _parse_args():
     parser.add_argument("--worker-setup-script", help="Path to a file that "
                         "will be copied to all workers and executed as part of"
                         " their setup")
-    parser.add_argument("--metadata", nargs="+", type=split_metadata,
+    parser.add_argument("--metadata", nargs="+", action=DictAction,
                         help="Build metadata to be attached to test results "
                         "using key=value syntax")
     parser.add_argument("--verbose", "-v", action="count", default=0,
