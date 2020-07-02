@@ -167,6 +167,11 @@ def create_metadata(output_dir, args):
     Generate RUNPERF_METADATA in this directory
     """
     with open(os.path.join(output_dir, "RUNPERF_METADATA"), "w") as output:
+        # First write all the custom metadata so they can be eventually
+        # overridden by our hardcoded values
+        if args.metadata:
+            output.write("".join("%s:%s\n" % _ for _ in args.metadata.items()))
+        # Now store certain hardcoded values
         output.write("distro:%s\n" % args.distro)
         if args.guest_distro == args.distro:
             output.write("guest_distro:DISTRO\n")
