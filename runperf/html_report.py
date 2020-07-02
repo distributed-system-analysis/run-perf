@@ -57,7 +57,7 @@ def generate_report(path, results):
     def generate_builds(results):
         def process_metadata(metadata, known_commands, distros):
             build = {}
-            for key in ["build", "machine", "url", "distro",
+            for key in ["build", "machine", "machine_url", "url", "distro",
                         "runperf_cmd"]:
                 build[key] = metadata[key]
             if "runperf_version" in metadata:

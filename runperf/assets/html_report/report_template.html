@@ -10439,7 +10439,7 @@ a {font-family: monospace;}
     </tr>
     <tr>
         <td>Machine</td>{% for build in builds %}
-        <td style='{{ relative_score_color(build) }}'><a href="https://beaker.engineering.redhat.com/view/{{build.machine}}" title="{{build.machine}}">{{build.machine.split('.', 1)[0]}}</a></td>{% endfor %}
+        <td style='{{ relative_score_color(build) }}'><a href="{{build.machine_url}}" title="{{build.machine}}">{{build.machine.split('.', 1)[0]}}</a></td>{% endfor %}
     </tr>
     <tr>
         <td>Distro</td>{% for build in builds %}
