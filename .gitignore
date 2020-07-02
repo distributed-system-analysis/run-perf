@@ -130,3 +130,6 @@ dmypy.json
 
 # vim tmp files
 .swp
+
+# run-perf result files
+result*/
