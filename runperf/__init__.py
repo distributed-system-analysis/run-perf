@@ -220,8 +220,7 @@ def main():
     else:
         log.info("Creating results: %s", args.output)
         os.makedirs(args.output)
-        create_metadata(args.output, args)
-    print(args.output)
+    create_metadata(args.output, args)
 
     hosts = None
     try:
