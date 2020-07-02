@@ -29,8 +29,8 @@ Components
 
 * run-perf      => run perf test(s) and report results
 * compare-perf  => compare 2 or more runperf results together reporting
-                   human as well as machine readable output optionally
-                   supporting model to smooth the comparisons
+  human as well as machine readable output optionally supporting model
+  to smooth the comparisons
 * analyze-perf  => calculate a model based on one or multiple results
 
 Basic usage
