@@ -13,7 +13,7 @@
 # Copyright: Red Hat Inc. 2018
 # Author: Lukas Doktor <ldoktor@redhat.com>
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Action
 import collections
 import glob
 import hashlib
@@ -57,14 +57,23 @@ def parse_host(host):
     return (host.split('.', 1)[0], host)
 
 
-def split_metadata(item):
+class DictAction(Action):
     """
-    Split item to key=value pairs
+    Split items by '=' and store them as a single dictionary
     """
-    split = item.split('=', 1)
-    if len(split) != 2:
-        raise ValueError("Unable to parse key=value pair from %s" % item)
-    return split
+    def __call__(self, parser, namespace, values, option_string=None):
+        def split_metadata(item):
+            """Split item to key=value pairs"""
+            split = item.split('=', 1)
+            if len(split) != 2:
+                raise ValueError("Unable to parse key=value pair from %s"
+                                 % item)
+            return split
+        dictionary = dict(split_metadata(_) for _ in values)
+        if isinstance(getattr(namespace, self.dest, None), dict):
+            getattr(namespace, self.dest).update(dictionary)
+        else:
+            setattr(namespace, self.dest, dictionary)
 
 
 def _parse_args():
@@ -124,7 +133,7 @@ def _parse_args():
     parser.add_argument("--worker-setup-script", help="Path to a file that "
                         "will be copied to all workers and executed as part of"
                         " their setup")
-    parser.add_argument("--metadata", nargs="+", type=split_metadata,
+    parser.add_argument("--metadata", nargs="+", action=DictAction,
                         help="Build metadata to be attached to test results "
                         "using key=value syntax")
     parser.add_argument("--verbose", "-v", action="count", default=0,
@@ -158,8 +167,13 @@ def create_metadata(output_dir, args):
     Generate RUNPERF_METADATA in this directory
     """
     with open(os.path.join(output_dir, "RUNPERF_METADATA"), "w") as output:
+        # First write all the custom metadata so they can be eventually
+        # overridden by our hardcoded values
+        if args.metadata:
+            output.write("".join("%s:%s\n" % _ for _ in args.metadata.items()))
+        # Now store certain hardcoded values
         output.write("distro:%s\n" % args.distro)
-        if args.guest_distro == args.distro:
+        if args.guest_distro is None or args.guest_distro == args.distro:
             output.write("guest_distro:DISTRO\n")
         else:
             output.write("guest_distro:%s\n" % args.guest_distro)
@@ -184,7 +198,14 @@ def create_metadata(output_dir, args):
                     cmd[i+1] = "sha1:"
                     cmd[i+1] += hashlib.sha1(script.read()).hexdigest()[:6]
         output.write("runperf_cmd:%s\n" % " ".join(cmd))
+        # TODO: Support machines instead of a machine
         output.write("machine:%s" % ",".join(_[1] for _ in args.hosts))
+        if "machine_url_base" in args.metadata:
+            url = (args.metadata["machine_url_base"]
+                   % {"machine": args.hosts[0]})
+            output.write("machine_url:%s" % url)
+        else:
+            output.write("machine_url:%s" % args.hosts[0])
         # TODO: Add pbench version
 
 
@@ -206,8 +227,7 @@ def main():
     else:
         log.info("Creating results: %s", args.output)
         os.makedirs(args.output)
-        create_metadata(args.output, args)
-    print(args.output)
+    create_metadata(args.output, args)
 
     hosts = None
     try:

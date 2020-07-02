@@ -118,9 +118,6 @@ node(worker_node) {
             sh '$KINIT'
             sh "python3 scripts/run-perf ${extra_args} -vvv --hosts ${machine} --distro ${distro} --provisioner Beaker --default-password YOUR_DEFAULT_PASSWORD --profiles ${profiles} --paths ./downstream_config --metadata 'build=${currentBuild.number}${description_prefix}' 'url=${currentBuild.absoluteUrl}' 'project=YOUR_PROJECT_ID ${currentBuild.projectName}' 'pbench_server=YOUR_PBENCH_SERVER_URL' ${metadata} -- ${tests}"
             sh "echo >> \$(echo -n result*)/RUNPERF_METADATA"       // Add new-line after runperf output
-            // TODO: Use run-perf to store all metadata instead of these custom echo cmds
-            sh "echo 'build:${currentBuild.number}${description_prefix}' >> \$(echo -n result*)/RUNPERF_METADATA"
-            sh "echo 'url:${currentBuild.absoluteUrl}' >> \$(echo -n result*)/RUNPERF_METADATA"
         }
     }
 

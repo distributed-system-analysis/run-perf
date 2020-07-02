@@ -84,6 +84,33 @@ Both are customizable via params, see the source code for details.
 Tests can be extended via :mod:`runperf.tests` entry points
 (See :any:`downstream-extensions` section)
 
+Build metadata
+==============
+
+The ``--metadata`` option is not only a useful tool to store custom metadata
+along with the run-perf results but also a way to tweak certain aspects of
+the run-perf execution. Metadata are passed to various places and available
+to plugins/tests, examples of some usages:
+
+* ``build`` - Short description of this build, mainly used by html results
+  (eg.: ``build=${currentBuild.number}`` in Jenkins environment injects the
+  current build number)
+* ``url`` - URL to the current build execution, mainly used by html results
+  (eg.: ``url=${currentBuild.absoluteUrl}`` in Jenkins environment injects the
+  link to the current build)
+* ``project`` - Name of the current project, mainly used by
+  :class:`runperf.tests.PBenchTest` inherited tests to simplify reverse mapping
+  of results to run-perf executions (eg.: ``project=perf-ci-nightly``)
+* ``machine_url_base`` - Mainly used by html results to add link to details
+  about the machine the tests were executed on; one can use `%(machine)s` to
+  inject the long machine name
+  (eg.: ``machine_url_base=https://beaker.example.org/view/%(machine)s``)
+* ``pbench_server`` - sets the ``pbench_web_server`` when installing pbench
+  (eg.: ``pbench_server=https://pbench.example.org``)
+* ``pbench_server_publish`` - used by tests inherited from
+  :class:`runperf.tests.PBenchTest` to push the results to the specified
+  ``pbench_server`` via ``pbench-copy-results``.
+
 ============
 Compare-perf
 ============

@@ -4,6 +4,7 @@ builds: [src, reference1, reference2, ..., dst]     # List of all involved build
     reference1: {
         build: 57   # build number
         machine: testmachine.example.org     # Full machine name
+        machine_url: http://beaker.example.org/view/testmachine.example.org     # url to machine
         url: "https://jenkins.example.org/view/runperf/job/rp-testmachine/57"  # url to build results
         distro: Fedora-32     # Host distribution version
         distro_short: A                 # Short version of distro (usuall A, A, B, ... where all A-s are the same)
