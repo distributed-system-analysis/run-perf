@@ -133,3 +133,6 @@ dmypy.json
 
 # run-perf result files
 result*/
+
+# Auto-generated API documentation
+docs/source/api
