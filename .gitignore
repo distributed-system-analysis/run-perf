@@ -133,7 +133,7 @@ dmypy.json
 .pydevproject
 
 # vim tmp files
-.swp
+*.swp
 
 # run-perf result files
 result*/
