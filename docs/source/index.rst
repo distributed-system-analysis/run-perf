@@ -19,6 +19,7 @@ Table of content
 
    downstream
    jenkins
+   contribution
 
 .. toctree::
    :caption: API reference

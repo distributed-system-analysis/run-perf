@@ -128,8 +128,15 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Ignore eclipse project files
+.project
+.pydevproject
+
 # vim tmp files
-.swp
+*.swp
 
 # run-perf result files
 result*/
+
+# Auto-generated API documentation
+docs/source/api

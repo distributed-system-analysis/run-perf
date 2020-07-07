@@ -12,17 +12,15 @@ The main usecase of this tool is a performance regression CI.
 Setup
 =====
 
-For production systems use::
+Run-perf is available from ``pip`` so one can install it by executing::
 
-    python3 setup.py install
+    python3 -m pip install runperf
 
-For development systems one can use::
+or to install directly the latest version from git::
 
-    python3 setup.py develop --user
+    python3 -m pip install https://github.com/distributed-system-analysis/run-perf.git
 
-to use "develop" mode, where any changes to the source code are reflected.
-Note you might need to add `~/.local/bin` to your bash `PATH` environment
-to make the scripts available in your environment.
+For development purposes please check-out the :any:`clone-and-deploy` section.
 
 Components
 ==========
