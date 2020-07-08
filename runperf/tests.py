@@ -125,7 +125,13 @@ class PBenchTest(BaseTest):
                 time.sleep(5)
                 session.cmd("true")
                 # And now run the test
-                session.cmd_output(self._cmd,
+                benchmark_bin = session.cmd_output("which %s"
+                                                   % self.test).strip()
+                if benchmark_bin:
+                    prefix = "benchmark_bin=%s " % benchmark_bin
+                else:
+                    prefix = ""
+                session.cmd_output(prefix + self._cmd,
                                    timeout=self.timeout)
                 # Let the system to rest a bit after heavy load
                 time.sleep(5)
