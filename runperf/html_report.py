@@ -21,7 +21,6 @@ import numpy
 
 from . import result
 
-
 # HTML Colors
 C_BG_MEAN = "#f5f5ff"
 C_BG_STDDEV = "#fffef0"
@@ -54,7 +53,9 @@ def generate_report(path, results):
 
     :param results: results container from `runperf.result.ResultsContainer`
     """
+
     def generate_builds(results):
+
         def process_metadata(metadata, known_commands, distros):
             build = {}
             for key in ["build", "machine", "machine_url", "url", "distro",
@@ -99,6 +100,7 @@ def generate_report(path, results):
             if not (failures or missing):
                 facts.append("Passed in all %s reference builds" % total)
             return facts
+
         builds = []
         runperf_commands = []
         distros = []
@@ -298,7 +300,7 @@ def generate_report(path, results):
                                 ("serial", "iteration_name",
                                  "iteration_name_extra", "workflow")),
                                ("Same test (different params)",
-                                ("iteration_name_extra", ))):
+                                ("iteration_name_extra",))):
             charts.append(section)
             names = set()
             improvements = []

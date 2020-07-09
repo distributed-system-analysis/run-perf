@@ -27,8 +27,7 @@ import time
 
 import aexpect
 
-
-#: String containing all fs-unfriendly chars (Windows-fat/Linux-ext3)
+# : String containing all fs-unfriendly chars (Windows-fat/Linux-ext3)
 FS_UNSAFE_CHARS = '<>:"/\\|?*;'
 
 # Translate table to replace fs-unfriendly chars

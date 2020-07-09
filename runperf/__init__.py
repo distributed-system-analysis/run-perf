@@ -32,7 +32,6 @@ import pkg_resources
 from . import exceptions, tests, result
 from .machine import Controller
 
-
 PROG = 'run-perf'
 DESCRIPTION = ("A tool to execute the same tasks on pre-defined scenarios/"
                "profiles and store the results together with metadata in "
@@ -61,7 +60,9 @@ class DictAction(Action):
     """
     Split items by '=' and store them as a single dictionary
     """
+
     def __call__(self, parser, namespace, values, option_string=None):
+
         def split_metadata(item):
             """Split item to key=value pairs"""
             split = item.split('=', 1)
@@ -69,6 +70,7 @@ class DictAction(Action):
                 raise ValueError("Unable to parse key=value pair from %s"
                                  % item)
             return split
+
         dictionary = dict(split_metadata(_) for _ in values)
         if isinstance(getattr(namespace, self.dest, None), dict):
             getattr(namespace, self.dest).update(dictionary)
@@ -180,12 +182,12 @@ def create_metadata(output_dir, args):
         output.write("runperf_version:%s\n"
                      % pkg_resources.get_distribution("runperf").version)
         cmd = list(sys.argv)
-        for i in range(len(cmd)):   # pylint: disable=C0200
+        for i in range(len(cmd)):  # pylint: disable=C0200
             this = cmd[i]
             if this == "--distro":
-                cmd[i+1] = "DISTRO"
+                cmd[i + 1] = "DISTRO"
             elif this == "--guest-distro":
-                cmd[i+1] = "GUEST_DISTRO"
+                cmd[i + 1] = "GUEST_DISTRO"
             elif this in ("--default-password", "--metadata"):
                 j = i + 1
                 while j < len(cmd) and not cmd[j].startswith("-"):
@@ -194,9 +196,9 @@ def create_metadata(output_dir, args):
                     if j > len(cmd):
                         break
             elif this in ("--host-setup-script", "--worker-setup-script"):
-                with open(cmd[i+1], 'rb') as script:
-                    cmd[i+1] = "sha1:"
-                    cmd[i+1] += hashlib.sha1(script.read()).hexdigest()[:6]
+                with open(cmd[i + 1], 'rb') as script:
+                    cmd[i + 1] = "sha1:"
+                    cmd[i + 1] += hashlib.sha1(script.read()).hexdigest()[:6]
         output.write("runperf_cmd:%s\n" % " ".join(cmd))
         # TODO: Support machines instead of a machine
         output.write("machine:%s" % ",".join(_[1] for _ in args.hosts))
@@ -356,7 +358,7 @@ class ComparePerf:
         res.evaluate(args.csv_prefix)
         if args.html:
             # Import this only when needed to prevent optional deps
-            from . import html_report    # pylint: disable=C0415
+            from . import html_report  # pylint: disable=C0415
             self.log.debug("Generating HTML report: %s", args.html)
             html_report.generate_report(args.html, results)
         return res.finish()

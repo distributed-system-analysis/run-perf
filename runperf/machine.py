@@ -29,9 +29,9 @@ from . import exceptions, profiles, utils
 
 
 LOG = logging.getLogger(__name__)
-#: Path to yaml files with host configurations
+# : Path to yaml files with host configurations
 HOSTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'hosts'))
-#: Minimal set of required keys for host definition
+# : Minimal set of required keys for host definition
 HOST_KEYS = {'hugepage_kb', 'numa_nodes', 'host_cpus',
              'guest_cpus', 'guest_mem_m', 'arch'}
 
@@ -51,6 +51,7 @@ class ShellSession(aexpect.ShellSession):
                     setattr(self, name, self._muted(func))
 
     def _muted(self, cmd):
+
         def inner(*args, **kwargs):
             if kwargs.get('print_func') == 'mute':
                 kwargs['print_func'] = None
@@ -64,6 +65,7 @@ class ShellSession(aexpect.ShellSession):
                     logger.setLevel(lvl)
                     self.set_output_func(self.__output_func)
             return cmd(*args, **kwargs)
+
         return inner
 
 
@@ -74,9 +76,9 @@ class BaseMachine:
     """
 
     def __init__(self, log, name, distro, default_passwords=None):
-        self.log = log          # worker log
-        self.name = name        # human readable name
-        self.distro = distro    # distribution running/to-be-provisioned
+        self.log = log  # worker log
+        self.name = name  # human readable name
+        self.distro = distro  # distribution running/to-be-provisioned
         self.default_passwords = default_passwords  # default ssh passwords
 
     def __str__(self):
@@ -154,7 +156,7 @@ class BaseMachine:
                             return session
                         except (aexpect.ExpectError, aexpect.ShellError):
                             pass
-                    raise aexpect.ExpectError   # Session not ready
+                    raise aexpect.ExpectError  # Session not ready
                 except (aexpect.ExpectError, aexpect.ShellError) as err:
                     if session:
                         session.close()
@@ -218,7 +220,7 @@ class Controller:
 
     def __init__(self, args, log):
         self.log = log
-        self._output_dir = args.output      # place to store results
+        self._output_dir = args.output  # place to store results
         self._provisioner = args.provisioner
         # path to setup script to be executed per each host
         self._host_setup_script = args.host_setup_script

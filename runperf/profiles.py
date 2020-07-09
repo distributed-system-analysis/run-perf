@@ -19,7 +19,6 @@ from pkg_resources import iter_entry_points as pkg_entry_points
 
 from . import utils
 
-
 LOG = logging.getLogger(__name__)
 # : Persistent storage path
 CONFIG_DIR = '/var/lib/runperf/'
