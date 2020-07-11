@@ -63,6 +63,65 @@ class BaseTest:
         """
         raise NotImplementedError
 
+    def inject_metadata(self, session, path):
+        """
+        Inject our metadata into pbench-like json results or in a
+        "RUNPERF_METADATA.json" file within the dirname(path).
+
+        It injects the self.metadata into each::
+
+            [:]["iteration_data"]["parameters"]["user"].append()
+
+        creating the "user" list if not exists, skipping the iteration when
+        the previous items don't exist.
+
+        In case the $path file does not exists and dirname($path) does it
+        creates a "RUNPERF_METADATA.json" file and dumps the content there.
+
+        :param session: Session to the worker
+        :param path: Path where the results should be located
+        """
+        meta = {}
+        for key, value in self.metadata.items():
+            meta[key] = value
+        meta['cmdline'] = str(sys.argv)
+        meta['distro'] = self.host.distro
+        meta['profile'] = self.host.profile.profile
+        str_workers = {}
+        for i, workers in enumerate(self.workers):
+            str_workers[i] = {worker.name: worker.get_info()
+                              for worker in workers}
+        meta['workers'] = str_workers
+        if session.cmd_status("[ -e '%s' ]" % path) == 0:
+            session.cmd("cp '%s' '%s.backup'" % (path, path))
+            results = json.loads(session.cmd_output("cat '%s'" % path,
+                                                    timeout=600,
+                                                    print_func='mute'))
+            for result in results:
+                if 'iteration_data' not in result:
+                    continue
+                iteration_data = result['iteration_data']
+                if 'parameters' not in iteration_data:
+                    continue
+                params = iteration_data['parameters']
+                if 'user' in params:
+                    params['user'].append(meta)
+                else:
+                    params['user'] = [meta]
+            results_json = json.dumps(results, indent=4,
+                                      sort_keys=True)
+            session.cmd(utils.shell_write_content_cmd(path,
+                                                      results_json),
+                        timeout=600, print_func='mute')
+        else:
+            dir_path = os.path.dirname(path)
+            if session.cmd_status("[ -d '%s' ]" % dir_path) == 0:
+                result_path = os.path.join(dir_path, "RUNPERF_METADATA.json")
+                results_json = json.dumps(meta, indent=4, sort_keys=True)
+                session.cmd(utils.shell_write_content_cmd(result_path,
+                                                          results_json),
+                            timeout=600, print_func='mute')
+
 
 class PBenchTest(BaseTest):
     """
@@ -142,39 +201,7 @@ class PBenchTest(BaseTest):
                 src = session.cmd_output("echo $(ls -dt /var/lib/pbench-agent/"
                                          "%s__*/ | head -n 1)"
                                          % self.test).strip()
-                session.cmd("cd %s" % src)
-                if session.cmd_status("[ -e result.json ]") == 0:
-                    session.cmd("cp result.json result.json.backup")
-                    results = json.loads(session.cmd_output("cat result.json",
-                                                            timeout=600,
-                                                            print_func='mute'))
-                    meta = {}
-                    for key, value in self.metadata.items():
-                        meta[key] = value
-                    meta['cmdline'] = str(sys.argv)
-                    meta['distro'] = self.host.distro
-                    meta['profile'] = self.host.profile.profile
-                    str_workers = {}
-                    for i, workers in enumerate(self.workers):
-                        str_workers[i] = {worker.name: worker.get_info()
-                                          for worker in workers}
-                    meta['workers'] = str_workers
-                    for result in results:
-                        if 'iteration_data' not in result:
-                            continue
-                        iteration_data = result['iteration_data']
-                        if 'parameters' not in iteration_data:
-                            continue
-                        params = iteration_data['parameters']
-                        if 'user' in params:
-                            params['user'].append(meta)
-                        else:
-                            params['user'] = [meta]
-                    results_json = json.dumps(results, indent=4,
-                                              sort_keys=True)
-                    session.cmd(utils.shell_write_content_cmd("result.json",
-                                                              results_json),
-                                timeout=600, print_func='mute')
+                self.inject_metadata(session, os.path.join(src, "result.json"))
                 if self.pbench_publish:
                     extra_args = []
                     user = self.metadata.get("project")
