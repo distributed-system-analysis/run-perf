@@ -316,7 +316,8 @@ def shell_write_content_cmd(path, content, append=False):
         if eof + '\n' not in content:
             break
     return ("cat %s %s << \\%s\n%s\n%s" % (">>" if append else ">",
-                                           path, eof, content, eof))
+                                           pipes.quote(path), eof, content,
+                                           eof))
 
 
 def wait_for_machine_calms_down(session, timeout=600):
