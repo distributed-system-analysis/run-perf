@@ -137,7 +137,7 @@ def _parse_args():
                         " their setup")
     parser.add_argument("--metadata", nargs="+", action=DictAction,
                         help="Build metadata to be attached to test results "
-                        "using key=value syntax")
+                        "using key=value syntax", default={})
     parser.add_argument("--verbose", "-v", action="count", default=0,
                         help="Increase the verbosity level")
     args = parser.parse_args()
