@@ -40,10 +40,7 @@ class BaseTest:
         if not os.path.exists(base_output_path):
             os.makedirs(base_output_path)
         self.output = tempfile.mkdtemp(prefix="tmp", dir=base_output_path)
-        if metadata:
-            self.metadata = dict(metadata)
-        else:
-            self.metadata = {}
+        self.metadata = metadata
 
     def setup(self):
         """
