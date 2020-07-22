@@ -353,10 +353,6 @@ class Controller:
             setup_script = None
         self.for_each_host_retry(3, self.hosts, 'apply_profile',
                                  (profile, setup_script, self.paths))
-        # Always install pbench after applying profile
-        for host in self.hosts:
-            if not host.workers:
-                continue
         self.profile = self.main_host.profile.profile
         return [host.workers for host in self.hosts]
 
