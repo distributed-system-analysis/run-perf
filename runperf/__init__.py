@@ -328,6 +328,8 @@ class ComparePerf:
                             "linear regression model for matching results")
         parser.add_argument("--html", help="Create a single-file HTML report "
                             "in the provided path.")
+        parser.add_argument("--html-with-charts", action="store_true",
+                            help="Generate charts in the html results")
         parser.add_argument("--xunit", help="Write XUnit/JUnit results to "
                             "specified file.")
         parser.add_argument("--csv-prefix", help="Write various results to "
@@ -360,7 +362,8 @@ class ComparePerf:
             # Import this only when needed to prevent optional deps
             from . import html_report  # pylint: disable=C0415
             self.log.debug("Generating HTML report: %s", args.html)
-            html_report.generate_report(args.html, results)
+            html_report.generate_report(args.html, results,
+                                        args.html_with_charts)
         return res.finish()
 
 

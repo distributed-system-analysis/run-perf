@@ -50,11 +50,13 @@ def num2char(num):
     return "".join(out[::-1])
 
 
-def generate_report(path, results):
+def generate_report(path, results, with_charts=False):
     """
     Generate html report from results
 
-    :param results: results container from `runperf.result.ResultsContainer`
+    :param path: Path to the output html file
+    :param results: Results container from `runperf.result.ResultsContainer`
+    :param with_charts: Whether to generate graphs
     """
 
     def generate_builds(results):
@@ -533,9 +535,11 @@ def generate_report(path, results):
                         for build in values["builds"]
                         for profile in build["profiles"]))
     values["profiles"] = list(profiles)
-    values["charts"] = generate_charts(results)
+    if with_charts:
+        values["charts"] = generate_charts(results)
     values["builds_statuses"] = generate_builds_statuses(results)
     values["filters"] = get_filters(results)
+    values["with_charts"] = with_charts
     loader = jinja2.PackageLoader("runperf", "assets/html_report")
     env = jinja2.Environment(loader=loader, autoescape=True)
     template = env.get_template("report_template.html")

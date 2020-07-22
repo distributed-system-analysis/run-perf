@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <title>Comparison of build {{src.build}} and {{dst.build}} ({{src.distro}} and {{dst.distro}})</title>
 
-<script language="javascript">
+{% if with_charts %}<script language="javascript">
 /*!
  * jQuery JavaScript Library v1.9.1
  * http://jquery.com/
@@ -10267,7 +10267,7 @@ $(document).ready(function () { chart_{{chart.id}} = new Highcharts.Chart({
     ]
 });});
 </script>
-{% endfor %}
+{% endfor %}{# end of with_charts #}{% endif %}
 
 <script language="javascript">
 function toggle(name, element) {
@@ -10559,8 +10559,8 @@ a {font-family: monospace;}
         </li>{% endfor %}
     </ul>
 </div>
+{% if with_charts %}<h1>Charts</h1>
 
-<h1>Charts</h1>
 <a id="charts-hide" href="javascript:toggle_short('charts');">[-]</a><br>
 
 <div id='charts' style="display: block">
@@ -10581,5 +10581,5 @@ a {font-family: monospace;}
     	{% endif %}
         	<div id="chart_{{chart.id}}" align="center" style="display: {% if chart.invisible %}none{% else %}inline-block{% endif %}"></div>{% endif %}{% endfor %}
     </div>
-</div>
+</div>{% endif %}
 </body>

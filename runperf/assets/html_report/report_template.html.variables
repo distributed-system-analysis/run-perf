@@ -75,6 +75,7 @@ result_of_build1: (-1, "foo", -3.1)    # where:
 filters: {category: [tag1, tag2, ...], "profiles": ["TunedLibvirt", "DefaultLibvirt"], ...}     # filters based on test name, always have to be unique and are used mainly in table_of_failures
 
 profiles: [profile1, profile2, ...]  # List of profiles used to run tests on
+with_charts: False  # Whether to include graphs (they are nice but consume a lot of space)
 
 # Description of extra rules
 * chart_* HTML ids are reserved for list of charts
