@@ -27,5 +27,6 @@ Available ones are:
 * runperf.utils.cloud_image_providers
 * runperf.provisioners
 * runperf.utils.pbench
+* runperf.machine.distro_info
 
 the order depends on which entry point was installed first.

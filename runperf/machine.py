@@ -69,6 +69,25 @@ class ShellSession(aexpect.ShellSession):
         return inner
 
 
+# TODO: Move this to `runperf.machine.distro_info` namespace
+def get_distro_info(machine):
+    """Various basic sysinfo"""
+    out = {"general": "Name:%s\nDistro:%s" % (machine.name,
+                                              machine.distro)}
+    with machine.get_session_cont() as session:
+        out["kernel"] = session.cmd("uname -r; uname -v; uname -m; uname -o;" +
+                                    " cat /proc/cmdline", print_func='mute',
+                                    ignore_all_errors=True)
+        out["mitigations"] = session.cmd("grep . /sys/devices/system/cpu/"
+                                         "vulnerabilities/*",
+                                         print_func='mute',
+                                         ignore_all_errors=True)
+        if session.cmd_status("which rpm", print_func='mute') == 0:
+            out["rpm"] = session.cmd("rpm -qa | sort", print_func='mute',
+                                     ignore_all_errors=True)
+    return out
+
+
 class BaseMachine:
 
     """
@@ -210,7 +229,12 @@ class BaseMachine:
         """
         Report basic info about this machine
         """
-        return "Name: %s\nDistro: %s" % (self.name, self.distro)
+        output = {}
+        for entry in iter_entry_points('runperf.machine.distro_info'):
+            out = entry.load()(self)
+            if out:
+                output.update(out)
+        return output
 
 
 class Controller:
@@ -338,8 +362,19 @@ class Controller:
             if self._host_setup_script_reboot:
                 self.for_each_host(self.hosts, "reboot")
         shared_pub_key = self.main_host.generate_ssh_key()
+        world_versions = []
         for host in self.hosts:
             host.shared_pub_key = shared_pub_key
+            world_versions.append(host.get_info())
+        self.write_metadata("environment_world", json.dumps(world_versions))
+
+    def write_metadata(self, key, value):
+        """Append the key:value to the RUNPERF_METADATA file"""
+        # TODO: Consider replacing previously existing entries
+        with open(os.path.join(self._output_dir, "RUNPERF_METADATA"),
+                  'a') as out:
+            out.write("\n%s:" % key)
+            out.write(value)
 
     def apply_profile(self, profile):
         """Apply profile on each host, report list of lists of workers"""
@@ -359,6 +394,17 @@ class Controller:
     def revert_profile(self):
         """Revert profile"""
         self.log.info("REVERT profile %s", self.profile)
+        # Collect information about the profile in case it was applied
+        if self.profile is not None:
+            env = []
+            # TODO: Consider doing this in parallel
+            for host in self.hosts:
+                try:
+                    env.append(host.profile.get_info())
+                except Exception as details:
+                    env.append({"failure": "Failed to get info: %s" % details})
+            self.write_metadata("environment_profile_%s" % self.profile,
+                                json.dumps(env))
         # Allow 3 attempts, one to revert previous profile, one to apply
         # and one extra in case one boot fails to get resources (eg. hugepages)
         self.for_each_host_retry(3, self.hosts, 'revert_profile')
@@ -576,6 +622,12 @@ class Host(BaseMachine):
                 session.cmd_status("rm -f ~/.ssh/id_rsa")
         self._cleanup = []
 
+    def get_info(self):
+        out = BaseMachine.get_info(self)
+        out["params"] = "\n".join("%s: %s" % _
+                                  for _ in sorted(self.params.items()))
+        return out
+
     def __del__(self):
         self.cleanup()
 
@@ -640,9 +692,10 @@ class LibvirtGuest(BaseMachine):
         raise NotImplementedError("Unknown os_variant: %s" % os_build)
 
     def get_info(self):
-        out = "Name: %s\nRunning on host: %s\n" % (self.name, self.host)
-        return out + self.get_host_session().cmd_output("virsh dumpxml '%s'"
-                                                        % self.name)
+        out = BaseMachine.get_info(self)
+        out["libvirt_xml"] = self.get_host_session().cmd_output(
+            "virsh dumpxml '%s'" % self.name)
+        return out
 
     def start(self):
         """

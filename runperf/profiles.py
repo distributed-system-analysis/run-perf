@@ -147,6 +147,16 @@ class BaseProfile(object):
         session.close()
         return ret
 
+    def get_info(self):
+        """
+        Useful information that should clearly identify the current profile
+        setting.
+
+        :return: dict of per-category information about how this profile
+                 affected the machine.
+        """
+        return self.host.get_info()
+
     def _revert(self):
         """
         Per-backend revert
@@ -276,6 +286,13 @@ class DefaultLibvirt(BaseProfile):
             vm.start()
 
         return self.vms
+
+    def get_info(self):
+        out = BaseProfile.get_info(self)
+        for i, vm in enumerate(self.vms):
+            for key, value in vm.get_info().items():
+                out["guest%s_%s" % (i, key)] = value
+        return out
 
     def _revert(self):
         for vm in self.vms:
@@ -437,6 +454,14 @@ class TunedLibvirt(DefaultLibvirt):
         super(TunedLibvirt, self)._revert()
         self._remove("profile/TunedLibvirt/persistent")
         return True
+
+    def get_info(self):
+        # TODO: Add a variable to store all tweaks and list them here.
+        #       This is tricky as persistent setting (that contains
+        #       most of the tweaks) is only applied once and profile
+        #       gets reinstantiated before the next iteration. This can
+        #       be part of the rework where we intend to improve this workflow.
+        return DefaultLibvirt.get_info(self)
 
 
 def get(profile, host, paths):

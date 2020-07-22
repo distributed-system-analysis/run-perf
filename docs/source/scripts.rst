@@ -215,6 +215,12 @@ within one line are of the same value.
    case profiles/tests are changed - not frequently...)
  * Runperf command - can indicate how the build was different (some values are
    replaced with values representing the option, eg. passwords or file contents)
+ * World env - signals what changed on the main system between different
+   builds. On hover it shows ``diff`` of the environment compare to the source
+   build and on click it copies the json value with the full environment to
+   your clipboard (use ``ctrl+v`` to retrieve it).
+ * * env - the same as ``World env`` only for each profile that was used in
+   this execution. On top of the usual it can contain things like libvirt xml.
  * Failures - number of failures
  * Group failures - number of aggregated failures (eg. when all fio tests break
    the group failures rate)

@@ -10370,6 +10370,15 @@ function initialize() {
 }
 </script>
 
+<script language="javascript">
+function elementValueToClipboard(name) {
+    var copyText = document.getElementById(name);
+    copyText.select();
+    /* Copy the text inside the text field */
+    document.execCommand("copy");
+};
+</script>
+
 <style>
 #container p { display: inline }
 body {background-color: white}
@@ -10457,6 +10466,14 @@ a {font-family: monospace;}
         <td>Runperf cmd</td>{% for build in builds %}
         <td style='{{ relative_score_color(build) }}'><div class="tooltip">{{build.runperf_cmd_short}}<span class="tooltiptext">{{build.runperf_cmd}}</span></div></td>{% endfor %}
     </tr>
+    <tr>
+        <td>World env</td>{% for build in builds %}
+        <td style='{{ relative_score_color(build) }}'><textarea style="position: absolute; left: -9999px;"  id="env-world-raw">{{build.environment.world}}</textarea><div class="tooltip" onclick="elementValueToClipboard('env-world-raw')">{{build.environment_short.world}}<span class="tooltiptext"><a href="#">Click to copy the raw python dict</a><pre>{{build.environment_diff.world}}</pre></span></div></td>{% endfor %}
+    </tr>
+    {% for profile in profiles %}<tr>
+        <td>{{ profile }} env</td>{% for build in builds %}
+        <td style='{{ relative_score_color(build) }}'><textarea style="position: absolute; left: -9999px;"  id="env-profile-{{ profile }}-{{ loop.index }}-raw">{{build.environment[profile]}}</textarea><div class="tooltip" onclick="elementValueToClipboard('env-profile-{{ profile }}-{{ loop.index }}-raw')">{{build.environment_short[profile]}}<span class="tooltiptext"><a href="#">Click to copy the raw python dict</a><pre>{{build.environment_diff[profile]}}</pre></span></div></td>{% endfor %}
+    </tr>{% endfor %}
     <tr>
         <td>Failures</td>{% for build in builds %}
         <td style='{{ relative_score_color(build) }}'>{{build.failures}}</td>{% endfor %}
