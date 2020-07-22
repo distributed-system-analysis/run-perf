@@ -10512,11 +10512,10 @@ a {font-family: monospace;}
     <a id='table_of_failures_button_{{value}}' href="javascript:tableOfFailuresToggleByNameSegment('{{value}}')" class="status_0">{{value|upper}}</a>{% endfor %}<br>{% endfor %}
     <table id='table_of_failures' border=1>
     <tr>
-        <th>Test</th>{% for build in builds %}
-        <th><a href="{{build.url}}">{{build.build}}</a></th>{% endfor %}
+        <th>Test</th>{% for build in builds %}{% if loop.index != 1 %}
+        <th><a href="{{build.url}}">{{build.build}}</a></th>{% endif %}{% endfor %}
     </tr>{% for builds_status in builds_statuses %}
-    <!-- TODO: use "unique" to log each any_status_* only once -->
-    <tr class=" status_{{builds_status[-1][0]}} {% for status, _, _ in builds_status %}{% if loop.index != 1 %}any_status_{{status}} {% endif %}{% endfor %}">{% for status, details, score in builds_status %}
+    <tr class=" status_{{builds_status[-1][0]}} {% for status, _, _ in builds_status|unique %}{% if loop.index > 2 %}any_status_{{status}} {% endif %}{% endfor %}">{% for status, details, score in builds_status %}
         <td class="status_{{status}}"><div class="tooltip">{{score}}<span class="tooltiptext">{{details}}</span></div></td>{% endfor %}
     </tr>{% endfor %}
     </table>

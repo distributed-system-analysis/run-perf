@@ -107,6 +107,8 @@ def generate_report(path, results):
         # SRC
         src = process_metadata(results.src_metadata, runperf_commands,
                                distros)
+        src["score"] = 0
+        builds.append(src)
         # BUILDS
         build = res = None
         for res in results:
