@@ -56,7 +56,7 @@ def generate_report(path, results):
 
     def generate_builds(results):
 
-        def process_metadata(metadata, known_commands, distros):
+        def process_metadata(metadata, known_items):
             build = {}
             for key in ["build", "machine", "machine_url", "url", "distro",
                         "runperf_cmd"]:
@@ -67,14 +67,14 @@ def generate_report(path, results):
                 build["runperf_version"] = metadata.default_factory()
             build["guest_distro"] = metadata.get("guest_distro",
                                                  build["distro"])
-            if build["distro"] not in distros:
-                distros.append(build["distro"])
-            build["distro_short"] = num2char(distros.index(
-                build["distro"]))
-            if build["runperf_cmd"] not in known_commands:
-                known_commands.append(build["runperf_cmd"])
-            build["runperf_cmd_short"] = num2char(known_commands.index(
-                build["runperf_cmd"]))
+            if build["distro"] not in known_items['distros']:
+                known_items['distros'].append(build["distro"])
+            build["distro_short"] = num2char(
+                known_items['distros'].index(build["distro"]))
+            if build["runperf_cmd"] not in known_items['commands']:
+                known_items['commands'].append(build["runperf_cmd"])
+            build["runperf_cmd_short"] = num2char(
+                known_items['commands'].index(build["runperf_cmd"]))
             return build
 
         def get_failed_facts(dst_record, results, record_attr="records"):
@@ -102,18 +102,15 @@ def generate_report(path, results):
             return facts
 
         builds = []
-        runperf_commands = []
-        distros = []
+        known_items = collections.defaultdict(list)
         # SRC
-        src = process_metadata(results.src_metadata, runperf_commands,
-                               distros)
+        src = process_metadata(results.src_metadata, known_items)
         src["score"] = 0
         builds.append(src)
         # BUILDS
         build = res = None
         for res in results:
-            build = process_metadata(res.metadata, runperf_commands,
-                                     distros)
+            build = process_metadata(res.metadata, known_items)
             failures = grouped_failures = non_primary_failures = 0
             for record in res.records:
                 if record.status < 0:
