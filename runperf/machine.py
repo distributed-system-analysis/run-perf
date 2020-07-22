@@ -29,9 +29,9 @@ from . import exceptions, profiles, utils
 
 
 LOG = logging.getLogger(__name__)
-#: Path to yaml files with host configurations
+# : Path to yaml files with host configurations
 HOSTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'hosts'))
-#: Minimal set of required keys for host definition
+# : Minimal set of required keys for host definition
 HOST_KEYS = {'hugepage_kb', 'numa_nodes', 'host_cpus',
              'guest_cpus', 'guest_mem_m', 'arch'}
 
@@ -51,6 +51,7 @@ class ShellSession(aexpect.ShellSession):
                     setattr(self, name, self._muted(func))
 
     def _muted(self, cmd):
+
         def inner(*args, **kwargs):
             if kwargs.get('print_func') == 'mute':
                 kwargs['print_func'] = None
@@ -64,7 +65,27 @@ class ShellSession(aexpect.ShellSession):
                     logger.setLevel(lvl)
                     self.set_output_func(self.__output_func)
             return cmd(*args, **kwargs)
+
         return inner
+
+
+# TODO: Move this to `runperf.machine.distro_info` namespace
+def get_distro_info(machine):
+    """Various basic sysinfo"""
+    out = {"general": "Name:%s\nDistro:%s" % (machine.name,
+                                              machine.distro)}
+    with machine.get_session_cont() as session:
+        out["kernel"] = session.cmd("uname -r; uname -v; uname -m; uname -o;" +
+                                    " cat /proc/cmdline", print_func='mute',
+                                    ignore_all_errors=True)
+        out["mitigations"] = session.cmd("grep . /sys/devices/system/cpu/"
+                                         "vulnerabilities/*",
+                                         print_func='mute',
+                                         ignore_all_errors=True)
+        if session.cmd_status("which rpm", print_func='mute') == 0:
+            out["rpm"] = session.cmd("rpm -qa | sort", print_func='mute',
+                                     ignore_all_errors=True)
+    return out
 
 
 class BaseMachine:
@@ -74,9 +95,9 @@ class BaseMachine:
     """
 
     def __init__(self, log, name, distro, default_passwords=None):
-        self.log = log          # worker log
-        self.name = name        # human readable name
-        self.distro = distro    # distribution running/to-be-provisioned
+        self.log = log  # worker log
+        self.name = name  # human readable name
+        self.distro = distro  # distribution running/to-be-provisioned
         self.default_passwords = default_passwords  # default ssh passwords
 
     def __str__(self):
@@ -154,7 +175,7 @@ class BaseMachine:
                             return session
                         except (aexpect.ExpectError, aexpect.ShellError):
                             pass
-                    raise aexpect.ExpectError   # Session not ready
+                    raise aexpect.ExpectError  # Session not ready
                 except (aexpect.ExpectError, aexpect.ShellError) as err:
                     if session:
                         session.close()
@@ -208,7 +229,12 @@ class BaseMachine:
         """
         Report basic info about this machine
         """
-        return "Name: %s\nDistro: %s" % (self.name, self.distro)
+        output = {}
+        for entry in iter_entry_points('runperf.machine.distro_info'):
+            out = entry.load()(self)
+            if out:
+                output.update(out)
+        return output
 
 
 class Controller:
@@ -218,7 +244,7 @@ class Controller:
 
     def __init__(self, args, log):
         self.log = log
-        self._output_dir = args.output      # place to store results
+        self._output_dir = args.output  # place to store results
         self._provisioner = args.provisioner
         # path to setup script to be executed per each host
         self._host_setup_script = args.host_setup_script
@@ -336,8 +362,19 @@ class Controller:
             if self._host_setup_script_reboot:
                 self.for_each_host(self.hosts, "reboot")
         shared_pub_key = self.main_host.generate_ssh_key()
+        world_versions = []
         for host in self.hosts:
             host.shared_pub_key = shared_pub_key
+            world_versions.append(host.get_info())
+        self.write_metadata("environment_world", json.dumps(world_versions))
+
+    def write_metadata(self, key, value):
+        """Append the key:value to the RUNPERF_METADATA file"""
+        # TODO: Consider replacing previously existing entries
+        with open(os.path.join(self._output_dir, "RUNPERF_METADATA"),
+                  'a') as out:
+            out.write("\n%s:" % key)
+            out.write(value)
 
     def apply_profile(self, profile):
         """Apply profile on each host, report list of lists of workers"""
@@ -351,16 +388,23 @@ class Controller:
             setup_script = None
         self.for_each_host_retry(3, self.hosts, 'apply_profile',
                                  (profile, setup_script, self.paths))
-        # Always install pbench after applying profile
-        for host in self.hosts:
-            if not host.workers:
-                continue
         self.profile = self.main_host.profile.profile
         return [host.workers for host in self.hosts]
 
     def revert_profile(self):
         """Revert profile"""
         self.log.info("REVERT profile %s", self.profile)
+        # Collect information about the profile in case it was applied
+        if self.profile is not None:
+            env = []
+            # TODO: Consider doing this in parallel
+            for host in self.hosts:
+                try:
+                    env.append(host.profile.get_info())
+                except Exception as details:
+                    env.append({"failure": "Failed to get info: %s" % details})
+            self.write_metadata("environment_profile_%s" % self.profile,
+                                json.dumps(env))
         # Allow 3 attempts, one to revert previous profile, one to apply
         # and one extra in case one boot fails to get resources (eg. hugepages)
         self.for_each_host_retry(3, self.hosts, 'revert_profile')
@@ -578,6 +622,12 @@ class Host(BaseMachine):
                 session.cmd_status("rm -f ~/.ssh/id_rsa")
         self._cleanup = []
 
+    def get_info(self):
+        out = BaseMachine.get_info(self)
+        out["params"] = "\n".join("%s: %s" % _
+                                  for _ in sorted(self.params.items()))
+        return out
+
     def __del__(self):
         self.cleanup()
 
@@ -642,9 +692,10 @@ class LibvirtGuest(BaseMachine):
         raise NotImplementedError("Unknown os_variant: %s" % os_build)
 
     def get_info(self):
-        out = "Name: %s\nRunning on host: %s\n" % (self.name, self.host)
-        return out + self.get_host_session().cmd_output("virsh dumpxml '%s'"
-                                                        % self.name)
+        out = BaseMachine.get_info(self)
+        out["libvirt_xml"] = self.get_host_session().cmd_output(
+            "virsh dumpxml '%s'" % self.name)
+        return out
 
     def start(self):
         """

@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <title>Comparison of build {{src.build}} and {{dst.build}} ({{src.distro}} and {{dst.distro}})</title>
 
-<script language="javascript">
+{% if with_charts %}<script language="javascript">
 /*!
  * jQuery JavaScript Library v1.9.1
  * http://jquery.com/
@@ -10267,7 +10267,7 @@ $(document).ready(function () { chart_{{chart.id}} = new Highcharts.Chart({
     ]
 });});
 </script>
-{% endfor %}
+{% endfor %}{# end of with_charts #}{% endif %}
 
 <script language="javascript">
 function toggle(name, element) {
@@ -10370,6 +10370,15 @@ function initialize() {
 }
 </script>
 
+<script language="javascript">
+function elementValueToClipboard(name) {
+    var copyText = document.getElementById(name);
+    copyText.select();
+    /* Copy the text inside the text field */
+    document.execCommand("copy");
+};
+</script>
+
 <style>
 #container p { display: inline }
 body {background-color: white}
@@ -10388,7 +10397,7 @@ a {font-family: monospace;}
   visibility: hidden;
   background-color: lightgrey;
   color: black;
-  text-align: center;
+  text-align: left;
   position: absolute;
   z-index: 1;
 }
@@ -10458,6 +10467,14 @@ a {font-family: monospace;}
         <td style='{{ relative_score_color(build) }}'><div class="tooltip">{{build.runperf_cmd_short}}<span class="tooltiptext">{{build.runperf_cmd}}</span></div></td>{% endfor %}
     </tr>
     <tr>
+        <td>World env</td>{% for build in builds %}
+        <td style='{{ relative_score_color(build) }}'><textarea style="position: absolute; left: -9999px;"  id="env-world-raw">{{build.environment.world}}</textarea><div class="tooltip" onclick="elementValueToClipboard('env-world-raw')">{{build.environment_short.world}}<span class="tooltiptext"><a href="#">Click to copy the raw python dict</a><pre>{{build.environment_diff.world}}</pre></span></div></td>{% endfor %}
+    </tr>
+    {% for profile in profiles %}<tr>
+        <td>{{ profile }} env</td>{% for build in builds %}
+        <td style='{{ relative_score_color(build) }}'><textarea style="position: absolute; left: -9999px;"  id="env-profile-{{ profile }}-{{ loop.index }}-raw">{{build.environment[profile]}}</textarea><div class="tooltip" onclick="elementValueToClipboard('env-profile-{{ profile }}-{{ loop.index }}-raw')">{{build.environment_short[profile]}}<span class="tooltiptext"><a href="#">Click to copy the raw python dict</a><pre>{{build.environment_diff[profile]}}</pre></span></div></td>{% endfor %}
+    </tr>{% endfor %}
+    <tr>
         <td>Failures</td>{% for build in builds %}
         <td style='{{ relative_score_color(build) }}'>{{build.failures}}</td>{% endfor %}
     </tr>
@@ -10512,11 +10529,10 @@ a {font-family: monospace;}
     <a id='table_of_failures_button_{{value}}' href="javascript:tableOfFailuresToggleByNameSegment('{{value}}')" class="status_0">{{value|upper}}</a>{% endfor %}<br>{% endfor %}
     <table id='table_of_failures' border=1>
     <tr>
-        <th>Test</th>{% for build in builds %}
-        <th><a href="{{build.url}}">{{build.build}}</a></th>{% endfor %}
+        <th>Test</th>{% for build in builds %}{% if loop.index != 1 %}
+        <th><a href="{{build.url}}">{{build.build}}</a></th>{% endif %}{% endfor %}
     </tr>{% for builds_status in builds_statuses %}
-    <!-- TODO: use "unique" to log each any_status_* only once -->
-    <tr class=" status_{{builds_status[-1][0]}} {% for status, _, _ in builds_status %}{% if loop.index != 1 %}any_status_{{status}} {% endif %}{% endfor %}">{% for status, details, score in builds_status %}
+    <tr class=" status_{{builds_status[-1][0]}} {% for status, _, _ in builds_status|unique %}{% if loop.index > 2 %}any_status_{{status}} {% endif %}{% endfor %}">{% for status, details, score in builds_status %}
         <td class="status_{{status}}"><div class="tooltip">{{score}}<span class="tooltiptext">{{details}}</span></div></td>{% endfor %}
     </tr>{% endfor %}
     </table>
@@ -10543,8 +10559,8 @@ a {font-family: monospace;}
         </li>{% endfor %}
     </ul>
 </div>
+{% if with_charts %}<h1>Charts</h1>
 
-<h1>Charts</h1>
 <a id="charts-hide" href="javascript:toggle_short('charts');">[-]</a><br>
 
 <div id='charts' style="display: block">
@@ -10565,5 +10581,5 @@ a {font-family: monospace;}
     	{% endif %}
         	<div id="chart_{{chart.id}}" align="center" style="display: {% if chart.invisible %}none{% else %}inline-block{% endif %}"></div>{% endif %}{% endfor %}
     </div>
-</div>
+</div>{% endif %}
 </body>

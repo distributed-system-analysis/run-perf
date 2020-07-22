@@ -23,7 +23,6 @@ import glob
 import os
 import re
 
-
 JENKINS_DIR = "/var/lib/jenkins/jobs/"
 
 
@@ -73,6 +72,7 @@ def prune_results(job, age):
     for build in builds:
         prune_result(build, before)
     print("Done")
+
 
 if __name__ == '__main__':
     prune_results(os.environ.get('JOB'),

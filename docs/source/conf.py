@@ -15,8 +15,7 @@ import subprocess
 import sys
 ROOT_PATH = os.path.abspath(os.path.join(os.path.pardir, os.path.pardir))
 sys.path.insert(0, ROOT_PATH)
-from setup import get_version   # pylint: disable=C0413
-
+from setup import get_version  # pylint: disable=C0413
 
 # -- Project information -----------------------------------------------------
 
@@ -41,7 +40,7 @@ API_SECTIONS = {"Runperf API": (None,
                                 "API documentation",
                                 "runperf",
                                 tuple(),
-                                ('modules.rst',)),}
+                                ('modules.rst',)), }
 
 os.system("find %s -name '*.rst' -delete" % BASE_API_OUTPUT_DIR)
 
@@ -88,7 +87,6 @@ for (section, params) in API_SECTIONS.items():
         new_main_rst.write("".join(main_rst_content[2:]))
     '''
 
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -117,7 +115,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
-
 
 # -- Options for HTML output -------------------------------------------------
 

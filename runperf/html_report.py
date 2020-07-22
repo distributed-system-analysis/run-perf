@@ -14,6 +14,8 @@
 # Author: Lukas Doktor <ldoktor@redhat.com>
 
 import collections
+from difflib import unified_diff
+import json
 import re
 
 import jinja2
@@ -48,14 +50,71 @@ def num2char(num):
     return "".join(out[::-1])
 
 
-def generate_report(path, results):
+def generate_report(path, results, with_charts=False):
     """
     Generate html report from results
 
-    :param results: results container from `runperf.result.ResultsContainer`
+    :param path: Path to the output html file
+    :param results: Results container from `runperf.result.ResultsContainer`
+    :param with_charts: Whether to generate graphs
     """
+
     def generate_builds(results):
-        def process_metadata(metadata, known_commands, distros):
+
+        def process_diff_environemnt(env, src_env):
+            """process the collected environment and produce diff/short"""
+            build_env = {}
+            build_diff = {}
+            for key, value in env.items():
+                # TODO: Adjust to support multiple machines
+                if not value:
+                    continue
+                value = value[0]
+                build_env[key] = value
+                if key in src_env:
+                    diff = []
+                    inner_src_env = src_env[key]
+                    for inner_key, inner_value in value.items():
+                        if inner_key in inner_src_env:
+                            # Store only diff lines starting wiht +- as
+                            # we don't need a "useful" diff but just an
+                            # overview of what is different.
+                            raw_diff = unified_diff(inner_value.splitlines(),
+                                inner_src_env[inner_key].splitlines())
+                            inner_diff = "\n".join(line for line in raw_diff
+                                                   if (line.startswith("+") or
+                                                       line.startswith("-")))
+                        else:
+                            inner_diff = "+MISSING IN SRC"
+                        if inner_diff:
+                            diff.append("\n%s\n%s\n%s"
+                                        % (inner_key, "=" * len(inner_key),
+                                           inner_diff))
+                    build_diff[key] = "\n".join(diff)
+            for key, value in src_env.items():
+                if key in env:
+                    continue
+                build_env[key] = ""
+                build_diff[key] = "-MISSING IN THIS BUILD"
+            return build_env, build_diff
+
+        def collect_environment(metadata):
+            """Transform the multiple environment entries into a single dict"""
+            env = {}
+            profiles = []
+            env["world"] = json.loads(metadata.get("environment_world", '{}'))
+            for key, value in metadata.items():
+                if key.startswith("environment_profile_"):
+                    profile = key[20:]
+                    if profile in env:
+                        raise ValueError("Profile clashes with other env: %s"
+                                         % json.dumps(metadata))
+                    env[profile] = json.loads(value)
+                    profiles.append(profile)
+            return env, profiles
+
+        def process_metadata(metadata, known_items, src_env=None):
+            """Generate extra entries used in html_results out of metadata"""
             build = {}
             for key in ["build", "machine", "machine_url", "url", "distro",
                         "runperf_cmd"]:
@@ -66,14 +125,35 @@ def generate_report(path, results):
                 build["runperf_version"] = metadata.default_factory()
             build["guest_distro"] = metadata.get("guest_distro",
                                                  build["distro"])
-            if build["distro"] not in distros:
-                distros.append(build["distro"])
-            build["distro_short"] = num2char(distros.index(
-                build["distro"]))
-            if build["runperf_cmd"] not in known_commands:
-                known_commands.append(build["runperf_cmd"])
-            build["runperf_cmd_short"] = num2char(known_commands.index(
-                build["runperf_cmd"]))
+            if build["distro"] not in known_items['distros']:
+                known_items['distros'].append(build["distro"])
+            build["distro_short"] = num2char(
+                known_items['distros'].index(build["distro"]))
+            if build["runperf_cmd"] not in known_items['commands']:
+                known_items['commands'].append(build["runperf_cmd"])
+            build["runperf_cmd_short"] = num2char(
+                known_items['commands'].index(build["runperf_cmd"]))
+            env, profiles = collect_environment(metadata)
+            build['profiles'] = profiles
+            if src_env:
+                build_env, build_diff = process_diff_environemnt(env, src_env)
+                build["environment"] = build_env
+                build["environment_diff"] = build_diff
+            else:
+                # TODO: Adjust to support multiple machines
+                build["environment"] = {key: value[0]
+                                        for key, value in env.items()
+                                        if value}
+                build["environment_diff"] = {key: ""
+                                             for key, value in env.items()
+                                             if value}
+            build["environment_short"] = {}
+            for key, value in build["environment"].items():
+                known_item = known_items["env %s" % key]
+                if value not in known_item:
+                    known_item.append(value)
+                build["environment_short"][key] = num2char(
+                    known_item.index(value))
             return build
 
         def get_failed_facts(dst_record, results, record_attr="records"):
@@ -99,17 +179,18 @@ def generate_report(path, results):
             if not (failures or missing):
                 facts.append("Passed in all %s reference builds" % total)
             return facts
+
         builds = []
-        runperf_commands = []
-        distros = []
+        known_items = collections.defaultdict(list)
         # SRC
-        src = process_metadata(results.src_metadata, runperf_commands,
-                               distros)
+        src = process_metadata(results.src_metadata, known_items)
+        src["score"] = 0
+        src_env = src["environment"]
+        builds.append(src)
         # BUILDS
         build = res = None
         for res in results:
-            build = process_metadata(res.metadata, runperf_commands,
-                                     distros)
+            build = process_metadata(res.metadata, known_items, src_env)
             failures = grouped_failures = non_primary_failures = 0
             for record in res.records:
                 if record.status < 0:
@@ -298,7 +379,7 @@ def generate_report(path, results):
                                 ("serial", "iteration_name",
                                  "iteration_name_extra", "workflow")),
                                ("Same test (different params)",
-                                ("iteration_name_extra", ))):
+                                ("iteration_name_extra",))):
             charts.append(section)
             names = set()
             improvements = []
@@ -450,9 +531,15 @@ def generate_report(path, results):
 
     values = {}
     values["src"], values["builds"], values["dst"] = generate_builds(results)
-    values["charts"] = generate_charts(results)
+    profiles = list(set(profile
+                        for build in values["builds"]
+                        for profile in build["profiles"]))
+    values["profiles"] = list(profiles)
+    if with_charts:
+        values["charts"] = generate_charts(results)
     values["builds_statuses"] = generate_builds_statuses(results)
     values["filters"] = get_filters(results)
+    values["with_charts"] = with_charts
     loader = jinja2.PackageLoader("runperf", "assets/html_report")
     env = jinja2.Environment(loader=loader, autoescape=True)
     template = env.get_template("report_template.html")

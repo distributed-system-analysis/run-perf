@@ -12,6 +12,9 @@ builds: [src, reference1, reference2, ..., dst]     # List of all involved build
         runperf_version: 04ef7ec9f93fc3929e82d413cccf8230222b3382   # Sha of the runperf version
         runperf_cmd: "python3 scripts/run-perf -vvv --hosts testmachine.example.org --distro DISTRO --remote --beaker --default-password password --profiles DefaultLibvirt TunedLibvirt -- fio uperf"  # command that generated those results
         runperf_cmd_short: "A"  # Short version of the cmd (usually A, A, A, B, ... where all A-s share the same cmd and B-s are different than A-s)
+        environment: {'world': {'rpm': 'foo-1.0\nbar-2.0', 'kernel': ...}   # raw environment of this build (comes from runperf METADATA)
+        environment_diff: {'world': 'SOME\n====\n+line\n-line', ...}    # diff of the environment compare to src build
+        environment_short: {'world': 'A', 'profile': 'B', ...}  # Short version of the environment where the same letters share the same raw environment
         failures: 3     # Number of failures in this build
         group_failures: 0   # Number of group failures in this build
         total: 357      # Overall number of checks
@@ -71,6 +74,9 @@ result_of_build1: (-1, "foo", -3.1)    # where:
 
 filters: {category: [tag1, tag2, ...], "profiles": ["TunedLibvirt", "DefaultLibvirt"], ...}     # filters based on test name, always have to be unique and are used mainly in table_of_failures
 
+profiles: [profile1, profile2, ...]  # List of profiles used to run tests on
+with_charts: False  # Whether to include graphs (they are nice but consume a lot of space)
+
 # Description of extra rules
 * chart_* HTML ids are reserved for list of charts
 * chart ids must be unique
@@ -80,3 +86,4 @@ filters: {category: [tag1, tag2, ...], "profiles": ["TunedLibvirt", "DefaultLibv
 * table_of_failures_button* are reserved for name-filtering button ids
 * status_* classes are intended for reported test statuses
 * any_status_* classes also maps to status_* but indicates any of the items are of those status
+* env_*-raw are reserved for the basic overview table's environment divs
