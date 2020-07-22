@@ -204,10 +204,10 @@ def create_metadata(output_dir, args):
         output.write("machine:%s" % ",".join(_[1] for _ in args.hosts))
         if "machine_url_base" in args.metadata:
             url = (args.metadata["machine_url_base"]
-                   % {"machine": args.hosts[0]})
+                   % {"machine": args.hosts[0][1]})
             output.write("machine_url:%s" % url)
         else:
-            output.write("machine_url:%s" % args.hosts[0])
+            output.write("machine_url:%s" % args.hosts[0][1])
         # TODO: Add pbench version
 
 
