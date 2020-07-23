@@ -152,11 +152,11 @@ class PBenchTest(BaseTest):
             pbench.install_on(session, self.metadata, test=self.test)
         for workers in self.workers:
             for worker in workers:
-                with worker.get_session_cont(hop=self.host) as session:
+                with worker.get_session_cont() as session:
                     pbench.install_on(session, self.metadata, test=self.test)
         for workers in self.workers:
             for worker in workers:
-                with worker.get_session_cont(hop=self.host) as session:
+                with worker.get_session_cont() as session:
                     if not utils.wait_for_machine_calms_down(session,
                                                              timeout=1800):
                         worker.log.warning("Worker did not stabilize in 1800s,"

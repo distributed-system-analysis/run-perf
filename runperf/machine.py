@@ -665,6 +665,11 @@ class LibvirtGuest(BaseMachine):
         self.xml = None
         self.image = None
 
+    def get_session(self, timeout=60, hop=None):
+        if hop is None:
+            hop = self.host
+        return BaseMachine.get_session(self, timeout=timeout, hop=hop)
+
     def get_host_session(self):
         """
         Get and cache host session.
