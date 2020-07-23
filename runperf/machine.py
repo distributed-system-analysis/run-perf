@@ -698,8 +698,9 @@ class LibvirtGuest(BaseMachine):
 
     def get_info(self):
         out = BaseMachine.get_info(self)
-        out["libvirt_xml"] = self.get_host_session().cmd_output(
-            "virsh dumpxml '%s'" % self.name)
+        out["libvirt_xml"] = self.get_host_session().cmd(
+            "virsh dumpxml '%s'" % self.name, print_func="mute",
+            ignore_all_errors=True)
         return out
 
     def start(self):
