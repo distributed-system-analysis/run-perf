@@ -665,6 +665,11 @@ class LibvirtGuest(BaseMachine):
         self.xml = None
         self.image = None
 
+    def get_session(self, timeout=60, hop=None):
+        if hop is None:
+            hop = self.host
+        return BaseMachine.get_session(self, timeout=timeout, hop=hop)
+
     def get_host_session(self):
         """
         Get and cache host session.
@@ -693,8 +698,9 @@ class LibvirtGuest(BaseMachine):
 
     def get_info(self):
         out = BaseMachine.get_info(self)
-        out["libvirt_xml"] = self.get_host_session().cmd_output(
-            "virsh dumpxml '%s'" % self.name)
+        out["libvirt_xml"] = self.get_host_session().cmd(
+            "virsh dumpxml '%s'" % self.name, print_func="mute",
+            ignore_all_errors=True)
         return out
 
     def start(self):
