@@ -154,13 +154,19 @@ class PBenchTest(BaseTest):
             for worker in workers:
                 with worker.get_session_cont() as session:
                     pbench.install_on(session, self.metadata, test=self.test)
+        # Wait for the machines to calm down before the testing and use
+        # hop=self.host as the host will be executing the ssh commands.
         for workers in self.workers:
             for worker in workers:
-                with worker.get_session_cont() as session:
+                with worker.get_session_cont(hop=self.host) as session:
                     if not utils.wait_for_machine_calms_down(session,
                                                              timeout=1800):
                         worker.log.warning("Worker did not stabilize in 1800s,"
                                            " proceeding on a loaded machine!")
+        with self.host.get_session_cont(hop=self.host) as session:
+            if not utils.wait_for_machine_calms_down(session, timeout=1800):
+                worker.log.warning("Host did not stabilize in 1800s,"
+                                   " proceeding on a loaded machine!")
 
     @staticmethod
     def add_metadata(session, key, value):
