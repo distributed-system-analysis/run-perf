@@ -411,7 +411,7 @@ class AnalyzePerf:
         result_names = set()
         for path in args.results:
             results_name = os.path.basename(path)
-            for test, score, _ in result.iter_results(path, True):
+            for test, score, _, _ in result.iter_results(path, True):
                 if test not in storage:
                     storage[test] = {}
                 storage[test][results_name] = score

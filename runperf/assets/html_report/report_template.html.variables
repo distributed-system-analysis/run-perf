@@ -67,10 +67,13 @@ charts: ["Section name", {...}, {...}, "Section name", {...}, ...]   # dict of c
 
 builds_statuses: [results_of_test1, results_of_test2, ...]  # List of results of all tests of all builds
 results_of_test1: [test_name, result_of_build1, result_of_build2, ... (-1, "foo", 0)]
-result_of_build1: (-1, "foo", -3.1)    # where:
+result_of_build1: (-1, "foo", -3.1, ("short_version_of_params", "full_version_of_params"))    # where:
     # -1 is a build status, which should be in status_map and str_status_map
     # "foo" is the description of the failure/pass
     # -3.1 is the build score (%.1f)
+    # (short_version_of_params, full_version_of_params) is an optional warning that will be marked by
+    # :wrench: icon. The "short_version_of_params" will be displayed as a tooltip on hover and the
+    # "full_version_of_params" will be stored in clipboard on click.
 
 filters: {category: [tag1, tag2, ...], "profiles": ["TunedLibvirt", "DefaultLibvirt"], ...}     # filters based on test name, always have to be unique and are used mainly in table_of_failures
 

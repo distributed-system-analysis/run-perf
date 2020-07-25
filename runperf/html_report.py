@@ -79,8 +79,15 @@ def generate_report(path, results, with_charts=False):
                             # Store only diff lines starting wiht +- as
                             # we don't need a "useful" diff but just an
                             # overview of what is different.
-                            raw_diff = unified_diff(inner_value.splitlines(),
-                                inner_src_env[inner_key].splitlines())
+                            raw_diff = unified_diff(
+                                inner_src_env[inner_key].splitlines(),
+                                inner_value.splitlines())
+                            # Skip first two lines as it contains +++ and ---
+                            try:
+                                next(raw_diff)
+                                next(raw_diff)
+                            except StopIteration:
+                                pass
                             inner_diff = "\n".join(line for line in raw_diff
                                                    if (line.startswith("+") or
                                                        line.startswith("-")))
@@ -93,6 +100,8 @@ def generate_report(path, results, with_charts=False):
                     build_diff[key] = "\n".join(diff)
             for key, value in src_env.items():
                 if key in env:
+                    continue
+                if not value:
                     continue
                 build_env[key] = ""
                 build_diff[key] = "-MISSING IN THIS BUILD"
@@ -185,6 +194,9 @@ def generate_report(path, results, with_charts=False):
         # SRC
         src = process_metadata(results.src_metadata, known_items)
         src["score"] = 0
+        src["test_params"] = {key: value[2]
+                              for key, value in results.src_results.items()
+                              if value[1] is True}
         src_env = src["environment"]
         builds.append(src)
         # BUILDS
@@ -471,28 +483,97 @@ def generate_report(path, results, with_charts=False):
                 charts.append(chart)
         return charts
 
-    def generate_builds_statuses(results):
+    def get_build_param_diff(all_src_params, record):
+        params_raw = record.params.copy()
+        params_diff = []
+        src_params = all_src_params.get(record.name, {})
+        for key, value in record.params.items():
+            if not value:
+                continue
+            if key in src_params:
+                # Store only diff lines starting wiht +- as
+                # we don't need a "useful" diff but just an
+                # overview of what is different.
+                raw_diff = unified_diff(src_params[key].splitlines(),
+                                        value.splitlines())
+                # Skip first two lines as it contains +++ and ---
+                try:
+                    next(raw_diff)
+                    next(raw_diff)
+                except StopIteration:
+                    pass
+                diff = "\n".join(line for line in raw_diff
+                                 if (line.startswith("+") or
+                                     line.startswith("-")))
+            else:
+                diff = "+MISSING IN SRC"
+            if diff:
+                params_diff.append("%s\n%s\n%s"
+                                   % (key, "=" * len(str(key)), diff))
+        for key, value in src_params.items():
+            if key in record.params:
+                continue
+            if not value:
+                continue
+            params_raw[key] = ""
+            params_diff.append("%s\n%s\n-MISSING IN THIS PARAMS"
+                               % (key, "=" * len(str(key))))
+        return params_raw, "\n".join(params_diff)
+
+    def generate_builds_statuses(results, values):
+        src_params = values["src"]["test_params"]
         statuses = {}
+        per_build_test_params_stat = []
+
+        # First update the src build
+        src_result_diff = {test: (params, "")
+                           for test, params in src_params.items()}
+        # We are going to inject group records to src_result_diff, we need
+        # a copy here to avoid mutation
+        known_test_params_diffs = [src_result_diff.copy()]
+        values["builds"][0]["environment"]["tests"] = ""
+        values["builds"][0]["environment_diff"]["tests"] = ""
+        values["builds"][0]["environment_short"]["tests"] = num2char(
+            known_test_params_diffs.index(src_result_diff))
+
+        # Now generate diffs for the remaining builds
         for i, res in enumerate(results):
+            this_result_diff = {}
             for record in res.records:
                 if not record.primary:
                     continue
                 if record.name not in statuses:
                     statuses[record.name] = {}
+                param_diff = get_build_param_diff(src_params, record)
+                this_result_diff[record.name] = param_diff
                 statuses[record.name][i] = (record.status, record.details,
-                                            "%.1f" % record.score)
+                                            "%.1f" % record.score, param_diff)
             for record in res.grouped_records:
                 if not record.primary:
                     continue
                 if record.name not in statuses:
                     statuses[record.name] = {}
+                # inject empty diffs for group results to src_results as
+                # they were not generated
+                src_result_diff[record.name] = ("", "")
                 statuses[record.name][i] = (record.status, record.details,
-                                            "%.1f" % record.score)
+                                            "%.1f" % record.score, ("", ""))
+            if this_result_diff not in known_test_params_diffs:
+                known_test_params_diffs.append(this_result_diff)
+            per_build_test_params_stat.append(
+                [num2char(known_test_params_diffs.index(this_result_diff)),
+                 "\n".join(key for key, value in this_result_diff.items()
+                           if value[1])])
         builds_statuses = []
         for name in sorted(statuses.keys()):
-            builds_statuses.append([(name, name, name)] +
-                                   [statuses[name].get(i, (result.ERROR, "Unknown", "NA"))
+            builds_statuses.append([(name, name, name, src_result_diff.get(name, ("NA", "NA")))] +
+                                   [statuses[name].get(i, (result.ERROR, "Unknown", "NA", ("NA", "NA")))
                                     for i in range(len(results))])
+
+        for i, env_test in enumerate(per_build_test_params_stat):
+            values["builds"][i+1]["environment"]["tests"] = env_test[1]
+            values["builds"][i+1]["environment_diff"]["tests"] = env_test[1]
+            values["builds"][i+1]["environment_short"]["tests"] = env_test[0]
         return builds_statuses
 
     def get_filters(results):
@@ -537,7 +618,8 @@ def generate_report(path, results, with_charts=False):
     values["profiles"] = list(profiles)
     if with_charts:
         values["charts"] = generate_charts(results)
-    values["builds_statuses"] = generate_builds_statuses(results)
+    values["builds_statuses"] = generate_builds_statuses(
+        results, values)
     values["filters"] = get_filters(results)
     values["with_charts"] = with_charts
     loader = jinja2.PackageLoader("runperf", "assets/html_report")

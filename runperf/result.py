@@ -165,12 +165,12 @@ class Result:
     """XUnitResult object"""
 
     __slots__ = ("score", "primary", "status", "details", "classname",
-                 "testname", "src", "dst")
+                 "testname", "src", "dst", "params")
     _re_name = re.compile(r'([^/]+)/([^/]+)/([^:]+):'
                           r'./([^/]+)/([^/]+)/([^\.]+)\.(.+)')
 
     def __init__(self, status, score, test, src, dst, details=None,
-                 primary=False):
+                 primary=False, params=None):
         self.status = status
         self.score = score
         name = test.rsplit('/', 1)
@@ -185,6 +185,10 @@ class Result:
         self.primary = primary
         self.src = src
         self.dst = dst
+        if params is None:
+            self.params = {}
+        else:
+            self.params = params
 
     def is_stddev(self):
         """Whether this result is "stddev" result (or mean)"""
@@ -254,10 +258,14 @@ def iter_results(path, skip_incorrect=False):
                 continue
             data = src_result['iteration_data']
             primary_metrics = []
-            for benchmark in data['parameters'].get('benchmark', []):
+            test_params = {}
+            for i, benchmark in enumerate(data['parameters'].get('benchmark',
+                                                                 [])):
                 primary_metric = benchmark.get('primary_metric')
                 if primary_metric:
                     primary_metrics.append(primary_metric)
+                test_params[i] = "\n".join("%s:%s" % item
+                                           for item in benchmark.items())
             for workflow in ('throughput', 'latency'):
                 workflow_items = data.get(workflow, {}).items()
                 for workflow_type, results in workflow_items:
@@ -277,12 +285,14 @@ def iter_results(path, skip_incorrect=False):
                            % (result_id, iteration_name, workflow,
                               workflow_type),
                            res['mean'],  # pylint: disable=W0631
-                           primary)
+                           primary,
+                           test_params)
                     yield ("%s:./%s/%s/%s.stddev"
                            % (result_id, iteration_name, workflow,
                               workflow_type),
                            res['stddevpct'],  # pylint: disable=W0631
-                           primary)
+                           primary,
+                           test_params)
 
 
 class ResultsContainer:
@@ -299,8 +309,8 @@ class ResultsContainer:
         self.models = models
         self.results = collections.OrderedDict()
         self.src_name = src_name
-        self.src_results = {test: score
-                            for test, score, _ in iter_results(src_path, True)}
+        self.src_results = {test: (score, primary, params)
+                            for test, score, primary, params in iter_results(src_path, True)}
         self.src_metadata = self._parse_metadata(src_name, src_path)
 
     def __iter__(self):
@@ -334,13 +344,14 @@ class ResultsContainer:
         res = RelativeResults(self.log, self.tolerance, self.stddev_tolerance,
                               self.models, metadata)
         src_tests = list(self.src_results.keys())
-        for test, score, primary in iter_results(path, True):
+        for test, score, primary, params in iter_results(path, True):
             if test in src_tests:
-                res.record_result(test, self.src_results[test], score, primary)
+                res.record_result(test, self.src_results[test][0],
+                                  score, primary, params=params)
                 src_tests.remove(test)
             else:
                 res.record_broken(test, "Not present in source results (%s)."
-                                  % score, primary)
+                                  % score, primary, params)
         for missing_test in src_tests:
             res.record_broken(missing_test, "Not present in target results "
                               "(%s)" % -100, False)
@@ -375,10 +386,10 @@ class RelativeResults:
         else:
             self.records.append(result)
 
-    def record_broken(self, test_name, details=None, primary=True):
+    def record_broken(self, test_name, details=None, primary=True, params=None):
         """Insert broken/corrupted result"""
         self.record(Result(ERROR, -100, test_name, 0, -100, details=details,
-                           primary=primary))
+                           primary=primary, params=params))
 
     def _calculate_test_difference(self, test_name, src, dst):
         """
@@ -395,7 +406,7 @@ class RelativeResults:
         return src - dst, self.stddev_tolerance
 
     def record_result(self, test_name, src, dst, primary=False, grouped=False,
-                      raw_difference=None, raw_tolerance=None):
+                      raw_difference=None, raw_tolerance=None, params=None):
         """
         Process result and insert it into database
         """
@@ -465,7 +476,8 @@ class RelativeResults:
             msg.add("mraw", model_raw_difference, model_raw_tolerance)
             msg.add("raw", raw_difference, raw_tolerance)
         self.record(Result(status, difference, test_name, src, dst,
-                           details=msg.report(status), primary=primary),
+                           details=msg.report(status), primary=primary,
+                           params=params),
                     grouped=grouped)
 
     def get_xunit(self):

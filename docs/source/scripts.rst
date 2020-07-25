@@ -111,6 +111,37 @@ to plugins/tests, examples of some usages:
   :class:`runperf.tests.PBenchTest` to push the results to the specified
   ``pbench_server`` via ``pbench-copy-results``.
 
+Additional metadata are being collected by run-perf and injected into the
+build metadata file. Before the execution it gathers:
+
+* ``distro`` - should represent the target system distro (no detection is
+  performed, it's up to the user to specify it correctly or to use
+  a provisioner to make sure it's accurate)
+* ``guest_distro`` - guest distro that might be used by the profiles to
+  provision workers with.
+* ``runperf_version`` - runperf version
+* ``runperf_cmd`` - actual command that was used to run this build with
+  certain (dynamic or secret; eg. distro, password, metadata, ...) arguments
+  masked.
+* ``machine`` - addresses of all target machines
+* ``machine_url`` - when ``machine_url_base`` is set in metadata a link
+  to the first target machine is stored here. It's used by the html
+  plugin to add a link to the target machine (eg. beaker where one can
+  see the hw info)
+
+Additionally on profile revert a profile environment is being collected and
+in the end all target system environment is also gathered and injected
+into the metadata json file. These can be used to compare the environments
+in case of a change.
+
+.. note:: For test environment changes run-perf relies on pbench result
+   file format where benchmark params are stored under
+   ``results.json:[index]["iteration_data"]["parameters"]["benchmark"][:]``.
+   In case your test does not provide these you can use the
+   :mod:`runperf.tests` wrappers to inject these. You can inspire by
+   :mod:`runperf.tests.BaseTest.inject_metadata` which is used to inject
+   our metadata into this file format.
+
 ============
 Compare-perf
 ============
@@ -193,7 +224,11 @@ results comparison. It always compares the source build to all reference
 builds and the destination build and generates a standalone html page with
 comparison, which is useful for email attachments.
 
-Sample output of multiple results can be seen `here <_static/html_result.html>`_
+Sample output of multiple results can be seen
+`here <_static/html_result.html>`_ and was generated using (partial) results
+stored in ``selftests/assets/results`` in the run-perf sources using a model
+located in ``selftests/assets/results/1_base/linear_model.json`` using
+first five results from that directory.
 
 let's have a look at the available sections:
 
@@ -205,28 +240,34 @@ is the baseline. Some entries are replaced by A,B,C... to avoid unnecessary
 long lines, but you can always get the real value on mouse over but all A-s
 within one line are of the same value.
 
- * Build - link to the build that was used to generate the results
+ * `Build` - link to the build that was used to generate the results
    (build_prefix is suffixed to the build number)
- * Machine - on which machine it was executed
- * Distro - which host distribution was used
- * Guest distro - which distribution was used on guest (DISTRO means the same
+ * `Machine` - on which machine it was executed
+ * `Distro` - which host distribution was used
+ * `Guest distro` - which distribution was used on guest (DISTRO means the same
    as on host)
- * Runperf version - runperf commit used to execute the job (important only in
-   case profiles/tests are changed - not frequently...)
- * Runperf command - can indicate how the build was different (some values are
-   replaced with values representing the option, eg. passwords or file contents)
- * World env - signals what changed on the main system between different
+ * `Runperf version` - runperf commit used to execute the job (important only
+   in case profiles/tests are changed - not frequently...)
+ * `Runperf command` - can indicate how the build was different (some values
+   are replaced with values representing the option, eg. passwords or file
+   contents)
+ * `World env` - signals what changed on the main system between different
    builds. On hover it shows ``diff`` of the environment compare to the source
-   build and on click it copies the json value with the full environment to
-   your clipboard (use ``ctrl+v`` to retrieve it).
- * * env - the same as ``World env`` only for each profile that was used in
+   build and on click (anywhere on the letter or in the tooltip) it copies
+   the json value with the full environment to your clipboard (use ``ctrl+v``
+   to retrieve it).
+ * `* env` - the same as ``World env`` only for each profile that was used in
    this execution. On top of the usual it can contain things like libvirt xml.
- * Failures - number of failures
- * Group failures - number of aggregated failures (eg. when all fio tests break
-   the group failures rate)
- * Non-primary failures - number of non-primary failures
- * Total checks - number of tests
- * Build score - somehow represents how different the build is from the
+ * `Tests env` - Lists tests with different params from the src build. In this
+   overview you can only get the list of tests to see the individual params
+   as well as actual differences you need to hover/click on the wrench icon
+   next to each test (see `Table of failures`_ below)
+ * `Failures` - number of failures
+ * `Group failures` - number of aggregated failures (eg. when all fio tests
+   break the group failures rate)
+ * `Non-primary failures` - number of non-primary failures
+ * `Total checks` - number of tests
+ * `Build score` - somehow represents how different the build is from the
    baseline (doesn't mean slower or faster, only how different). It is also
    used to colour the columns to highlight the most distant builds.
 
@@ -248,7 +289,14 @@ use you get:
 and then 2 number in brackets, that are the source model raw value and this
 build raw value.
 
-Note I find this table the best source of the information.
+In case the test parameters are different from the source job a `🔧` character.
+On hover it displays the diff of src and this test params. On click (on the
+character as well as anywhere in the tooltip) it pastes the raw params to
+system clipboard (use ``ctrl+v`` to retrieve it). The source result params can
+be retrieved via the icon next to the test name. Note that group results don't
+contain the test params, then the `🔧` icon is not displayed.
+
+.. tip:: I find this table the best source of the information.
 
 Details
 -------
@@ -261,14 +309,18 @@ about number of failures in reference builds.
 Charts
 ------
 
-Charts are very useful to imagine the usual spread and to inspect how
-the builds behave under different conditions. First section is "Overall mean"
-and it includes all (primary) tests. Left chart shows number of results per
-given category, the right chart shows statistic data about each category
-(minimum, 1st quantile, median, 3rd quantile and maximum). Scrolling down
-you'll see the same charts that include results of only some of the tests,
-for example focussing only on results executed under TunedLibvirt profile,
-or using tcp_stream uperf test.
+Charts are not generated by default but can be enabled via
+``--html-with-charts``. Especially when multiple profiles as well as tests
+are executed they can be quite useful, but they add quite a big amount of
+javascript code, which is why they are not enabled by default.
+
+First section is "Overall mean" and it includes all (primary) tests.
+Left chart shows number of results per given category, the right chart
+shows statistic data about each category (minimum, 1st quantile, median,
+3rd quantile and maximum). Scrolling down you'll see the same charts that
+include results of only some of the tests, for example focussing only on
+results executed under TunedLibvirt profile, or using tcp_stream uperf
+test.
 
 CSV
 ===
