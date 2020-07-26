@@ -205,9 +205,9 @@ def create_metadata(output_dir, args):
         if "machine_url_base" in args.metadata:
             url = (args.metadata["machine_url_base"]
                    % {"machine": args.hosts[0][1]})
-            output.write("machine_url:%s" % url)
+            output.write("\nmachine_url:%s" % url)
         else:
-            output.write("machine_url:%s" % args.hosts[0][1])
+            output.write("\nmachine_url:%s" % args.hosts[0][1])
         # TODO: Add pbench version
 
 
@@ -411,7 +411,7 @@ class AnalyzePerf:
         result_names = set()
         for path in args.results:
             results_name = os.path.basename(path)
-            for test, score, _ in result.iter_results(path, True):
+            for test, score, _, _ in result.iter_results(path, True):
                 if test not in storage:
                     storage[test] = {}
                 storage[test][results_name] = score

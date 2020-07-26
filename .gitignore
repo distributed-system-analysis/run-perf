@@ -136,7 +136,7 @@ dmypy.json
 *.swp
 
 # run-perf result files
-result*/
+/result*/
 
 # Auto-generated API documentation
 docs/source/api
