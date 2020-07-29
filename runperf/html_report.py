@@ -50,6 +50,20 @@ def num2char(num):
     return "".join(out[::-1])
 
 
+def anonymize_test_params(lines):
+    """
+    Tweaks to remove dynamic data from test-params
+    """
+    out = []
+    for line in lines:
+        if line.startswith("clients:"):
+            out.append("clients:<anonymized-count-only>%s"
+                       % (line.count(',') + 1))
+        else:
+            out.append(line)
+    return out
+
+
 def generate_report(path, results, with_charts=False):
     """
     Generate html report from results
@@ -494,8 +508,9 @@ def generate_report(path, results, with_charts=False):
                 # Store only diff lines starting wiht +- as
                 # we don't need a "useful" diff but just an
                 # overview of what is different.
+                dst = anonymize_test_params(value.splitlines())
                 raw_diff = unified_diff(src_params[key].splitlines(),
-                                        value.splitlines())
+                                        dst)
                 # Skip first two lines as it contains +++ and ---
                 try:
                     next(raw_diff)
@@ -521,12 +536,16 @@ def generate_report(path, results, with_charts=False):
         return params_raw, "\n".join(params_diff)
 
     def generate_builds_statuses(results, values):
+        def anonymize_test_params_dict(params):
+            """Iterate through the params and anonymize the values"""
+            return {key: "\n".join(anonymize_test_params(value.splitlines()))
+                    for key, value in params.items()}
         src_params = values["src"]["test_params"]
         statuses = {}
         per_build_test_params_stat = []
 
         # First update the src build
-        src_result_diff = {test: (params, "")
+        src_result_diff = {test: (anonymize_test_params_dict(params), "")
                            for test, params in src_params.items()}
         # We are going to inject group records to src_result_diff, we need
         # a copy here to avoid mutation
@@ -565,8 +584,10 @@ def generate_report(path, results, with_charts=False):
                  "\n".join(key for key, value in this_result_diff.items()
                            if value[1])])
         builds_statuses = []
+        src_result_diff_raw = {test: (params, "")
+                               for test, params in src_params.items()}
         for name in sorted(statuses.keys()):
-            builds_statuses.append([(name, name, name, src_result_diff.get(name, ("NA", "NA")))] +
+            builds_statuses.append([(name, name, name, src_result_diff_raw.get(name, ("NA", "NA")))] +
                                    [statuses[name].get(i, (result.ERROR, "Unknown", "NA", ("NA", "NA")))
                                     for i in range(len(results))])
 
