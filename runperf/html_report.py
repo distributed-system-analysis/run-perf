@@ -203,11 +203,20 @@ def generate_report(path, results, with_charts=False):
                 facts.append("Passed in all %s reference builds" % total)
             return facts
 
+        def anonymize_test_params_dict(params):
+            """Iterate through the params and anonymize the values"""
+            return {key: "\n".join(anonymize_test_params(value.splitlines()))
+                    for key, value in params.items()}
+
         builds = []
         known_items = collections.defaultdict(list)
         # SRC
         src = process_metadata(results.src_metadata, known_items)
         src["score"] = 0
+        src["test_params_anonymized"] = {
+            key: anonymize_test_params_dict(value[2])
+            for key, value in results.src_results.items()
+            if value[1] is True}
         src["test_params"] = {key: value[2]
                               for key, value in results.src_results.items()
                               if value[1] is True}
@@ -536,16 +545,12 @@ def generate_report(path, results, with_charts=False):
         return params_raw, "\n".join(params_diff)
 
     def generate_builds_statuses(results, values):
-        def anonymize_test_params_dict(params):
-            """Iterate through the params and anonymize the values"""
-            return {key: "\n".join(anonymize_test_params(value.splitlines()))
-                    for key, value in params.items()}
-        src_params = values["src"]["test_params"]
+        src_params = values["src"]["test_params_anonymized"]
         statuses = {}
         per_build_test_params_stat = []
 
         # First update the src build
-        src_result_diff = {test: (anonymize_test_params_dict(params), "")
+        src_result_diff = {test: (params, "")
                            for test, params in src_params.items()}
         # We are going to inject group records to src_result_diff, we need
         # a copy here to avoid mutation
@@ -584,12 +589,16 @@ def generate_report(path, results, with_charts=False):
                  "\n".join(key for key, value in this_result_diff.items()
                            if value[1])])
         builds_statuses = []
+        src_params_raw = values["src"]["test_params"]
         src_result_diff_raw = {test: (params, "")
-                               for test, params in src_params.items()}
+                               for test, params in src_params_raw.items()}
         for name in sorted(statuses.keys()):
-            builds_statuses.append([(name, name, name, src_result_diff_raw.get(name, ("NA", "NA")))] +
-                                   [statuses[name].get(i, (result.ERROR, "Unknown", "NA", ("NA", "NA")))
-                                    for i in range(len(results))])
+            builds_statuses.append(
+                [(name, name, name, src_result_diff_raw.get(name,
+                                                            ("NA", "NA")))] +
+                [statuses[name].get(i, (result.ERROR, "Unknown", "NA",
+                                        ("NA", "NA")))
+                 for i in range(len(results))])
 
         for i, env_test in enumerate(per_build_test_params_stat):
             values["builds"][i+1]["environment"]["tests"] = env_test[1]
