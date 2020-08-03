@@ -76,8 +76,36 @@ Test runners are implemented under :mod:`runperf.tests` and currently consists
 of two `pbench-based <https://distributed-system-analysis.github.io/pbench/pbench-agent.html>`_
 tests:
 
-* `Fio <https://fio.readthedocs.io/en/latest/fio_doc.html>`_
-* `Uperf <http://uperf.org/manual.html>`_
+Fio
+---
+
+`Fio <https://fio.readthedocs.io/en/latest/fio_doc.html>`_ is a customizable
+IO intense test. You can tweak following params:
+
+* type - one or more of read,write,rw,randread,randwrite,randrw [read,write,rw]
+* ramptime - time in seconds to warm up test before taking measurements [10]
+* runtime - runtime in seconds [180]
+* samples - number of samples to use per test iteration [3]
+* file-size - file sizes in MiB (must be bigger than the biggest block size)
+* targets - one or more directories or block devices
+
+Uperf
+-----
+
+`Uperf <http://uperf.org/manual.html>`_ is a customizable network IO intense
+test. Currently it only tests network between workers and the host.
+
+You can tweak following params:
+
+* type - stream, maerts, bidirec, and/or rr [stream]
+* runtime - test measurement period in seconds [60]
+* samples - the number of times each different test is run (to compute average
+  & standard deviations) [3]
+* protocols - tcp and/or udp (note it's not advised to use `udp` with `stream`
+  type otherwise kernel can "cheat" and dump the packets instead of sending
+  them. It's recommended to use `rr` for `udp` [tcp]
+* message-sizes - list of message sizes in bytes [1,64,16384]
+
 
 Both are customizable via params, see the source code for details.
 
