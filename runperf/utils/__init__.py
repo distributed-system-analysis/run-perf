@@ -322,22 +322,32 @@ def shell_write_content_cmd(path, content, append=False):
 
 def wait_for_machine_calms_down(session, timeout=600):
     """
-    Wait until 5m system load calms below 1.0
+    Wait until the 20s avg cpu utilization is lower than 5% for longer than 60s
 
     :param session: session
-    :param timeout: timeout
+    :param timeout: timeout (>=60s to ensure it won't timeout)
     :return: True on success, False when it's still busy
     """
     # wait until the machine settles down
+    if timeout < 60:
+        timeout = 60
     try:
-        if not session.cmd_status('( END="$(expr $(date \'+%%s\') + %s)"; '
-                                  'while [ "$(date \'+%%s\')" -lt "$END" ]; '
-                                  'do [ "$(cat /proc/loadavg | cut -d\' \' -f2'
-                                  ' | cut -d\'.\' -f1)" -eq 0 ] && exit 0; '
-                                  'sleep 5; done; exit 1 )' % timeout,
-                                  timeout=timeout + 11):
+        if not session.cmd_status(
+            '( IDLE=0; END="$(expr $(date \'+%%s\') + %s)"; '
+            'while [ "$(date \'+%%s\')" -lt "$END" ]; do '
+            'cpu_now=($(head -n1 /proc/stat)); cpu_sum="${cpu_now[@]:1}"; '
+            'cpu_sum=$((${cpu_sum// /+})); '
+            'cpu_delta=$((cpu_sum - cpu_last_sum)); '
+            'cpu_idle=$((cpu_now[4]- cpu_last[4])); '
+            'cpu_used=$((cpu_delta - cpu_idle)); '
+            'cpu_usage=$((100 * cpu_used / cpu_delta)); '
+            'cpu_last=("${cpu_now[@]}"); '
+            '[ "$cpu_usage" -lt 5 ] && IDLE=$(($IDLE + 1)) || IDLE=0; '
+            'cpu_last_sum=$cpu_sum; echo $cpu_usage $IDLE; '
+            '[ "$IDLE" -ge 4 ] && exit 0; '
+            'sleep 20; done; exit 1 )' % timeout, timeout=timeout + 11):
             return True
     except aexpect.ShellTimeoutError:
         pass
-    session.cmd("cat /proc/loadavg")
+    session.cmd("ps aux")
     return False
