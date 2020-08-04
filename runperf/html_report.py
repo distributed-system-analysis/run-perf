@@ -205,7 +205,7 @@ def generate_report(path, results, with_charts=False):
 
         def anonymize_test_params_dict(params):
             """Iterate through the params and anonymize the values"""
-            return {key: "\n".join(anonymize_test_params(value.splitlines()))
+            return {key: "\n".join(sorted(anonymize_test_params(value.splitlines())))
                     for key, value in params.items()}
 
         builds = []
@@ -517,7 +517,7 @@ def generate_report(path, results, with_charts=False):
                 # Store only diff lines starting wiht +- as
                 # we don't need a "useful" diff but just an
                 # overview of what is different.
-                dst = anonymize_test_params(value.splitlines())
+                dst = sorted(anonymize_test_params(value.splitlines()))
                 raw_diff = unified_diff(src_params[key].splitlines(),
                                         dst)
                 # Skip first two lines as it contains +++ and ---
