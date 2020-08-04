@@ -205,7 +205,7 @@ def generate_report(path, results, with_charts=False):
 
         def anonymize_test_params_dict(params):
             """Iterate through the params and anonymize the values"""
-            return {key: "\n".join(anonymize_test_params(value.splitlines()))
+            return {key: "\n".join(sorted(anonymize_test_params(value.splitlines())))
                     for key, value in params.items()}
 
         builds = []
@@ -517,7 +517,7 @@ def generate_report(path, results, with_charts=False):
                 # Store only diff lines starting wiht +- as
                 # we don't need a "useful" diff but just an
                 # overview of what is different.
-                dst = anonymize_test_params(value.splitlines())
+                dst = sorted(anonymize_test_params(value.splitlines()))
                 raw_diff = unified_diff(src_params[key].splitlines(),
                                         dst)
                 # Skip first two lines as it contains +++ and ---
@@ -550,11 +550,10 @@ def generate_report(path, results, with_charts=False):
         per_build_test_params_stat = []
 
         # First update the src build
-        src_result_diff = {test: (params, "")
-                           for test, params in src_params.items()}
+        src_result_diff = {test: "" for test, _ in src_params.items()}
         # We are going to inject group records to src_result_diff, we need
         # a copy here to avoid mutation
-        known_test_params_diffs = [src_result_diff.copy()]
+        known_test_params_diffs = [src_result_diff]
         values["builds"][0]["environment"]["tests"] = ""
         values["builds"][0]["environment_diff"]["tests"] = ""
         values["builds"][0]["environment_short"]["tests"] = num2char(
@@ -569,7 +568,7 @@ def generate_report(path, results, with_charts=False):
                 if record.name not in statuses:
                     statuses[record.name] = {}
                 param_diff = get_build_param_diff(src_params, record)
-                this_result_diff[record.name] = param_diff
+                this_result_diff[record.name] = param_diff[1]
                 statuses[record.name][i] = (record.status, record.details,
                                             "%.1f" % record.score, param_diff)
             for record in res.grouped_records:
@@ -577,9 +576,6 @@ def generate_report(path, results, with_charts=False):
                     continue
                 if record.name not in statuses:
                     statuses[record.name] = {}
-                # inject empty diffs for group results to src_results as
-                # they were not generated
-                src_result_diff[record.name] = ("", "")
                 statuses[record.name][i] = (record.status, record.details,
                                             "%.1f" % record.score, ("", ""))
             if this_result_diff not in known_test_params_diffs:
@@ -587,7 +583,7 @@ def generate_report(path, results, with_charts=False):
             per_build_test_params_stat.append(
                 [num2char(known_test_params_diffs.index(this_result_diff)),
                  "\n".join(key for key, value in this_result_diff.items()
-                           if value[1])])
+                           if value)])
         builds_statuses = []
         src_params_raw = values["src"]["test_params"]
         src_result_diff_raw = {test: (params, "")
