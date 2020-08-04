@@ -322,7 +322,7 @@ def shell_write_content_cmd(path, content, append=False):
 
 def wait_for_machine_calms_down(session, timeout=600):
     """
-    Wait until 5m system load calms below 1.0
+    Wait until 1m system load calms below 1.0
 
     :param session: session
     :param timeout: timeout
@@ -332,7 +332,7 @@ def wait_for_machine_calms_down(session, timeout=600):
     try:
         if not session.cmd_status('( END="$(expr $(date \'+%%s\') + %s)"; '
                                   'while [ "$(date \'+%%s\')" -lt "$END" ]; '
-                                  'do [ "$(cat /proc/loadavg | cut -d\' \' -f2'
+                                  'do [ "$(cat /proc/loadavg | cut -d\' \' -f1'
                                   ' | cut -d\'.\' -f1)" -eq 0 ] && exit 0; '
                                   'sleep 5; done; exit 1 )' % timeout,
                                   timeout=timeout + 11):
