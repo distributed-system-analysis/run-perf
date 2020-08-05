@@ -78,7 +78,8 @@ def get_distro_info(machine):
         out["kernel"] = session.cmd("uname -r; uname -v; uname -m; uname -o;" +
                                     " cat /proc/cmdline", print_func='mute',
                                     ignore_all_errors=True)
-        out["mitigations"] = session.cmd("grep . /sys/devices/system/cpu/"
+        out["mitigations"] = session.cmd("grep --color=never . "
+                                         "/sys/devices/system/cpu/"
                                          "vulnerabilities/*",
                                          print_func='mute',
                                          ignore_all_errors=True)
