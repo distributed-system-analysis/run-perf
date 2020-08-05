@@ -638,6 +638,9 @@ class LibvirtGuest(BaseMachine):
     Object representing libvirt guests
     """
     _RE_IPADDR = re.compile(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}')
+    XML_FILTERS = ((re.compile(r"<uuid>[^<]+</uuid>"), "UUID"),
+                   (re.compile(r"<mac address=[^/]+/>"), "MAC"),
+                   (re.compile(r"[\"']/var/lib/libvirt/[^\"']+[\"']"), "PATH"))
 
     def __init__(self, host, name, distro, base_image, smp, mem,
                  default_passwords=None, extra_params=None):
@@ -699,9 +702,12 @@ class LibvirtGuest(BaseMachine):
 
     def get_info(self):
         out = BaseMachine.get_info(self)
-        out["libvirt_xml"] = self.get_host_session().cmd(
+        xml = self.get_host_session().cmd(
             "virsh dumpxml '%s'" % self.name, print_func="mute",
             ignore_all_errors=True)
+        for reg, repl in self.XML_FILTERS:
+            xml = reg.sub(repl, xml)
+        out["libvirt_xml"] = xml
         return out
 
     def start(self):
