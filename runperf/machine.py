@@ -640,7 +640,12 @@ class LibvirtGuest(BaseMachine):
     _RE_IPADDR = re.compile(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}')
     XML_FILTERS = ((re.compile(r"<uuid>[^<]+</uuid>"), "UUID"),
                    (re.compile(r"<mac address=[^/]+/>"), "MAC"),
-                   (re.compile(r"[\"']/var/lib/libvirt/[^\"']+[\"']"), "PATH"))
+                   (re.compile(r"[\"']/var/lib/libvirt/[^\"']+[\"']"), "PATH"),
+                   (re.compile(r"<seclabel.*?</seclabel>", flags=re.DOTALL),
+                    "SECLABEL"),
+                   (re.compile(r"portid=[\"'][^\"']+[\"']"), "PORTID"),
+                   (re.compile(r"[\"']/dev/pts[^\"']*[\"']"), "PTS"),
+                   (re.compile(r"\sid=['\"]\d+['\"]"), " ID"))
 
     def __init__(self, host, name, distro, base_image, smp, mem,
                  default_passwords=None, extra_params=None):
