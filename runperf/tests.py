@@ -133,6 +133,7 @@ class PBenchTest(BaseTest):
 
     test = ""
     args = ""
+    default_args = ()
     timeout = 172800
 
     def __init__(self, host, workers, base_output_path,
@@ -143,7 +144,12 @@ class PBenchTest(BaseTest):
             self.pbench_publish = True
         else:
             self.pbench_publish = False
-        self._cmd = ("pbench-%s %s --clients %s" %
+        for key, value in self.default_args:
+            if key not in extra:
+                extra[key] = value
+        for key, value in extra.items():
+            self.args += " --%s=%s" % (key, value)
+        self._cmd = ("pbench-%s %s --clients=%s" %
                      (self.test, self.args,
                       ",".join(_.get_addr() for _ in self.workers[0])))
 
@@ -240,21 +246,10 @@ class PBenchFio(PBenchTest):
 
     name = "fio"
     test = "fio"
-    args = "-t read,write,rw"
-
-    def __init__(self, host, workers, base_output_path, metadata, extra):
-        # When type is specified, override the full args
-        if "type" in extra:
-            self.args = "-t %s" % extra["type"]
-        self.args += (" --ramptime=%s --runtime=%s --samples=%s"
-                      % (extra.get("ramptime", 10),
-                         extra.get("runtime", 180),
-                         extra.get("samples", 3)))
-        for key in ["file-size", "targets"]:
-            if key in extra:
-                self.args += " --%s=%s" % (key, extra[key])
-        super(PBenchFio, self).__init__(host, workers, base_output_path,
-                                        metadata, extra)
+    default_args = (("type", "read,write,rw"),
+                    ("ramptime", 10),
+                    ("runtime", 180),
+                    ("samples", 3))
 
 
 class Linpack(PBenchTest):
@@ -275,15 +270,13 @@ class UPerf(PBenchTest):
 
     name = "uperf"
     test = "uperf"
+    default_args = (("type", "stream"),
+                    ("runtime", 60),
+                    ("samples", 3),
+                    ("protocols", "tcp"),
+                    ("message-sizes", "1,64,16384"))
 
     def __init__(self, host, workers, base_output_path, metadata, extra):
-        self.args = ("-t %s -r %s --samples=%s --protocols=%s "
-                     "--message-sizes=%s"
-                     % (extra.get("type", "stream"),
-                        extra.get("runtime", "60"),
-                        extra.get("samples", 3),
-                        extra.get("protocols", "tcp"),
-                        extra.get("message-sizes", "1, 64, 16384")))
         super(UPerf, self).__init__(host, workers, base_output_path,
                                     metadata, extra)
         # FIXME: Workaround missing perl paths
