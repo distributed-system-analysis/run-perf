@@ -192,6 +192,9 @@ class PBenchTest(BaseTest):
                 # Let the system to rest a bit before the load
                 time.sleep(5)
                 session.cmd("true")
+                # FIXME: Return this when https://github.com/distributed
+                # -system-analysis/pbench/issues/1743 is resolved
+                session.cmd(". /opt/pbench-agent/base")
                 # And now run the test
                 benchmark_bin = utils.shell_find_command(session, self.test)
                 if benchmark_bin:
@@ -256,6 +259,35 @@ class Linpack(PBenchTest):
 
     name = "linpack"
     test = "linpack"
+
+    def __init__(self, host, workers, base_output_path,
+        metadata, extra):
+        if "linpack-binary" not in extra:
+            with host.get_session_cont() as session:
+                linpack_bin = None
+                for name in ("linpack", "xlinpack_xeon64"):
+                    linpack_bin = utils.shell_find_command(session, name)
+                    if linpack_bin:
+                        break
+                if not linpack_bin:
+                    linpack_bin = session.cmd_output(
+                        "ls /usr/local/*/benchmarks/linpack/xlinpack_xeon64 "
+                        "2>/dev/null").strip()
+                    if not linpack_bin:
+                        raise exceptions.TestSkip("No linpack binary found on "
+                                                  "host")
+                    linpack_bin = linpack_bin.splitlines()[0]
+                extra["linpack-binary"] = linpack_bin
+        if "threads" not in extra:
+            # We want 2*cpus to stress the scheduler
+            extra["threads"] = utils.list_of_threads(
+                host.params["guest_cpus"] * 2)
+        PBenchTest.__init__(self, host, workers, base_output_path, metadata,
+                            extra)
+        self._cmd = ("ANSIBLE_HOST_KEY_CHECKING=false "
+                     "ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3 "
+                     "pbench-run-benchmark %s %s"
+                     % (self.test, self._cmd.split(' ', 1)[1]))
 
 
 class UPerf(PBenchTest):
