@@ -273,8 +273,10 @@ class Controller:
         Perform action in parallel on each host, signal RebootRequest if
         necessary.
 
+        :param hosts: List of hosts to run the tasks on
         :param method: host.$method to be performed per each host
-        :param args, kwargs: arguments forwarded to the called methods
+        :param args: positional arguments forwarded to the called methods
+        :param kwargs: key word arguments forwarded to the called methods
         :raise exceptions.RebootRequest: When any of the actions report
                                          non-zero return.
         """
@@ -304,8 +306,10 @@ class Controller:
         This is useful for tasks that might fail/require reboot.
 
         :param attempts: How many attempts per-host
+        :param hosts: List of hosts to run the tasks on
         :param method: host.$method to be performed per each host
-        :param args, kwargs: arguments forwarded to the called methods
+        :param args: positional arguments forwarded to the called methods
+        :param kwargs: key word arguments forwarded to the called methods
         :raise exceptions.RebootRequest: When any of the actions report
                                          non-zero return.
         """

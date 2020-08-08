@@ -133,3 +133,10 @@ html_theme_options = {'body_max_width': '90%'}
 intersphinx_mapping = {'http://docs.python.org/3': None}  # pylint: disable=C0103
 
 autoclass_content = 'both'  # pylint: disable=C0103
+
+
+# A list of (type, target) tuples (by default empty) that should be ignored
+# when generating warnings in “nitpicky mode”.
+nitpick_ignore = [
+    ('py:class', 'aexpect.client.ShellSession'),
+]
