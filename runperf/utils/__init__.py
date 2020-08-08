@@ -92,15 +92,15 @@ def comma_separated_ranges_to_list(text):
 
 def list_of_threads(cpus):
     """How many threads to use depending on no cpus"""
-    if cpus < 8:
-        return ",".join(str(_) for _ in range(cpus))
-    if cpus < 16:
-        return (",".join(str(_) for _ in range(4, cpus + 1, 4)) +
-                (",%s" % cpus if cpus % 2 else ""))
-    if cpus <= 32:
-        return (",".join(str(_) for _ in range(8, cpus + 1, 8)) +
-                (",%s" % cpus if cpus % 2 else ""))
-    raise NotImplementedError("No definition for > 32 cpus (%s)" % cpus)
+    assert cpus >= 1, "Cpus needs to be a positive number >=1 (%s)" % cpus
+    step = int(cpus / 4)
+    if step <= 1:
+        step = 1
+        out = ""
+    else:
+        out = "1,"
+    return (out + ",".join(str(_) for _ in range(step, cpus + 1, step)) +
+            (",%s" % cpus if cpus % step else ""))
 
 
 def random_string(length):
