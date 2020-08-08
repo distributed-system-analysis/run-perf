@@ -193,8 +193,7 @@ class PBenchTest(BaseTest):
                 time.sleep(5)
                 session.cmd("true")
                 # And now run the test
-                benchmark_bin = session.cmd_output("which %s"
-                                                   % self.test).strip()
+                benchmark_bin = utils.shell_find_command(session, self.test)
                 if benchmark_bin:
                     prefix = "benchmark_bin=%s " % benchmark_bin
                 else:

@@ -320,6 +320,18 @@ def shell_write_content_cmd(path, content, append=False):
                                            eof))
 
 
+def shell_find_command(session, command):
+    """
+    Helper to detect path to a command
+
+    :param session: aexpect.ShellSession session
+    :param command: command we are looking for
+    :return: path or empty string when not found
+    """
+    return session.cmd_output("which --skip-alias --skip-functions %s "
+                              "2>/dev/null" % command).strip()
+
+
 def wait_for_machine_calms_down(session, timeout=600):
     """
     Wait until 1m system load calms below 1.0
