@@ -1,0 +1,5 @@
+# Extra requirements for selftesting and such
+#
+# inspektor (static and style checks)
+inspektor
+Sphinx
