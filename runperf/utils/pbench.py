@@ -99,6 +99,8 @@ class Dnf:  # pylint: disable=R0903
 
     def _check_test_installed(self):
         """Report whether test pkg is installed"""
+        if not self.session.cmd_status("which %s" % self.test):
+            return True
         if not self.session.cmd_status("rpm -q %s" % self.test):
             return True
         if not self.session.cmd_status("rpm -q pbench-%s" % self.test):
