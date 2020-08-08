@@ -122,6 +122,11 @@ class BaseTest:
                                                           results_json),
                             timeout=600, print_func='mute')
 
+    def cleanup(self):
+        """
+        Cleanup the environment; is **always** executed even for SKIP tests
+        """
+
 
 class PBenchTest(BaseTest):
     """

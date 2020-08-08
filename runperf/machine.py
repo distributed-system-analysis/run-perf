@@ -451,6 +451,8 @@ class Controller:
         except Exception as exc:
             self.log.error("  FAILURE test %s: %s" % (name, exc))
             raise
+        finally:
+            test.cleanup()
 
     def cleanup(self):
         """Post-testing cleanup"""
