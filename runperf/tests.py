@@ -133,6 +133,7 @@ class PBenchTest(BaseTest):
 
     test = ""
     args = ""
+    default_args = ()
     timeout = 172800
 
     def __init__(self, host, workers, base_output_path,
@@ -143,7 +144,12 @@ class PBenchTest(BaseTest):
             self.pbench_publish = True
         else:
             self.pbench_publish = False
-        self._cmd = ("pbench-%s %s --clients %s" %
+        for key, value in self.default_args:
+            if key not in extra:
+                extra[key] = value
+        for key, value in extra.items():
+            self.args += " --%s=%s" % (key, value)
+        self._cmd = ("pbench-%s %s --clients=%s" %
                      (self.test, self.args,
                       ",".join(_.get_addr() for _ in self.workers[0])))
 
@@ -186,9 +192,11 @@ class PBenchTest(BaseTest):
                 # Let the system to rest a bit before the load
                 time.sleep(5)
                 session.cmd("true")
+                # FIXME: Return this when https://github.com/distributed
+                # -system-analysis/pbench/issues/1743 is resolved
+                session.cmd(". /opt/pbench-agent/base")
                 # And now run the test
-                benchmark_bin = session.cmd_output("which %s"
-                                                   % self.test).strip()
+                benchmark_bin = utils.shell_find_command(session, self.test)
                 if benchmark_bin:
                     prefix = "benchmark_bin=%s " % benchmark_bin
                 else:
@@ -240,21 +248,10 @@ class PBenchFio(PBenchTest):
 
     name = "fio"
     test = "fio"
-    args = "-t read,write,rw"
-
-    def __init__(self, host, workers, base_output_path, metadata, extra):
-        # When type is specified, override the full args
-        if "type" in extra:
-            self.args = "-t %s" % extra["type"]
-        self.args += (" --ramptime=%s --runtime=%s --samples=%s"
-                      % (extra.get("ramptime", 10),
-                         extra.get("runtime", 180),
-                         extra.get("samples", 3)))
-        for key in ["file-size", "targets"]:
-            if key in extra:
-                self.args += " --%s=%s" % (key, extra[key])
-        super(PBenchFio, self).__init__(host, workers, base_output_path,
-                                        metadata, extra)
+    default_args = (("type", "read,write,rw"),
+                    ("ramptime", 10),
+                    ("runtime", 180),
+                    ("samples", 3))
 
 
 class Linpack(PBenchTest):
@@ -262,6 +259,35 @@ class Linpack(PBenchTest):
 
     name = "linpack"
     test = "linpack"
+
+    def __init__(self, host, workers, base_output_path,
+        metadata, extra):
+        if "linpack-binary" not in extra:
+            with host.get_session_cont() as session:
+                linpack_bin = None
+                for name in ("linpack", "xlinpack_xeon64"):
+                    linpack_bin = utils.shell_find_command(session, name)
+                    if linpack_bin:
+                        break
+                if not linpack_bin:
+                    linpack_bin = session.cmd_output(
+                        "ls /usr/local/*/benchmarks/linpack/xlinpack_xeon64 "
+                        "2>/dev/null").strip()
+                    if not linpack_bin:
+                        raise exceptions.TestSkip("No linpack binary found on "
+                                                  "host")
+                    linpack_bin = linpack_bin.splitlines()[0]
+                extra["linpack-binary"] = linpack_bin
+        if "threads" not in extra:
+            # We want 2*cpus to stress the scheduler
+            extra["threads"] = utils.list_of_threads(
+                host.params["guest_cpus"] * 2)
+        PBenchTest.__init__(self, host, workers, base_output_path, metadata,
+                            extra)
+        self._cmd = ("ANSIBLE_HOST_KEY_CHECKING=false "
+                     "ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3 "
+                     "pbench-run-benchmark %s %s"
+                     % (self.test, self._cmd.split(' ', 1)[1]))
 
 
 class UPerf(PBenchTest):
@@ -275,15 +301,13 @@ class UPerf(PBenchTest):
 
     name = "uperf"
     test = "uperf"
+    default_args = (("type", "stream"),
+                    ("runtime", 60),
+                    ("samples", 3),
+                    ("protocols", "tcp"),
+                    ("message-sizes", "1,64,16384"))
 
     def __init__(self, host, workers, base_output_path, metadata, extra):
-        self.args = ("-t %s -r %s --samples=%s --protocols=%s "
-                     "--message-sizes=%s"
-                     % (extra.get("type", "stream"),
-                        extra.get("runtime", "60"),
-                        extra.get("samples", 3),
-                        extra.get("protocols", "tcp"),
-                        extra.get("message-sizes", "1, 64, 16384")))
         super(UPerf, self).__init__(host, workers, base_output_path,
                                     metadata, extra)
         # FIXME: Workaround missing perl paths
