@@ -248,7 +248,7 @@ class PBenchFio(PBenchTest):
 
     name = "fio"
     test = "fio"
-    default_args = (("type", "read,write,rw"),
+    default_args = (("test-types", "read,write,rw"),
                     ("ramptime", 10),
                     ("runtime", 180),
                     ("samples", 3))
@@ -301,7 +301,7 @@ class UPerf(PBenchTest):
 
     name = "uperf"
     test = "uperf"
-    default_args = (("type", "stream"),
+    default_args = (("test-types", "stream"),
                     ("runtime", 60),
                     ("samples", 3),
                     ("protocols", "tcp"),

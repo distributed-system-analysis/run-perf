@@ -16,7 +16,7 @@
     param-distro: ''
     param-guest-distro: ''
     # By default we use those 3 tests (the quotation is required)
-    param-tests: "'fio:{{\"targets\": \"/fio\"}}' 'uperf:{{\"protocols\": \"tcp\"}}' 'uperf:{{\"protocols\": \"udp\", \"type\": \"rr\"}}'"
+    param-tests: "'fio:{{\"targets\": \"/fio\"}}' 'uperf:{{\"protocols\": \"tcp\"}}' 'uperf:{{\"protocols\": \"udp\", \"test-types\": \"rr\"}}'"
     # By default we use these profiles
     param-profiles: "Localhost DefaultLibvirt TunedLibvirt"
     # Set the default tolerances
