@@ -122,6 +122,11 @@ class BaseTest:
                                                           results_json),
                             timeout=600, print_func='mute')
 
+    def cleanup(self):
+        """
+        Cleanup the environment; is **always** executed even for SKIP tests
+        """
+
 
 class PBenchTest(BaseTest):
     """
@@ -324,6 +329,69 @@ class UPerf(PBenchTest):
             addrs.append(addr)
         self._cmd += (" --servers %s" % (",".join(addrs)))
 
+
+class PBenchNBD(PBenchFio):
+    """
+    Executes PBenchFio with a custom job to test nbd
+
+    By default it creates and distributes the job-file using "nbd-check.fio"
+    from assets but you can override the job-file path and distribute your
+    own version. In such case you have to make sure to use the right paths
+    and format.
+    """
+    name = "fio-nbd"
+    default_args = (("numjobs", 4),
+                    ("job-file", "/tmp/runperf-nbd/nbd.fio"))
+
+    def __init__(self, host, workers, base_output_path, metadata, extra):
+        self.fio_job_file = extra.get("job-file", "/tmp/runperf-nbd/nbd.fio")
+        PBenchFio.__init__(self, host, workers, base_output_path, metadata,
+                           extra)
+
+    def setup(self):
+        PBenchFio.setup(self)
+        with open(os.path.join(os.path.dirname(__file__), "assets", "pbench",
+                               "nbd-check.fio")) as fio_check:
+            fio_check_tpl = utils.shell_write_content_cmd("/tmp/runperf-"
+                                                          "nbd/nbd-check.fio",
+                                                          fio_check.read())
+        with open(os.path.join(os.path.dirname(__file__), "assets", "pbench",
+                               "nbd.fio")) as fio:
+            fio_tpl = utils.shell_write_content_cmd(self.fio_job_file,
+                                                    fio.read())
+        for workers in self.workers:
+            for worker in workers:
+                with worker.get_session_cont() as session:
+                    session.cmd("mkdir -p /tmp/runperf-nbd")
+                    session.cmd(fio_check_tpl)
+                    ret = session.cmd_status("fio --parse-only /tmp/runperf-"
+                                             "nbd/nbd-check.fio")
+                    if ret:
+                        raise exceptions.TestSkip("Fio %s does not support "
+                                                  "ioengine=nbd on worker %s"
+                                                  % (session.cmd("which fio"),
+                                                     worker))
+                    session.cmd("truncate -s 256M /tmp/runperf-nbd/disk.img")
+                    session.cmd("nohup qemu-nbd -t -k /tmp/runperf-nbd/socket"
+                                " -f raw /tmp/runperf-nbd/disk.img &> "
+                                "$(mktemp /tmp/runperf-nbd/qemu_nbd_XXXX.log)"
+                                " & echo $! >> /tmp/runperf-nbd/kill_pids")
+        with self.host.get_session_cont(hop=self.host) as session:
+            session.cmd("mkdir -p /tmp/runperf-nbd")
+            session.cmd(fio_tpl)
+
+    def cleanup(self):
+        for workers in self.workers:
+            for worker in workers:
+                with worker.get_session_cont() as session:
+                    pids = session.cmd("cat /tmp/runperf-nbd/kill_pids "
+                                       "2>/dev/null || true")
+                    for pid in pids.splitlines():
+                        session.cmd_status("kill -9 '%s'" % pid)
+                    session.cmd("rm -Rf /tmp/runperf-nbd")
+        with self.host.get_session_cont(hop=self.host) as session:
+            session.cmd("rm -Rf /tmp/runperf-nbd")
+        PBenchFio.cleanup(self)
 
 def get(name):
     """

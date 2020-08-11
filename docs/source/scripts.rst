@@ -76,6 +76,8 @@ Test runners are implemented under :mod:`runperf.tests` and currently consists
 of two `pbench-based <https://distributed-system-analysis.github.io/pbench/pbench-agent.html>`_
 tests:
 
+.. _test-fio:
+
 Fio
 ---
 
@@ -88,6 +90,15 @@ IO intense test. You can tweak following params:
 * samples - number of samples to use per test iteration [3]
 * file-size - file sizes in MiB (must be bigger than the biggest block size)
 * targets - one or more directories or block devices
+
+Fio-nbd
+-------
+
+This is a special case of :ref:`test-fio` test but it is spawning qemu-nbd
+export on each worker and tests the speed of the exported device. You can
+still tweak various params (like type, ...) but note that the ``targets``,
+``numjobs`` and ``job-file`` should be set automatically to suit the
+configuration.
 
 Uperf
 -----

@@ -79,7 +79,8 @@ if __name__ == '__main__':
               'runperf.tests': [
                   'PBenchFio = runperf.tests:PBenchFio',
                   'Linpack = runperf.tests:Linpack',
-                  'UPerf = runperf.tests:UPerf'],
+                  'UPerf = runperf.tests:UPerf',
+                  'PBenchNBD = runperf.tests:PBenchNBD'],
               'runperf.machine.distro_info': [
                   'get_distro_info = runperf.machine:get_distro_info'],
               'runperf.utils.cloud_image_providers': [
