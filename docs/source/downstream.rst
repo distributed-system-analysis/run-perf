@@ -4,6 +4,8 @@
 Downstream extensions
 =====================
 
+.. _downstream-assets:
+
 Assets
 ------
 

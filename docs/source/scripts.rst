@@ -36,6 +36,32 @@ it runs all tests under all profiles.
 
 Now let's focus on the available elements:
 
+Hosts
+=====
+
+Hosts are the machines to be utilized in testing. Each test can request
+one or multiple machines and it is up to the user to provide sufficient
+number of hosts.
+
+Run-perf needs to know certain metadata about each host. You can either
+store them in your :ref:`downstream-extensions` via :ref:`downstream-assets`
+or you can provide them via ``--force-params`` cmdline argument.
+
+Currently the minimum set of params is:
+
+* ``hugepage_kb`` - which hugepage size to use
+* ``numa_nodes`` - number of host's numa nodes
+* ``host_cpus`` - how many cpus there are on the host
+* ``guest_cpus`` - how many cpus we should use for workers
+* ``guest_mem_m`` - how much memory we can use for workers. Leaving enough
+  free space for the system is important especially when using hugepages
+  as otherwise it might fail to obtain enough continuous memory for them.
+* ``arch`` - host's architecture
+
+There are some optional arguments like:
+
+* ``disable_smt`` - whether to disable smt on the host before testing
+
 Profiles
 ========
 
