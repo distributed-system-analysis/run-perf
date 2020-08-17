@@ -58,6 +58,10 @@ visualization of the changes::
 
 ----------
 
+.. image:: https://travis-ci.org/distributed-system-analysis/run-perf.svg?branch=master
+   :target: https://travis-ci.org/github/distributed-system-analysis/run-perf
+   :alt: Travis CI Status
+
 .. image:: https://readthedocs.org/projects/run-perf/badge/?version=latest
    :target: https://run-perf.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
