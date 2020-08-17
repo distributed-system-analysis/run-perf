@@ -264,9 +264,9 @@ class Linpack(PBenchTest):
 
     name = "linpack"
     test = "linpack"
+    default_args = (("run-samples", 3),)
 
-    def __init__(self, host, workers, base_output_path,
-        metadata, extra):
+    def __init__(self, host, workers, base_output_path, metadata, extra):
         if "linpack-binary" not in extra:
             with host.get_session_cont() as session:
                 linpack_bin = None
