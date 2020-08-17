@@ -120,6 +120,22 @@ You can tweak following params:
 
 Both are customizable via params, see the source code for details.
 
+Linpack
+-------
+
+`Linpack <http://www.netlib.org/linpack/index.html>`_ can be used to measure
+floating point computing power. You can change various options, let's
+mention at least the basic ones:
+
+* threads - the number of threads to be used in testing, you can specify
+  multiple variants using comma separated list [by default it uses multiple
+  values to cover 1 - (worker_cpus * 2). For example on 8-core system
+  it will use ``1,4,8,12,16``]
+* run-samples - number of iteration to be executed of each variant [3]
+* linpack-binary - path to installed linpack binary [by default it tries to
+  detect ``linpack`` or ``xlinpack_xeon64`` in ``PATH`` or in the usual
+  pbench-fio location]
+
 Tests can be extended via :mod:`runperf.tests` entry points
 (See :any:`downstream-extensions` section)
 
