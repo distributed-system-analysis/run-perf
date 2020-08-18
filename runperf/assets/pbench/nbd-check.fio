@@ -1,0 +1,4 @@
+# Dummy job to only verify nbd ioengine is compiled in
+[global]
+ioengine=nbd
+uri=nbd+unix:///?socket=/tmp/socket
