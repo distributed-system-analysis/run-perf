@@ -106,12 +106,14 @@ def generate_report(path, results, with_charts=False):
                                                    if (line.startswith("+") or
                                                        line.startswith("-")))
                         else:
-                            inner_diff = "+MISSING IN SRC"
+                            inner_diff = "+%s MISSING IN SRC" % inner_key
                         if inner_diff:
                             diff.append("\n%s\n%s\n%s"
                                         % (inner_key, "=" * len(inner_key),
                                            inner_diff))
                     build_diff[key] = "\n".join(diff)
+                else:
+                    build_diff[key] = "+%s PROFILE MISSING IN SRC" % key
             for key, value in src_env.items():
                 if key in env:
                     continue
@@ -158,7 +160,7 @@ def generate_report(path, results, with_charts=False):
                 known_items['commands'].index(build["runperf_cmd"]))
             env, profiles = collect_environment(metadata)
             build['profiles'] = profiles
-            if src_env:
+            if src_env is not None:
                 build_env, build_diff = process_diff_environemnt(env, src_env)
                 build["environment"] = build_env
                 build["environment_diff"] = build_diff
