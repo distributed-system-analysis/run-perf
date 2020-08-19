@@ -99,8 +99,11 @@ Tests
 =====
 
 Test runners are implemented under :mod:`runperf.tests` and currently consists
-of two `pbench-based <https://distributed-system-analysis.github.io/pbench/pbench-agent.html>`_
-tests:
+of a few `pbench-based <https://distributed-system-analysis.github.io/pbench/pbench-agent.html>`_
+tests. Below you can find all/most arguments that can be tweaked. In case the
+default is set/overridden by `run-perf` the value is specified at the end
+of the description using `[]` brackets. Note the supported arguments might
+vary based on pbench/tool versions.
 
 .. _test-fio:
 
@@ -110,12 +113,38 @@ Fio
 `Fio <https://fio.readthedocs.io/en/latest/fio_doc.html>`_ is a customizable
 IO intense test. You can tweak following params:
 
-* type - one or more of read,write,rw,randread,randwrite,randrw [read,write,rw]
-* ramptime - time in seconds to warm up test before taking measurements [10]
-* runtime - runtime in seconds [180]
-* samples - number of samples to use per test iteration [3]
-* file-size - file sizes in MiB (must be bigger than the biggest block size)
-* targets - one or more directories or block devices
+* ``test-types`` - one or more of read,write,rw,randread,randwrite,randrw
+  [read,write,rw]
+* ``direct`` - 1 = O_DIRECT enabled (default), 0 = O_DIRECT disabled
+* ``sync`` - 1 = O_SYNC enabled, 0 = O_SYNC disabled (default)
+* ``rate-iops`` - do not exceeed this IOP rate (per job, per client)
+* ``runtime`` - runtime in seconds [180]
+* ``ramptime`` - time in seconds to warm up test before taking measurements [10]
+* ``block-sizes`` - one or more block sizes in KiB
+* ``file-size`` - file sizes in MiB (must be bigger than the biggest block size)
+* ``targets`` - one or more directories or block devices
+* ``job-mode`` - str=[serial|concurrent]  (default is 'concurrent')
+* ``ioengine`` - str= any ioengine fio supports (default is )
+* ``iodepth`` - Set the iodepth config variable in the fio job file
+* ``config`` - name of the test configuration
+* ``tool-group``
+* ``numjobs`` - number of jobs to run, if not given then fio default of numjobs=1
+  will be used
+* ``job-file`` - provide the path of a fio job config file
+* ``pre-iteration-script`` - use executable script/program to prepare the system
+  for test iteration
+* ``samples`` - number of samples to use per test iteration [3]
+* ``max-stddev`` - the maximum percent stddev allowed to pass
+* ``max-failures`` - the maximum number of failures to get below stddev
+* ``histogram-interval-sec`` - set the histogram logging interval in seconds
+  (default 10)
+* ``sysinfo`` - str= comma separated values of sysinfo to be collected
+  available: default, none, all, block, libvirt, kernel_config,
+  security_mitigations, sos, topology, ara, stockpile, insights
+
+Unless you know what you are doing you should not be using ``clients,
+client-file, postprocess-only, run-dir, install`` arguments when
+running via Run-perf as it might lead to unpredictable consequences.
 
 Fio-nbd
 -------
@@ -134,17 +163,33 @@ test. Currently it only tests network between workers and the host.
 
 You can tweak following params:
 
-* type - stream, maerts, bidirec, and/or rr [stream]
-* runtime - test measurement period in seconds [60]
-* samples - the number of times each different test is run (to compute average
-  & standard deviations) [3]
-* protocols - tcp and/or udp (note it's not advised to use `udp` with `stream`
+* ``tool-group``
+* ``config`` - name of the test config (e.g. jumbo_frames_and_network_throughput)
+* ``test-types`` - stream, maerts, bidirec, and/or rr [stream]
+* ``runtime`` - test measurement period in seconds [60]
+* ``message-sizes`` - list of message sizes in bytes [1,64,16384]
+* ``protocols`` - tcp and/or udp (note it's not advised to use `udp` with `stream`
   type otherwise kernel can "cheat" and dump the packets instead of sending
   them. It's recommended to use `rr` for `udp` [tcp]
-* message-sizes - list of message sizes in bytes [1,64,16384]
+* ``instances`` - list of number of uperf instances to run (default is 1,8,64)
+* ``server-node`` - An ordered list of server NUMA nodes which should be used for
+  CPU binding
+* ``client-node`` - An ordered list of client NUMA nodes which should be used for
+  CPU binding
+* ``samples`` - the number of times each different test is run (to compute average
+  & standard deviations) [3]
+* ``max-failures`` - the maximum number of failures to get below stddev
+* ``max-stddev`` - the maximum percent stddev allowed to pass
+* ``start-iteration-num`` - optionally skip the first (n-1) tests
+* ``log-response-times`` - record the response time of every single operation
+* ``tool-label-pattern``
+* ``sysinfo`` - str= comma separated values of sysinfo to be collected
+  available: default, none, all, block, libvirt, kernel_config,
+  security_mitigations, sos, topology, ara, stockpile, insights
 
-
-Both are customizable via params, see the source code for details.
+Unless you know what you are doing you should not be using ``clients,
+servers, client-file, postprocess-only, run-dir, install`` arguments when
+running via Run-perf as it might lead to unpredictable consequences.
 
 Linpack
 -------
@@ -153,14 +198,22 @@ Linpack
 floating point computing power. You can change various options, let's
 mention at least the basic ones:
 
-* threads - the number of threads to be used in testing, you can specify
+* ``threads`` - the number of threads to be used in testing, you can specify
   multiple variants using comma separated list [by default it uses multiple
   values to cover 1 - (worker_cpus * 2). For example on 8-core system
   it will use ``1,4,8,12,16``]
-* run-samples - number of iteration to be executed of each variant [3]
-* linpack-binary - path to installed linpack binary [by default it tries to
+* ``run-samples`` - number of iteration to be executed of each variant [3]
+* ``linpack-binary`` - path to installed linpack binary [by default it tries to
   detect ``linpack`` or ``xlinpack_xeon64`` in ``PATH`` or in the usual
   pbench-fio location]
+* ``problem-sizes``
+* ``leading-dimensions``
+* ``alignment-values``
+* ``use-omp``
+* ``kmp-affinity``
+* ``numactl-args``
+* ``lininput-header``
+* ``lininput-subheader``
 
 Tests can be extended via :mod:`runperf.tests` entry points
 (See :any:`downstream-extensions` section)
