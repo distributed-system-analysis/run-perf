@@ -19,37 +19,40 @@ import subprocess
 
 from setuptools import setup, find_packages
 
-BASE_PATH = os.path.dirname(__file__)
+SETUP_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
-def get_version():
+def _get_git_version():
+    """
+    Get version from git describe
+
+    :warning: This implementation must match the "runperf/version.py" one
+    """
+    curdir = os.getcwd()
     try:
-        version = (subprocess.check_output(["git", "rev-parse", "HEAD"])
-                   .strip().decode("utf-8"))
+        os.chdir(SETUP_PATH)
+        version = subprocess.check_output(
+            ["git", "describe", "--tags", "HEAD"]).strip().decode("utf-8")
         try:
             subprocess.check_output(["git", "diff", "--quiet"])
-        except Exception:
+        except subprocess.CalledProcessError:
             version += "-dirty"
     except Exception:
-        return "Unknown2"
+        return None
+    finally:
+        os.chdir(curdir)
     return version
 
 
-if os.environ.get('RUNPERF_RELEASE'):
-    VERSION = 0.9
-else:
-    VERSION = get_version()
-
-
 def get_long_description():
-    with open(os.path.join(BASE_PATH, 'README.rst'), 'r') as req:
+    with open(os.path.join(SETUP_PATH, 'README.rst'), 'r') as req:
         req_contents = req.read()
     return req_contents
 
 
 if __name__ == '__main__':
     setup(name='runperf',
-          version=VERSION,
+          version=_get_git_version(),
           description='Helper to execute perf-beaker-tasks locally or in VM',
           long_description=get_long_description(),
           author='Lukas Doktor',

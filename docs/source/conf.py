@@ -15,7 +15,7 @@ import subprocess
 import sys
 ROOT_PATH = os.path.abspath(os.path.join(os.path.pardir, os.path.pardir))
 sys.path.insert(0, ROOT_PATH)
-from setup import get_version  # pylint: disable=C0413
+from setup import _get_git_version  # pylint: disable=C0413
 
 # -- Project information -----------------------------------------------------
 
@@ -24,7 +24,7 @@ copyright = '2020, Lukáš Doktor'
 author = 'Lukáš Doktor'
 
 # The full version, including alpha/beta/rc tags
-release = get_version()
+release = _get_git_version()
 
 # -- API docs ----------------------------------------------------------------
 API_SOURCE_DIR = os.path.join(ROOT_PATH, 'runperf')

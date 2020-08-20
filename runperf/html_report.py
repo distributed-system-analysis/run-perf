@@ -144,8 +144,12 @@ def generate_report(path, results, with_charts=False):
             for key in ["build", "machine", "machine_url", "url", "distro",
                         "runperf_cmd"]:
                 build[key] = metadata[key]
-            if "runperf_version" in metadata:
-                build["runperf_version"] = metadata["runperf_version"][:6]
+            version = metadata.get('runperf_version', None)
+            if version:
+                if version.count('-') > 1:
+                    # turn "0.9-96-g04b4b9f-dirty" into "04b4b9f-dirty"
+                    version = version.split('-', 2)[2][1:]
+                build["runperf_version"] = version
             else:
                 build["runperf_version"] = metadata.default_factory()
             build["guest_distro"] = metadata.get("guest_distro",

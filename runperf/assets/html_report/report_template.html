@@ -10460,7 +10460,7 @@ a {font-family: monospace;}
     </tr>
     <tr>
         <td>Runperf version</td>{% for build in builds %}
-        <td style='{{ relative_score_color(build) }}'><a href="https://github.com/distributed-system-analysis/run-perf/commit/{{build.runperf_version}}">{{build.runperf_version[:6]}}</a></td>{% endfor %}
+        <td style='{{ relative_score_color(build) }}'><a href="https://github.com/distributed-system-analysis/run-perf/tree/{{build.runperf_version}}">{{build.runperf_version[:6]}}</a></td>{% endfor %}
     </tr>
     <tr>
         <td>Runperf cmd</td>{% for build in builds %}
