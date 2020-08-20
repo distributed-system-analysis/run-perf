@@ -27,10 +27,10 @@ import threading
 import time
 
 import aexpect
-import pkg_resources
 
 from . import exceptions, tests, result
 from .machine import Controller
+from .version import __version__
 
 PROG = 'run-perf'
 DESCRIPTION = ("A tool to execute the same tasks on pre-defined scenarios/"
@@ -180,7 +180,7 @@ def create_metadata(output_dir, args):
         else:
             output.write("guest_distro:%s\n" % args.guest_distro)
         output.write("runperf_version:%s\n"
-                     % pkg_resources.get_distribution("runperf").version)
+                     % __version__)
         cmd = list(sys.argv)
         for i in range(len(cmd)):  # pylint: disable=C0200
             this = cmd[i]
