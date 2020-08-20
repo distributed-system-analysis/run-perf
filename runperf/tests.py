@@ -265,10 +265,29 @@ class Linpack(PBenchTest):
     name = "linpack"
     test = "linpack"
     default_args = (("run-samples", 3),)
+    __detect_linpack_bin = True
 
     def __init__(self, host, workers, base_output_path, metadata, extra):
-        if "linpack-binary" not in extra:
-            with host.get_session_cont() as session:
+        if "linpack-binary" in extra:
+            self._detect_linpack_bin = False
+        if "threads" not in extra:
+            # We want 2*cpus to stress the scheduler
+            extra["threads"] = utils.list_of_threads(
+                host.params["guest_cpus"] * 2)
+        PBenchTest.__init__(self, host, workers, base_output_path, metadata,
+                            extra)
+        # Replace the PBenchTest's pbench-linpack command for
+        # pbench-run-benchmark as pbench-linpack does not provides json results
+        self._cmd = ("ANSIBLE_HOST_KEY_CHECKING=false "
+                     "ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3 "
+                     "pbench-run-benchmark %s %s"
+                     % (self.test, self._cmd.split(' ', 1)[1]))
+
+    def _run(self):
+        if self.__detect_linpack_bin:
+            # When linpack is not specified by the user we need to detect
+            # and append it now as it was probably installed during `setup()`
+            with self.host.get_session_cont() as session:
                 linpack_bin = None
                 for name in ("linpack", "xlinpack_xeon64"):
                     linpack_bin = utils.shell_find_command(session, name)
@@ -282,17 +301,8 @@ class Linpack(PBenchTest):
                         raise exceptions.TestSkip("No linpack binary found on "
                                                   "host")
                     linpack_bin = linpack_bin.splitlines()[0]
-                extra["linpack-binary"] = linpack_bin
-        if "threads" not in extra:
-            # We want 2*cpus to stress the scheduler
-            extra["threads"] = utils.list_of_threads(
-                host.params["guest_cpus"] * 2)
-        PBenchTest.__init__(self, host, workers, base_output_path, metadata,
-                            extra)
-        self._cmd = ("ANSIBLE_HOST_KEY_CHECKING=false "
-                     "ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3 "
-                     "pbench-run-benchmark %s %s"
-                     % (self.test, self._cmd.split(' ', 1)[1]))
+                self._cmd += " --linpack-binary='%s'" % linpack_bin
+        PBenchTest._run(self)
 
 
 class UPerf(PBenchTest):

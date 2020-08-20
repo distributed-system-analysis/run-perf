@@ -411,6 +411,7 @@ class AnalyzePerf:
         result_names = set()
         for path in args.results:
             results_name = os.path.basename(path)
+            result_names.add(results_name)
             for test, score, _, _ in result.iter_results(path, True):
                 if test not in storage:
                     storage[test] = {}
@@ -427,6 +428,8 @@ class AnalyzePerf:
                 csv.write("test,%s" % ",".join(csv_safe_str(_)
                                                for _ in result_names))
                 for test in sorted(storage.keys()):
+                    if "Gb_sec.mean" not in test:
+                        continue
                     test_results = storage.get(test, {})
                     csv.write("\n%s," % test)
                     for result_name in result_names:
