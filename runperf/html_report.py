@@ -83,12 +83,22 @@ def generate_report(path, results, with_charts=False):
                 # TODO: Adjust to support multiple machines
                 if not value:
                     continue
+                # In diff compare the non "_raw" values only
                 value = value[0]
-                build_env[key] = value
+                # In build_env replace values for "_raw" values if available
+                raw_value = value.copy()
+                for inner_key, inner_value in value.items():
+                    if inner_key.endswith('_raw'):
+                        raw_value[inner_key[:-4]] = inner_value
+                        raw_value.pop(inner_key)
+                build_env[key] = raw_value
                 if key in src_env:
                     diff = []
                     inner_src_env = src_env[key]
                     for inner_key, inner_value in value.items():
+                        if inner_key.endswith("_raw"):
+                            # Skip raw values comparison
+                            continue
                         if inner_key in inner_src_env:
                             # Store only diff lines starting wiht +- as
                             # we don't need a "useful" diff but just an

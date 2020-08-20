@@ -716,6 +716,7 @@ class LibvirtGuest(BaseMachine):
         xml = self.get_host_session().cmd(
             "virsh dumpxml '%s'" % self.name, print_func="mute",
             ignore_all_errors=True)
+        out["libvirt_xml_raw"] = xml
         for reg, repl in self.XML_FILTERS:
             xml = reg.sub(repl, xml)
         out["libvirt_xml"] = xml
