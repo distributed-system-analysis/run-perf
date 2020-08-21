@@ -10,6 +10,7 @@ all:
 	@echo "develop:  Runs 'python setup.py --develop' on this tree alone"
 	@echo "clean:    Get rid of scratch, byte files and removes the links to other subprojects"
 	@echo "docs:     Build html docs in docs/build/html/ dir"
+	@echo "html_result:  Refresh the docs/source/_static/html_result.html from selftests/assets/results"
 	@echo
 	@echo "Platform independent distribution/installation related targets:"
 	@echo "pypi:     Prepare package for pypi upload"
@@ -45,7 +46,7 @@ pypi: develop
 	@echo "to upload this release"
 
 html_result: develop
-	python3 scripts/compare-perf --html-with-charts -vvv --tolerance 5 --stddev-tolerance 10 --model-linear-regression selftests/assets/results/1_base/linear_model.json --html docs/source/_static/html_result.html -r selftests/assets/results/{1_base/result_20200726_112748,2_kernel_update/result_20200726_114437,3_kernel_and_less_cpus/result_20200726_125851} -- selftests/assets/results/{1_base/result_20200726_080654,4_kernel_and_less_cpus_and_different_duration/result_20200726_130256} || true
+	python3 scripts/compare-perf --html-with-charts -vvv --tolerance 5 --stddev-tolerance 10 --model-linear-regression selftests/assets/results/1_base/linear_model.json --html docs/source/_static/html_result.html -r selftests/assets/results/1_base/result_20200726_112748 selftests/assets/results/2_kernel_update/result_20200726_114437 selftests/assets/results/3_kernel_and_less_cpus/result_20200726_125851 -- selftests/assets/results/1_base/result_20200726_080654 selftests/assets/results/4_kernel_and_less_cpus_and_different_duration/result_20200726_130256 || true
 
 install:
 	$(PYTHON) -m pip install .

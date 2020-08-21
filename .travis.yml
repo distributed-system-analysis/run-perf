@@ -9,3 +9,4 @@ setup:
 
 script:
   - make check
+  - make html_result && git diff --quiet || { echo "Running 'make html_result' must not result in 'git diff'; likely the html_result plugin produces different results than previously."; exit -1; }

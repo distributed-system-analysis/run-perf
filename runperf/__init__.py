@@ -200,7 +200,6 @@ def create_metadata(output_dir, args):
                     cmd[i + 1] = "sha1:"
                     cmd[i + 1] += hashlib.sha1(script.read()).hexdigest()[:6]
         output.write("runperf_cmd:%s\n" % " ".join(cmd))
-        # TODO: Support machines instead of a machine
         output.write("machine:%s" % ",".join(_[1] for _ in args.hosts))
         if "machine_url_base" in args.metadata:
             url = (args.metadata["machine_url_base"]
@@ -208,7 +207,6 @@ def create_metadata(output_dir, args):
             output.write("\nmachine_url:%s" % url)
         else:
             output.write("\nmachine_url:%s" % args.hosts[0][1])
-        # TODO: Add pbench version
 
 
 def main():

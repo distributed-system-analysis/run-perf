@@ -75,69 +75,76 @@ def generate_report(path, results, with_charts=False):
 
     def generate_builds(results):
 
+        def generate_build_diff(environment, src):
+            # In build_env replace values for "_raw" values if available
+            raw_value = environment.copy()
+            for key, value in environment.items():
+                if key.endswith('_raw'):
+                    raw_value[key[:-4]] = value
+                    raw_value.pop(key)
+            # In diff compare the non "_raw" values only
+            diff = []
+            for key, value in environment.items():
+                if key.endswith("_raw"):
+                    # Skip raw values comparison
+                    continue
+                if key in src:
+                    # Store only diff lines starting wiht +- as
+                    # we don't need a "useful" diff but just an
+                    # overview of what is different.
+                    raw_diff = unified_diff(
+                        src[key].splitlines(),
+                        value.splitlines())
+                    # Skip first two lines as it contains +++ and ---
+                    try:
+                        next(raw_diff)
+                        next(raw_diff)
+                    except StopIteration:
+                        pass
+                    inner_diff = "\n".join(line for line in raw_diff
+                                           if (line.startswith("+") or
+                                               line.startswith("-")))
+                else:
+                    inner_diff = "+%s MISSING IN SRC" % key
+                if inner_diff:
+                    diff.append("\n%s\n%s\n%s"
+                                % (key, "=" * len(key),
+                                   inner_diff))
+            return raw_value, "\n".join(diff)
+
         def process_diff_environemnt(env, src_env):
             """process the collected environment and produce diff/short"""
             build_env = {}
             build_diff = {}
-            for key, value in env.items():
-                # TODO: Adjust to support multiple machines
-                if not value:
+            for key, values in env.items():
+                if not values:
                     continue
-                # In diff compare the non "_raw" values only
-                value = value[0]
-                # In build_env replace values for "_raw" values if available
-                raw_value = value.copy()
-                for inner_key, inner_value in value.items():
-                    if inner_key.endswith('_raw'):
-                        raw_value[inner_key[:-4]] = inner_value
-                        raw_value.pop(inner_key)
-                build_env[key] = raw_value
-                if key in src_env:
-                    diff = []
-                    inner_src_env = src_env[key]
-                    for inner_key, inner_value in value.items():
-                        if inner_key.endswith("_raw"):
-                            # Skip raw values comparison
-                            continue
-                        if inner_key in inner_src_env:
-                            # Store only diff lines starting wiht +- as
-                            # we don't need a "useful" diff but just an
-                            # overview of what is different.
-                            raw_diff = unified_diff(
-                                inner_src_env[inner_key].splitlines(),
-                                inner_value.splitlines())
-                            # Skip first two lines as it contains +++ and ---
-                            try:
-                                next(raw_diff)
-                                next(raw_diff)
-                            except StopIteration:
-                                pass
-                            inner_diff = "\n".join(line for line in raw_diff
-                                                   if (line.startswith("+") or
-                                                       line.startswith("-")))
-                        else:
-                            inner_diff = "+%s MISSING IN SRC" % inner_key
-                        if inner_diff:
-                            diff.append("\n%s\n%s\n%s"
-                                        % (inner_key, "=" * len(inner_key),
-                                           inner_diff))
-                    build_diff[key] = "\n".join(diff)
-                else:
-                    build_diff[key] = "+%s PROFILE MISSING IN SRC" % key
+                build_env[key] = []
+                build_diff[key] = []
+                for i, value in enumerate(values):
+                    src_key_env = src_env.get(key, [])
+                    if len(src_key_env) > i:
+                        src = src_key_env[i]
+                        this_env, this_diff = generate_build_diff(value, src)
+                    else:
+                        this_env = value
+                        this_diff = "+%s PROFILE MISSING IN SRC" % key
+                    build_env[key].append(this_env)
+                    build_diff[key].append(this_diff)
             for key, value in src_env.items():
                 if key in env:
                     continue
                 if not value:
                     continue
-                build_env[key] = ""
-                build_diff[key] = "-MISSING IN THIS BUILD"
+                build_env[key] = [""]
+                build_diff[key] = ["-MISSING IN THIS BUILD"]
             return build_env, build_diff
 
         def collect_environment(metadata):
             """Transform the multiple environment entries into a single dict"""
             env = {}
             profiles = []
-            env["world"] = json.loads(metadata.get("environment_world", '{}'))
+            env["World"] = json.loads(metadata.get("environment_world", '{}'))
             for key, value in metadata.items():
                 if key.startswith("environment_profile_"):
                     profile = key[20:]
@@ -179,20 +186,21 @@ def generate_report(path, results, with_charts=False):
                 build["environment"] = build_env
                 build["environment_diff"] = build_diff
             else:
-                # TODO: Adjust to support multiple machines
-                build["environment"] = {key: value[0]
-                                        for key, value in env.items()
-                                        if value}
-                build["environment_diff"] = {key: ""
+                build["environment"] = {key: values
+                                        for key, values in env.items()
+                                        if values}
+                build["environment_diff"] = {key: [""]
                                              for key, value in env.items()
                                              if value}
             build["environment_short"] = {}
-            for key, value in build["environment"].items():
-                known_item = known_items["env %s" % key]
-                if value not in known_item:
-                    known_item.append(value)
-                build["environment_short"][key] = num2char(
-                    known_item.index(value))
+            for key, values in build["environment_diff"].items():
+                build["environment_short"][key] = []
+                for value in values:
+                    known_item = known_items["env %s" % key]
+                    if value not in known_item:
+                        known_item.append(value)
+                    build["environment_short"][key].append(num2char(
+                        known_item.index(value)))
             return build
 
         def get_failed_facts(dst_record, results, record_attr="records"):
@@ -657,7 +665,7 @@ def generate_report(path, results, with_charts=False):
     profiles = list(set(profile
                         for build in values["builds"]
                         for profile in build["profiles"]))
-    values["profiles"] = list(profiles)
+    values["profiles"] = ["World"] + profiles
     if with_charts:
         values["charts"] = generate_charts(results)
     values["builds_statuses"] = generate_builds_statuses(
@@ -666,6 +674,7 @@ def generate_report(path, results, with_charts=False):
     values["with_charts"] = with_charts
     loader = jinja2.PackageLoader("runperf", "assets/html_report")
     env = jinja2.Environment(loader=loader, autoescape=True)
+    env.filters['zip'] = zip
     template = env.get_template("report_template.html")
     with open(path, 'w') as output:
         output.write(template.render(values))
