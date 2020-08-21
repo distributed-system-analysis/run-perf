@@ -10448,7 +10448,7 @@ a {font-family: monospace;}
     </tr>
     <tr>
         <td>Machine</td>{% for build in builds %}
-        <td style='{{ relative_score_color(build) }}'><a href="{{build.machine_url}}" title="{{build.machine}}">{{build.machine.split('.', 1)[0]}}</a></td>{% endfor %}
+        <td style='{{ relative_score_color(build) }}'>{% for machine,machine_url in build.machine.split(',')|zip(build.machine.split(',')) %}<a href="{{machine_url}}" title="{{machine}}">{{machine.split('.', 1)[0]}}</a>{% if not loop.last %},{% endif %}{% endfor %}</td>{% endfor %}
     </tr>
     <tr>
         <td>Distro</td>{% for build in builds %}
@@ -10467,8 +10467,8 @@ a {font-family: monospace;}
         <td style='{{ relative_score_color(build) }}'><div class="tooltip">{{build.runperf_cmd_short}}<span class="tooltiptext">{{build.runperf_cmd}}</span></div></td>{% endfor %}
     </tr>
     {% for profile in profiles %}<tr>
-        <td>{{ profile }} env</td>{% for build in builds %}
-        <td style='{{ relative_score_color(build) }}'><textarea style="position: absolute; left: -9999px;"  id="env-{{ profile }}-{{ loop.index }}-raw">{{build.environment[profile]}}</textarea><div class="tooltip" onclick="elementValueToClipboard('env-{{ profile }}-{{ loop.index }}-raw')">{{build.environment_short[profile]}}<span class="tooltiptext"><a href="#">Click to copy the raw python dict</a><pre>{{build.environment_diff[profile]}}</pre></span></div></td>{% endfor %}
+        <td>{{ profile }} env</td>{% for build in builds %}{% set build_idx = loop.index %}
+        <td style='{{ relative_score_color(build) }}'><textarea style="position: absolute; left: -9999px;"  id="env-{{ profile }}-{{ build_idx }}-raw">{{build.environment[profile]}}</textarea>{% for short, diff in build.environment_short[profile]|zip(build.environment_diff[profile]) %}<div class="tooltip" onclick="elementValueToClipboard('env-{{ profile }}-{{ build_idx }}-raw')">{{short}}<span class="tooltiptext"><a href="#">Click to copy the raw python dict</a><pre>{{diff}}</pre></span></div>{% if not loop.last %},{% endif %}{% endfor %}</td>{% endfor %}
     </tr>{% endfor %}
     <tr>
         <td>Tests env</td>{% for build in builds %}
