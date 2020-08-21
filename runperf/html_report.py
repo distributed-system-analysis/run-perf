@@ -136,8 +136,8 @@ def generate_report(path, results, with_charts=False):
         def collect_environment(metadata):
             """Transform the multiple environment entries into a single dict"""
             env = {}
-            profiles = []
-            env["world"] = json.loads(metadata.get("environment_world", '{}'))
+            profiles = ["World"]
+            env["World"] = json.loads(metadata.get("environment_world", '{}'))
             for key, value in metadata.items():
                 if key.startswith("environment_profile_"):
                     profile = key[20:]
