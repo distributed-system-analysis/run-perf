@@ -10,6 +10,7 @@ all:
 	@echo "develop:  Runs 'python setup.py --develop' on this tree alone"
 	@echo "clean:    Get rid of scratch, byte files and removes the links to other subprojects"
 	@echo "docs:     Build html docs in docs/build/html/ dir"
+	@echo "html_result:  Refresh the docs/source/_static/html_result.html from selftests/assets/results"
 	@echo
 	@echo "Platform independent distribution/installation related targets:"
 	@echo "pypi:     Prepare package for pypi upload"

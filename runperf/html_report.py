@@ -186,7 +186,6 @@ def generate_report(path, results, with_charts=False):
                 build["environment"] = build_env
                 build["environment_diff"] = build_diff
             else:
-                # TODO: Adjust to support multiple machines
                 build["environment"] = {key: values
                                         for key, values in env.items()
                                         if values}
