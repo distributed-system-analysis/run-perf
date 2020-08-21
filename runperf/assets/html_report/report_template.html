@@ -10468,7 +10468,7 @@ a {font-family: monospace;}
     </tr>
     <tr>
         <td>World env</td>{% for build in builds %}
-        <td style='{{ relative_score_color(build) }}'><textarea style="position: absolute; left: -9999px;"  id="env-world-raw">{{build.environment.world}}</textarea><div class="tooltip" onclick="elementValueToClipboard('env-world-raw')">{{build.environment_short.world}}<span class="tooltiptext"><a href="#">Click to copy the raw python dict</a><pre>{{build.environment_diff.world}}</pre></span></div></td>{% endfor %}
+        <td style='{{ relative_score_color(build) }}'><textarea style="position: absolute; left: -9999px;"  id="env-world-raw-{{ loop.index }}">{{build.environment.world}}</textarea><div class="tooltip" onclick="elementValueToClipboard('env-world-raw-{{ loop.index }}')">{{build.environment_short.world}}<span class="tooltiptext"><a href="#">Click to copy the raw python dict</a><pre>{{build.environment_diff.world}}</pre></span></div></td>{% endfor %}
     </tr>
     {% for profile in profiles %}<tr>
         <td>{{ profile }} env</td>{% for build in builds %}
