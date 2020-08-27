@@ -152,7 +152,8 @@ class PBenchTest(BaseTest):
         for key, value in self.default_args:
             if key not in extra:
                 extra[key] = value
-        for key, value in extra.items():
+        # Using sorted to always use the same cmdline
+        for key, value in sorted(extra.items()):
             self.args += " --%s=%s" % (key, value)
         self._cmd = ("pbench-%s %s --clients=%s" %
                      (self.test, self.args,
