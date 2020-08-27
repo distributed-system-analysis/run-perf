@@ -1,0 +1,66 @@
+[
+    {
+        "iteration_name": "name",
+        "iteration_number": 1,
+        "iteration_data": {
+            "parameters": {
+                "benchmark": [
+                    {
+                        "benchmark_name": "fio",
+                        "arg1": "1",
+                        "arg2": "2",
+                        "arg3": "3"
+                    }
+                ]
+            },
+            "throughput": {
+                "iops_sec": [
+                    {
+                        "client_hostname": "localhost",
+                        "mean": 100,
+                        "stddev": 0,
+                        "stddevpct": 0
+                    },
+                    {
+                        "client_hostname": "all",
+                        "mean": 200,
+                        "stddev": 10.5,
+                        "stddevpct": 10
+                    }
+                ]
+            }
+        }
+    },
+    {
+        "iteration_name": "name2",
+        "iteration_number": 2,
+        "iteration_data": {
+            "parameters": {
+                "benchmark": [
+                    {
+                        "benchmark_name": "fio",
+                        "arg1": "4",
+                        "arg2": "5",
+                        "arg3": "6"
+                    }
+                ]
+            },
+            "throughput": {
+                "iops_sec": [
+                    {
+                        "client_hostname": "localhost",
+                        "mean": 400,
+                        "stddev": 0,
+                        "stddevpct": 0
+                    },
+                    {
+                        "client_hostname": "all",
+                        "mean": 600,
+                        "stddev": 9.5,
+                        "stddevpct": 10
+                    }
+                ]
+            }
+        }
+    }
+]
