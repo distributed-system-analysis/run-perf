@@ -193,9 +193,6 @@ class PBenchTest(BaseTest):
         session = None
         try:
             with self.host.get_session_cont() as session:
-                session.sendline("true")
-                # Let the system to rest a bit before the load
-                time.sleep(5)
                 session.cmd("true")
                 # FIXME: Return this when https://github.com/distributed
                 # -system-analysis/pbench/issues/1743 is resolved
