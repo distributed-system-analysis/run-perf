@@ -32,7 +32,7 @@ if __name__ == '__main__':
     SUITE = unittest.TestSuite()
     LOADER = unittest.TestLoader()
     for section in next(os.walk(BASE_DIR))[1]:
-        if section.startswith('.'):
+        if section.startswith('.') or section.startswith('__'):
             continue
         SUITE.addTests(LOADER.discover(os.path.join(BASE_DIR, section),
                                        top_level_dir=BASE_DIR))
