@@ -202,9 +202,10 @@ def create_metadata(output_dir, args):
         output.write("runperf_cmd:%s\n" % " ".join(cmd))
         output.write("machine:%s" % ",".join(_[1] for _ in args.hosts))
         if "machine_url_base" in args.metadata:
-            url = (args.metadata["machine_url_base"]
-                   % {"machine": args.hosts[0][1]})
-            output.write("\nmachine_url:%s" % url)
+            url_base = args.metadata["machine_url_base"]
+            urls = (url_base % {"machine": host[1]}
+                    for host in args.hosts)
+            output.write("\nmachine_url:%s" % ','.join(urls))
         else:
             output.write("\nmachine_url:%s" % args.hosts[0][1])
 

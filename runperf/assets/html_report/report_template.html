@@ -10448,7 +10448,7 @@ a {font-family: monospace;}
     </tr>
     <tr>
         <td>Machine</td>{% for build in builds %}
-        <td style='{{ relative_score_color(build) }}'>{% for machine,machine_url in build.machine.split(',')|zip(build.machine.split(',')) %}<a href="{{machine_url}}" title="{{machine}}">{{machine.split('.', 1)[0]}}</a>{% if not loop.last %},{% endif %}{% endfor %}</td>{% endfor %}
+        <td style='{{ relative_score_color(build) }}'>{% for machine,machine_url in build.machine.split(',')|zip(build.machine_url.split(',')) %}<a href="{{machine_url}}" title="{{machine}}">{{machine.split('.', 1)[0]}}</a>{% if not loop.last %},{% endif %}{% endfor %}</td>{% endfor %}
     </tr>
     <tr>
         <td>Distro</td>{% for build in builds %}
