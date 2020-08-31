@@ -273,9 +273,15 @@ def main():
                 hosts.cleanup()
         # TODO: Treat hanging background threads
         if len(threading.enumerate()) > 1:
-            log.warning("Background threads present, killing: %s",
-                        threading.enumerate())
-            os.kill(0, 15)
+            threads = threading.enumerate()
+            if any("pydevd.Reader" in _ for _ in threads):
+                logging.warning("Background threads %s present but 'pydev' "
+                                "thread detected, not killing anything"
+                                % threads)
+            else:
+                log.warning("Background threads present, killing: %s",
+                            threading.enumerate())
+                os.kill(0, 15)
         raise
 
 
