@@ -93,7 +93,7 @@ def _parse_args():
                         "the tests (some might require reboot)", nargs='+',
                         default=['default'])
     parser.add_argument("--distro", help="Set the host distro name, eg. "
-                        "RHEL-8.0-20180904.n.0")
+                        "RHEL-8.0-20180904.n.0", default="Unknown")
     parser.add_argument("--guest-distro", help="Guest distro (default is the "
                         "same as host)")
     parser.add_argument("--hosts", help="Host to be provisioned; optionally "
