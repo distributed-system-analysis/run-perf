@@ -537,49 +537,7 @@ class RelativeResults:
         testsuite.setAttribute('time', "0.000")
         return document.toprettyxml(encoding='UTF-8')
 
-    def _write_csvs(self, base_path, suffix, header, results):
-        if suffix:
-            csv_path = "%s-%%s-%s.csv" % (base_path, suffix)
-        else:
-            csv_path = "%s-%%s.csv" % base_path
-        # TODO: Write only individual-results as we don't realy consume this
-        with open(csv_path % "means", 'w') as out_fd:
-            out_fd.write(','.join(header[0:1] + header[2:9]))
-            out_fd.write('\n')
-            for result in results:
-                out = ','.join(result[0:1] + result[2:9])
-                out_fd.write(out)
-                out_fd.write('\n')
-                # Write individual results as well (for Jenkins plot plugin)
-                with open(out_fd.name[:-4] + '-' +
-                          utils.string_to_safe_path(result[0]) + '.csv',
-                          'w') as out_indiv:
-                    out_indiv.write(','.join(header[0:1] + header[2:9]))
-                    out_indiv.write('\n')
-                    out_indiv.write(out)
-                    out_indiv.write('\n')
-                    self.log.info("Written %s", out_indiv.name)
-            self.log.info("Written %s", out_fd.name)
-
-        with open(csv_path % "stddevs", 'w') as out_fd:
-            out_fd.write(','.join(header[0:1] + header[10:]))
-            out_fd.write('\n')
-            for result in results:
-                out = ','.join(result[0:1] + result[10:])
-                out_fd.write(out)
-                out_fd.write('\n')
-                # Write individual results as well (for Jenkins plot plugin)
-                with open(out_fd.name[:-4] + '-' +
-                          utils.string_to_safe_path(result[0]) + '.csv',
-                          'w') as out_indiv:
-                    out_indiv.write(','.join(header[0:1] + header[10:]))
-                    out_indiv.write('\n')
-                    out_indiv.write(out)
-                    out_indiv.write('\n')
-                    self.log.info("Written %s", out_indiv.name)
-            self.log.info("Written %s", out_fd.name)
-
-    def per_type_stats(self, output, merge=None, primary_only=True):
+    def per_type_stats(self, merge=None, primary_only=True):
         """
         Generate stats using merged results (eg. merge all fio-read tests)
         """
@@ -598,9 +556,9 @@ class RelativeResults:
             else:  # generic failure
                 all_means[result_id].append(record.score)
                 all_stddevs[result_id].append(record.score)
-        return self.compute_statistics(all_means, all_stddevs, output)
+        return self.compute_statistics(all_means, all_stddevs)
 
-    def compute_statistics(self, all_means, all_stddevs, output, name=None):
+    def compute_statistics(self, all_means, all_stddevs):
         """
         Calculate statistics for given means/stddevs
         """
@@ -638,13 +596,10 @@ class RelativeResults:
                             _str(numpy.max(stddevs)),
                             _str(avg_agg_std_loss),
                             _str(avg_agg_std_gain)))
-        self.log.info("\n\nPer-result-id%s averages:\n%s\n\n",
-                      " %s" % name if name else "",
+        self.log.info("\n\nPer-result-id averages:\n%s\n\n",
                       utils.tabular_output(results, header))
-        if output:
-            self._write_csvs(output, name, header, results)
 
-    def sum_stats(self, output, primary_only=True):
+    def sum_stats(self, primary_only=True):
         """
         Generate summary stats (min/median/max/average...)
         """
@@ -690,32 +645,6 @@ class RelativeResults:
         matrix.append(["Errors", errors] + ([''] * (len(header) - 2)))
         self.log.info("\n\n%s\n\n", utils.tabular_output(matrix, header))
 
-        if output:
-            with open("%s-counts.csv" % output, 'w') as out:
-                out.write("#equals, #minor_losses, #losses, #minor_gains, "
-                          "#gains, #errors\n")
-                out.write("%s, " % len(equals))
-                out.write(", ".join(str(-len(_))
-                                    for _ in (m_losses, losses)))
-                out.write(", ")
-                out.write(", ".join(str(len(_))
-                                    for _ in (m_gains, gains)))
-                out.write(", %s\n" % errors)
-            with open("%s-avgs.csv" % output, 'w') as out:
-                out.write("avg_equals, avg_minor_losses, avg_losses, "
-                          "avg_minor_gains, avg_gains\n")
-                out.write(", ".join(str(numpy.average(_)) if _ else "0"
-                                    for _ in (equals, m_losses, losses,
-                                              m_gains, gains)))
-                out.write('\n')
-            with open("%s-sums.csv" % output, 'w') as out:
-                out.write("acc_equals, acc_minor_losses, acc_losses, "
-                          "acc_minor_gains, acc_gains\n")
-                out.write(", ".join(str(numpy.sum(_))
-                                    for _ in (equals, m_losses, losses,
-                                              m_gains, gains)))
-                out.write('\n')
-
     def _expand_grouped_result(self, records, merge):
         """
         Calculate result entries as averages per group of results
@@ -752,19 +681,19 @@ class RelativeResults:
                                      "iteration_name_extra", "workflow",
                                      "workflow_type"])
 
-    def evaluate(self, output):
+    def evaluate(self):
         """
         Process a default set of statistic on the results
         """
         self.expand_grouped_results()
-        self.per_type_stats(output, ["iteration_name_extra"])
-        self.per_type_stats(output, ["serial", "iteration_name",
-                                     "iteration_name_extra", "workflow"])
-        self.per_type_stats(output, ["test", "serial", "iteration_name",
-                                     "iteration_name_extra", "workflow",
-                                     "workflow_type"])
+        self.per_type_stats(["iteration_name_extra"])
+        self.per_type_stats(["serial", "iteration_name",
+                             "iteration_name_extra", "workflow"])
+        self.per_type_stats(["test", "serial", "iteration_name",
+                             "iteration_name_extra", "workflow",
+                             "workflow_type"])
 
-        self.sum_stats(output)
+        self.sum_stats()
 
     def finish(self):
         """

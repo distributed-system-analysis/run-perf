@@ -342,16 +342,16 @@ class TunedLibvirt(DefaultLibvirt):
                              "%s" % (host.addr, rp_paths, self.profile))
         extra_params = {"image_format": "raw", "xml": xml_content}
         super(TunedLibvirt, self).__init__(host, extra_params)
+        self.mem_per_node = int(self.host.params["guest_mem_m"] * 1024 /
+                                self.host.params["hugepage_kb"] /
+                                self.host.params["numa_nodes"])
 
     def _apply(self, setup_script):
-        mem_per_node = int(self.host.params["guest_mem_m"] * 1024 /
-                           self.host.params["hugepage_kb"] /
-                           self.host.params["numa_nodes"])
         for node in range(self.host.params["numa_nodes"]):
             hps = self._read_file("/sys/devices/system/node/node%s/hugepages/"
                                   "hugepages-%skB/nr_hugepages"
                                   % (node, self.host.params["hugepage_kb"]))
-            if int(hps) < mem_per_node:
+            if int(hps) < self.mem_per_node:
                 return self._apply_persistent()
 
         # TODO: Also check other parts...
@@ -372,14 +372,11 @@ class TunedLibvirt(DefaultLibvirt):
         # HUGEPAGES
         rc_local.append("# HUGEPAGES")
         rc_local.append("for I in $(seq 10); do")
-        mem_per_node = int(self.host.params["guest_mem_m"] * 1024 /
-                           self.host.params["hugepage_kb"] /
-                           self.host.params["numa_nodes"])
         for node in range(self.host.params["numa_nodes"]):
             rc_local.append("    echo %s > /sys/devices/system/"
                             "node/node%s/hugepages/hugepages-%skB/"
                             "nr_hugepages"
-                            % (mem_per_node, node,
+                            % (self.mem_per_node, node,
                                self.host.params["hugepage_kb"]))
             rc_local.append("    sleep 0.5")
             rc_local.append("    echo 3 > /proc/sys/vm/drop_caches")

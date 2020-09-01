@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="runperf" timestamp="2020-09-01T11:13:07.912376" tests="16" errors="0" failures="0" skipped="1" time="0.000">
+	<testcase classname="Localhost/fio/0000:./read-4KiB/throughput" name="iops_sec.mean" time="0.000"/>
+	<testcase classname="Localhost/fio/0000:./read-4KiB/throughput" name="iops_sec.stddev" time="0.000"/>
+	<testcase classname="Localhost/fio/0000:./read-64KiB/throughput" name="iops_sec.mean" time="0.000">
+		<skipped type="skipped_ELEMENT_TYPE" message="BIG model 21.78%&gt;5.0%, mraw 19.80%&gt;5.0%, raw 16.53%&gt;5.0% (100482.88135593213; 120381.830508475)"/>
+	</testcase>
+	<testcase classname="Localhost/fio/0000:./read-64KiB/throughput" name="iops_sec.stddev" time="0.000"/>
+</testsuite>

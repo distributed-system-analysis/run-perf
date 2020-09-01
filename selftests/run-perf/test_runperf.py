@@ -16,13 +16,16 @@
 Tests for the main runperf app
 """
 
+import argparse
 import os
 import shutil
 import tempfile
 from unittest import mock
 import unittest
+from unittest.mock import mock_open
 
 from runperf import main
+import runperf
 from runperf.version import get_version
 
 
@@ -89,6 +92,23 @@ class RunPerfTest(unittest.TestCase):
                       "https://foo/127.0.0.1/details,"
                       "https://foo/192.168.122.5/details,"
                       "https://foo/192.168.122.6/details", metadata)
+
+    def test_create_metadata(self):
+        args = argparse.Namespace(metadata=[], distro=None, guest_distro=None,
+                                  hosts=[("localhost", "127.0.0.1")])
+        with mock.patch("sys.argv", []):
+            runperf.create_metadata(self.tmpdir, args)
+        # Avoid IndexError on missing arg
+        with mock.patch("sys.argv", ["--default-password"]):
+            runperf.create_metadata(self.tmpdir, args)
+        # Process all args
+        with mock.patch("sys.argv", ["--default-password", "pass", "another"]):
+            runperf.create_metadata(self.tmpdir, args)
+        with open(os.path.join(self.tmpdir,
+                               "RUNPERF_METADATA")) as metadata_fd:
+            metadata = metadata_fd.read()
+        self.assertIn("\nrunperf_cmd:--default-password MASKED MASKED\n",
+                      metadata)
 
     def tearDown(self):
         if self.tmpdir:

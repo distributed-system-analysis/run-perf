@@ -208,10 +208,9 @@ def generate_report(path, results, with_charts=False):
             missing = 0
             for res in results:
                 for record in getattr(res, record_attr):
-                    if record.name == name:
-                        if record.status < 0:
-                            failures += 1
-                            break
+                    if record.name == name and record.status < 0:
+                        failures += 1
+                        break
                 else:
                     missing += 1
             facts = []
@@ -310,6 +309,14 @@ def generate_report(path, results, with_charts=False):
         return src, builds, dst
 
     def generate_charts(results):
+        def generate_data_serie(data):
+            return [[float("%.2f" % numpy.min(_)),
+                     float("%.2f" % numpy.percentile(_, 25)),
+                     float("%.2f" % numpy.median(_)),
+                     float("%.2f" % numpy.percentile(_, 75)),
+                     float("%.2f" % numpy.max(_))]
+                    if _ else [0, 0, 0, 0, 0]
+                    for _ in data]
         improvements = [[], []]
         m_improvements = [[], []]
         equals = [[], []]
@@ -402,31 +409,13 @@ def generate_report(path, results, with_charts=False):
                      "backgroundColor": C_BG_STDDEV if i else C_BG_MEAN,
                      "series": [{"name": "improvements",
                                  "color": "gold",
-                                 "data": [[float("%.2f" % numpy.min(_)),
-                                           float("%.2f" % numpy.percentile(_, 25)),
-                                           float("%.2f" % numpy.median(_)),
-                                           float("%.2f" % numpy.percentile(_, 75)),
-                                           float("%.2f" % numpy.max(_))]
-                                          if _ else [0, 0, 0, 0, 0]
-                                          for _ in improvements[i]]},
+                                 "data": generate_data_serie(improvements[i])},
                                 {"name": "equals",
                                  "color": "green",
-                                 "data": [[float("%.2f" % numpy.min(_)),
-                                           float("%.2f" % numpy.percentile(_, 25)),
-                                           float("%.2f" % numpy.median(_)),
-                                           float("%.2f" % numpy.percentile(_, 75)),
-                                           float("%.2f" % numpy.max(_))]
-                                          if _ else [0, 0, 0, 0, 0]
-                                          for _ in all_equals]},
+                                 "data": generate_data_serie(all_equals)},
                                 {"name": "regressions",
                                  "color": "red",
-                                 "data": [[float("%.2f" % numpy.min(_)),
-                                           float("%.2f" % numpy.percentile(_, 25)),
-                                           float("%.2f" % numpy.median(_)),
-                                           float("%.2f" % numpy.percentile(_, 75)),
-                                           float("%.2f" % numpy.max(_))]
-                                          if _ else [0, 0, 0, 0, 0]
-                                          for _ in regressions[i]]}]}
+                                 "data": generate_data_serie(regressions[i])}]}
             charts.append(chart)
         # Generate per-section charts
         for section, merge in (("Same profile means",
@@ -501,31 +490,13 @@ def generate_report(path, results, with_charts=False):
                          "backgroundColor": C_BG_MEAN,
                          "series": [{"name": "improvements",
                                      "color": "gold",
-                                     "data": [[float("%.2f" % numpy.min(_[name])),
-                                               float("%.2f" % numpy.percentile(_[name], 25)),
-                                               float("%.2f" % numpy.median(_[name])),
-                                               float("%.2f" % numpy.percentile(_[name], 75)),
-                                               float("%.2f" % numpy.max(_[name]))]
-                                              if _[name] else [0, 0, 0, 0, 0]
-                                              for _ in improvements]},
+                                     "data": generate_data_serie(_[name] for _ in improvements)},
                                     {"name": "equals",
                                      "color": "green",
-                                     "data": [[float("%.2f" % numpy.min(_[name])),
-                                               float("%.2f" % numpy.percentile(_[name], 25)),
-                                               float("%.2f" % numpy.median(_[name])),
-                                               float("%.2f" % numpy.percentile(_[name], 75)),
-                                               float("%.2f" % numpy.max(_[name]))]
-                                              if _[name] else [0, 0, 0, 0, 0]
-                                              for _ in equals]},
+                                     "data": generate_data_serie(_[name] for _ in equals)},
                                     {"name": "regressions",
                                      "color": "red",
-                                     "data": [[float("%.2f" % numpy.min(_[name])),
-                                               float("%.2f" % numpy.percentile(_[name], 25)),
-                                               float("%.2f" % numpy.median(_[name])),
-                                               float("%.2f" % numpy.percentile(_[name], 75)),
-                                               float("%.2f" % numpy.max(_[name]))]
-                                              if _[name] else [0, 0, 0, 0, 0]
-                                              for _ in regressions]}]}
+                                     "data": generate_data_serie(_[name] for _ in regressions)}]}
                 charts.append(chart)
         return charts
 
@@ -626,37 +597,20 @@ def generate_report(path, results, with_charts=False):
         return builds_statuses
 
     def get_filters(results):
+        def process_filters(match, filters, all_filters):
+            for i, cat in enumerate(("profiles", "tests", "types"), 1):
+                if match[i] not in all_filters:
+                    filters[cat].add(match[i])
+                    all_filters.add(match[i])
         filters = {"profiles": set(), "tests": set(), "types": set()}
         all_filters = set()
         for res in results:
-            for record in res.records:
+            for record in res.records + res.grouped_records:
                 if not record.primary:
                     continue
                 match = RE_NAME_FILTERS.match(record.name)
                 if match:
-                    if match[1] not in all_filters:
-                        filters["profiles"].add(match[1])
-                        all_filters.add(match[1])
-                    if match[2] not in all_filters:
-                        filters["tests"].add(match[2])
-                        all_filters.add(match[2])
-                    if match[3] not in all_filters:
-                        filters["types"].add(match[3])
-                        all_filters.add(match[3])
-            for record in res.grouped_records:
-                if not record.primary:
-                    continue
-                match = RE_NAME_FILTERS.match(record.name)
-                if match:
-                    if match[1] not in all_filters:
-                        filters["profiles"].add(match[1])
-                        all_filters.add(match[1])
-                    if match[2] not in all_filters:
-                        filters["tests"].add(match[2])
-                        all_filters.add(match[2])
-                    if match[3] not in all_filters:
-                        filters["types"].add(match[3])
-                        all_filters.add(match[3])
+                    process_filters(match, filters, all_filters)
         return filters
 
     values = {}

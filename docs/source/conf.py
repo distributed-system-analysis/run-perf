@@ -11,6 +11,8 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import shlex
+import shutil
 import subprocess
 import sys
 ROOT_PATH = os.path.abspath(os.path.join(os.path.pardir, os.path.pardir))
@@ -29,7 +31,7 @@ release = _get_git_version()
 # -- API docs ----------------------------------------------------------------
 API_SOURCE_DIR = os.path.join(ROOT_PATH, 'runperf')
 BASE_API_OUTPUT_DIR = os.path.join(ROOT_PATH, 'docs', 'source', 'api')
-APIDOC = subprocess.check_output(['which', 'sphinx-apidoc']).decode('utf-8').strip()
+APIDOC = shutil.which('sphinx-apidoc')
 APIDOC_TEMPLATE = APIDOC + " -o %(output_dir)s %(API_SOURCE_DIR)s %(exclude_dirs)s"
 
 # Documentation sections. Key is the name of the section, followed by:
@@ -42,7 +44,9 @@ API_SECTIONS = {"Runperf API": (None,
                                 tuple(),
                                 ('modules.rst',)), }
 
-os.system("find %s -name '*.rst' -delete" % BASE_API_OUTPUT_DIR)
+subprocess.call([shutil.which("find"), BASE_API_OUTPUT_DIR, "-name",
+                 "*.rst", "-delete"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 for (section, params) in API_SECTIONS.items():
     output_dir = os.path.join(BASE_API_OUTPUT_DIR, params[2])
@@ -53,8 +57,9 @@ for (section, params) in API_SECTIONS.items():
                        for d in params[4]]
 
     # generate all rst files
-    cmd = APIDOC_TEMPLATE % locals()
-    os.system(cmd)
+    cmd = shlex.split(APIDOC_TEMPLATE % locals())
+    subprocess.call([shutil.which(cmd[0])] + cmd[1:],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     # remove unnecessary ones
     for f in files_to_remove:
         try:

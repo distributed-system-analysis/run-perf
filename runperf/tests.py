@@ -330,7 +330,6 @@ class UPerf(PBenchTest):
         # FIXME: Ugly IPv4-libvirt-bridge-only hack to use main host
         addrs = []
         for worker in self.workers[0]:
-            # addr = "%s.1" % worker.get_addr().rsplit('.', 1)[0]
             addr = worker.get_host_addr()
             utils.ssh_copy_id(self.host.log, addr, host.default_passwords,
                               self.host)
