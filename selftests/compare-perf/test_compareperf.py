@@ -54,7 +54,8 @@ class RunPerfTest(unittest.TestCase):
         try:
             os.chdir(base_dir)
             with mock.patch("sys.argv", args):
-                ret = ComparePerf()()
+                with mock.patch("logging.getLogger"):
+                    ret = ComparePerf()()
         finally:
             os.chdir(old_path)
         with open(os.path.join(base_dir, "docs", "source", "_static",
