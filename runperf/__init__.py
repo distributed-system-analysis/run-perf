@@ -93,7 +93,7 @@ def _parse_args():
                         "the tests (some might require reboot)", nargs='+',
                         default=['default'])
     parser.add_argument("--distro", help="Set the host distro name, eg. "
-                        "RHEL-8.0-20180904.n.0")
+                        "RHEL-8.0-20180904.n.0", default="Unknown")
     parser.add_argument("--guest-distro", help="Guest distro (default is the "
                         "same as host)")
     parser.add_argument("--hosts", help="Host to be provisioned; optionally "
@@ -202,9 +202,10 @@ def create_metadata(output_dir, args):
         output.write("runperf_cmd:%s\n" % " ".join(cmd))
         output.write("machine:%s" % ",".join(_[1] for _ in args.hosts))
         if "machine_url_base" in args.metadata:
-            url = (args.metadata["machine_url_base"]
-                   % {"machine": args.hosts[0][1]})
-            output.write("\nmachine_url:%s" % url)
+            url_base = args.metadata["machine_url_base"]
+            urls = (url_base % {"machine": host[1]}
+                    for host in args.hosts)
+            output.write("\nmachine_url:%s" % ','.join(urls))
         else:
             output.write("\nmachine_url:%s" % args.hosts[0][1])
 
@@ -272,9 +273,15 @@ def main():
                 hosts.cleanup()
         # TODO: Treat hanging background threads
         if len(threading.enumerate()) > 1:
-            log.warning("Background threads present, killing: %s",
-                        threading.enumerate())
-            os.kill(0, 15)
+            threads = threading.enumerate()
+            if any("pydevd.Reader" in _ for _ in threads):
+                logging.warning("Background threads %s present but 'pydev' "
+                                "thread detected, not killing anything"
+                                % threads)
+            else:
+                log.warning("Background threads present, killing: %s",
+                            threading.enumerate())
+                os.kill(0, 15)
         raise
 
 

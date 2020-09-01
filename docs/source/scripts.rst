@@ -360,8 +360,8 @@ comparison, which is useful for email attachments.
 
 Sample output of multiple results can be seen
 `here <_static/html_result.html>`_ and was generated using (partial) results
-stored in ``selftests/assets/results`` in the run-perf sources using a model
-located in ``selftests/assets/results/1_base/linear_model.json`` using
+stored in ``selftests/.assets/results`` in the run-perf sources using a model
+located in ``selftests/.assets/results/1_base/linear_model.json`` using
 first five results from that directory.
 
 let's have a look at the available sections:

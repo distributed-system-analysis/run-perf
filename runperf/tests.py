@@ -152,7 +152,8 @@ class PBenchTest(BaseTest):
         for key, value in self.default_args:
             if key not in extra:
                 extra[key] = value
-        for key, value in extra.items():
+        # Using sorted to always use the same cmdline
+        for key, value in sorted(extra.items()):
             self.args += " --%s=%s" % (key, value)
         self._cmd = ("pbench-%s %s --clients=%s" %
                      (self.test, self.args,
@@ -193,9 +194,6 @@ class PBenchTest(BaseTest):
         session = None
         try:
             with self.host.get_session_cont() as session:
-                session.sendline("true")
-                # Let the system to rest a bit before the load
-                time.sleep(5)
                 session.cmd("true")
                 # FIXME: Return this when https://github.com/distributed
                 # -system-analysis/pbench/issues/1743 is resolved
