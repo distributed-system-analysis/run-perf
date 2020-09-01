@@ -40,7 +40,6 @@ def num2char(num):
         raise ValueError("Positive numbers only (%s)" % num)
     out = []
     while True:
-        print(num)
         if num <= 25:
             out.append(chr(num + 65))
             break
