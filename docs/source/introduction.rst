@@ -73,3 +73,11 @@ visualization of the changes::
 .. image:: https://img.shields.io/lgtm/grade/python/g/distributed-system-analysis/run-perf.svg?logo=lgtm&logoWidth=18
    :target: https://lgtm.com/projects/g/distributed-system-analysis/run-perf/context:python
    :alt: LGTM Python code quality
+
+.. image:: https://api.codeclimate.com/v1/badges/5a2ca7137e0094c24c18/maintainability
+   :target: https://codeclimate.com/github/distributed-system-analysis/run-perf/maintainability
+   :alt: Maintainability
+
+.. image:: https://api.codeclimate.com/v1/badges/5a2ca7137e0094c24c18/test_coverage
+   :target: https://codeclimate.com/github/distributed-system-analysis/run-perf/test_coverage
+   :alt: Test Coverage
