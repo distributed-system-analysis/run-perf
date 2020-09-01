@@ -337,8 +337,6 @@ class ComparePerf:
                             help="Generate charts in the html results")
         parser.add_argument("--xunit", help="Write XUnit/JUnit results to "
                             "specified file.")
-        parser.add_argument("--csv-prefix", help="Write various results to "
-                            "csv files using this name prefix.")
         parser.add_argument("--verbose", "-v", action="count", default=0,
                             help="Increase the verbosity level")
         args = parser.parse_args()
@@ -362,7 +360,7 @@ class ComparePerf:
             with open(args.xunit, 'wb') as xunit_fd:
                 xunit_fd.write(res.get_xunit())
             self.log.info("XUnit results written to %s", args.xunit)
-        res.evaluate(args.csv_prefix)
+        res.evaluate()
         if args.html:
             # Import this only when needed to prevent optional deps
             from . import html_report  # pylint: disable=C0415
