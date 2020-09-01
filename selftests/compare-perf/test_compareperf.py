@@ -18,51 +18,82 @@ Tests for the main runperf app
 
 import os
 import shutil
-import subprocess
 import tempfile
 from unittest import mock
 import unittest
-import sys
 
-from runperf import main, ComparePerf
-from runperf.version import get_version
+from runperf import ComparePerf
 
 
 class RunPerfTest(unittest.TestCase):
 
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(prefix="runperf-selftest")
+        self.base_dir = os.path.dirname(os.path.dirname(
+            os.path.dirname(__file__)))
 
-    def test(self):
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        html_path = os.path.join(self.tmpdir, "result.html")
-        args = ["compare-perf", "--html-with-charts",
-                 "--tolerance", "5", "--stddev-tolerance", "10",
-                 "--model-linear-regression",
-                 "selftests/.assets/results/1_base/linear_model.json",
-                 "--html", html_path, "-r",
-                 "selftests/.assets/results/1_base/result_20200726_112748",
-                 "selftests/.assets/results/2_kernel_update/"
-                 "result_20200726_114437",
-                 "selftests/.assets/results/3_kernel_and_less_cpus/"
-                 "result_20200726_125851",
-                 "--", "selftests/.assets/results/1_base/"
-                 "result_20200726_080654", "selftests/.assets/results/"
-                 "4_kernel_and_less_cpus_and_different_duration/"
-                 "result_20200726_130256"]
+    def _run(self, args):
         old_path = os.getcwd()
         try:
-            os.chdir(base_dir)
+            os.chdir(self.base_dir)
             with mock.patch("sys.argv", args):
                 with mock.patch("logging.getLogger"):
-                    ret = ComparePerf()()
+                    return ComparePerf()()
         finally:
             os.chdir(old_path)
-        with open(os.path.join(base_dir, "docs", "source", "_static",
+
+    def test_full(self):
+        html_path = os.path.join(self.tmpdir, "result.html")
+        xunit_path = os.path.join(self.tmpdir, "result.xunit")
+        args = ["compare-perf", "--html-with-charts",
+                "--tolerance", "5", "--stddev-tolerance", "10",
+                "--model-linear-regression",
+                "selftests/.assets/results/1_base/linear_model.json",
+                "--html", html_path, "--xunit", xunit_path, "-r",
+                "selftests/.assets/results/1_base/result_20200726_112748",
+                "selftests/.assets/results/2_kernel_update/"
+                "result_20200726_114437",
+                "selftests/.assets/results/3_kernel_and_less_cpus/"
+                "result_20200726_125851",
+                "--", "selftests/.assets/results/1_base/"
+                "result_20200726_080654", "selftests/.assets/results/"
+                "4_kernel_and_less_cpus_and_different_duration/"
+                "result_20200726_130256"]
+        self.assertEqual(self._run(args), 2)
+        with open(os.path.join(self.base_dir, "docs", "source", "_static",
                                "html_result.html")) as exp:
             with open(html_path) as act:
                 self.assertEqual(exp.read(), act.read())
-        self.assertEqual(ret, 2)
+        with open(xunit_path) as exp:
+            with open(xunit_path) as act:
+                self.assertEqual(exp.read(), act.read())
+
+    def test(self):
+        args = ["compare-perf", "--", "selftests/.assets/results/1_base/"
+                "result_20200726_080654", "selftests/.assets/results/"
+                "4_kernel_and_less_cpus_and_different_duration/"
+                "result_20200726_130256"]
+        self.assertEqual(2, self._run(args))
+
+    def test_paths(self):
+        # with result name
+        args = ["compare-perf", "--", "foo:selftests/.assets/results/1_base/"
+                "result_20200726_080654", "selftests/.assets/results/"
+                "4_kernel_and_less_cpus_and_different_duration/"
+                "result_20200726_130256"]
+        self.assertEqual(2, self._run(args))
+        # with incorrect path
+        args = ["compare-perf", "--", "selftests/.assets/results/1_base/"
+                "result_20200726_080654",
+                os.path.join(self.tmpdir, "non", "existing", "location")]
+        with mock.patch("sys.stderr"):
+            self.assertRaises(SystemExit, self._run, args)
+        # with incorrect named path
+        args = ["compare-perf", "--", "selftests/.assets/results/1_base/"
+                "result_20200726_080654", "foo:" +
+                os.path.join(self.tmpdir, "non", "existing", "location")]
+        with mock.patch("sys.stderr"):
+            self.assertRaises(SystemExit, self._run, args)
 
     def tearDown(self):
         if self.tmpdir:
