@@ -7,6 +7,19 @@ python:
 setup:
   - pip install -r requirements.txt
 
-script:
-  - make check
-  - make html_result && git diff --quiet || { echo "Running 'make html_result' must not result in 'git diff'; likely the html_result plugin produces different results than previously:"; git diff; exit -1; }
+jobs:
+  include:
+    - name: "Code Coverage"
+      env:
+        - CC_TEST_REPORTER_ID=009b4c0bfafb850daeb66460df98eded574477a064df0b4a75f65752b18b1d01
+      script:
+        - pip install coverage
+        - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+        - chmod +x ./cc-test-reporter
+        - ./cc-test-reporter before-build
+        - make develop && ./selftests/run_coverage
+        - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+    - name: "Selftests"
+      script:
+        - make check
+        - make html_result && git diff --quiet || { echo "Running 'make html_result' must not result in 'git diff'; likely the html_result plugin produces different results than previously."; git diff; exit -1; }
