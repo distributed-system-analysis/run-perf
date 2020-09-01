@@ -168,6 +168,10 @@ def create_metadata(output_dir, args):
     """
     Generate RUNPERF_METADATA in this directory
     """
+    def mask_arguments(cmd, i):
+        while i < len(cmd) and not cmd[i].startswith("-"):
+            cmd[i] = "MASKED"
+            i += 1
     with open(os.path.join(output_dir, "RUNPERF_METADATA"), "w") as output:
         # First write all the custom metadata so they can be eventually
         # overridden by our hardcoded values
@@ -189,12 +193,7 @@ def create_metadata(output_dir, args):
             elif this == "--guest-distro":
                 cmd[i + 1] = "GUEST_DISTRO"
             elif this in ("--default-password", "--metadata"):
-                j = i + 1
-                while j < len(cmd) and not cmd[j].startswith("-"):
-                    cmd[j] = "MASKED"
-                    j += 1
-                    if j > len(cmd):
-                        break
+                mask_arguments(cmd, i + 1)
             elif this in ("--host-setup-script", "--worker-setup-script"):
                 with open(cmd[i + 1], 'rb') as script:
                     cmd[i + 1] = "sha1:"
