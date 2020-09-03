@@ -422,7 +422,10 @@ class TunedLibvirt(DefaultLibvirt):
 
         # GRUBBY
         cmdline = self._read_file("/proc/cmdline")
-        args = ["default_hugepagesz=1G", "nosoftlockup", "nohz=on"]
+        total_hp = int(self.host.params["guest_mem_m"] * 1024 /
+                       self.host.params["hugepage_kb"])
+        args = ["default_hugepagesz=1G", "hugepagesz=1G", "nosoftlockup",
+                "nohz=on", "hugepages=%s" % total_hp]
         args = " ".join(arg for arg in args if arg not in cmdline)
         self._set("profile/TunedLibvirt/kernel_cmdline", args)
         self.session.cmd('grubby --args="%s" '
