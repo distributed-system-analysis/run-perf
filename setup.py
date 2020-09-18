@@ -80,6 +80,7 @@ if __name__ == '__main__':
                   'Overcommit1_5 = runperf.profiles:Overcommit1p5',
                   'TunedLibvirt = runperf.profiles:TunedLibvirt'],
               'runperf.tests': [
+                  'DummyTest = runperf.tests:DummyTest',
                   'PBenchFio = runperf.tests:PBenchFio',
                   'Linpack = runperf.tests:Linpack',
                   'UPerf = runperf.tests:UPerf',

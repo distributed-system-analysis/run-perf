@@ -128,6 +128,12 @@ class BaseTest:
         """
 
 
+class DummyTest(BaseTest):
+    name = "DummyTest"
+
+    def _run(self):
+        pass
+
 class PBenchTest(BaseTest):
     """
     Pbench test
