@@ -21,3 +21,5 @@ plugins:
     config:
       tests_patterns:
         - selftests/**
+exclude_patterns:
+  - selftests/**
