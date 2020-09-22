@@ -14,6 +14,7 @@
 # Author: Lukas Doktor <ldoktor@redhat.com>
 import logging
 import os
+import time
 
 from pkg_resources import iter_entry_points as pkg_entry_points
 
@@ -24,7 +25,7 @@ LOG = logging.getLogger(__name__)
 CONFIG_DIR = '/var/lib/runperf/'
 
 
-class BaseProfile(object):
+class BaseProfile:
 
     """
     Base class to define profiles
@@ -34,6 +35,10 @@ class BaseProfile(object):
     profile = ""
 
     def __init__(self, host, rp_paths):
+        """
+        :param host: Host machine to apply profile on
+        :param rp_paths: list of runperf paths
+        """
         # Host object
         self.host = host
         self.log = host.log
@@ -130,18 +135,26 @@ class BaseProfile(object):
         """
         if not self.session:  # Avoid cleaning twice... (cleanup on error)
             return None
-        _profile = self._get("set_profile").strip()
+        _profile = self._get("set_profile")
         if _profile == -1:
             return False
+        _profile = _profile.strip()
         if _profile != self.profile:
             raise NotImplementedError("Reverting non-matching profiles not "
                                       "yet supported (%s != %s)"
                                       % (_profile, self.profile))
+        return self._do_revert(_profile)
 
+    def _do_revert(self, profile):
+        """
+        Perform the revert (executed when preconditions are checked)
+        """
         self._remove("applied_profile")
         ret = self._revert()
         if self.workers:
-            raise RuntimeError("Workers not cleaned by profile %s" % _profile)
+            raise RuntimeError("Workers not cleaned by profile %s" % profile)
+        for path in self._get("cleanup/paths_to_be_removed", "").splitlines():
+            self.session.cmd("rm -rf '%s'" % path)
         session = self.session
         self.session = None
         session.close()
@@ -166,6 +179,142 @@ class BaseProfile(object):
     def __del__(self):
         if self.session:
             self.session.close()
+
+
+class PersistentProfile(BaseProfile):
+
+    """
+    Base profile for handling persistent setup
+
+    The "_apply" is modified to check for "persistent_setup_expected"
+    setup which can be used to signal and verify that all persistent
+    setup tasks were performed.
+
+    There are also some features like grub_args, rc_local and tuned_adm_profile
+    modules that can be handled automatically.
+    """
+    # Grub arguments to be added (implies reboot)
+    _grub_args = None
+    # rc.local to be enabled (implies reboot)
+    _rc_local = None
+    # "tuned-adm profile $profile" to be enforced
+    _tuned_adm_profile = None
+
+    def __init__(self, host, rp_paths, skip_init_call=False):
+        """
+        :param host: Host machine to apply profile on
+        :param rp_paths: list of runperf paths
+        :param skip_init_call: Skip call to super class (in case of multiple
+            inheritance)
+        """
+        if not skip_init_call:
+            BaseProfile.__init__(self, host, rp_paths)
+        if self._grub_args is None:
+            self._grub_args = set()
+        self.performed_setup_path = self._persistent_storage_path(
+            "persistent_setup_finished")
+
+    def _apply(self, setup_script):
+        """
+        Persistent apply check
+
+        :note: should be executed before a custom _apply
+        """
+        persistent_setup = self._get("persistent_setup_expected", -1)
+        if persistent_setup == -1:
+            # Persistent setup not applied
+            return self._apply_persistent()
+        exp_setup = set(persistent_setup.splitlines())
+        # Wait for all persistent setups to finish
+        end = time.time() + 60
+        while end > time.time():
+            performed_setup = self._read_file(self.performed_setup_path, "")
+            if exp_setup.issuperset(performed_setup.splitlines()):
+                break
+        else:
+            # Setup failed, let's try to reboot again
+            self._remove("set_profile")
+            return True
+        # Persistent setup applied and are already applied
+        return False
+
+    def _persistent_rc_local(self, rc_local):
+        self.host.reboot_request = True
+        self._append("persistent_setup_expected", "rc_local")
+        rc_local_content = self._read_file("/etc/rc.d/rc.local", -1)
+        if rc_local_content == -1:
+            self._set('persistent_setup/rc_local_was_missing', "missing")
+        else:
+            self._set('persistent_setup/rc_local', rc_local_content, True)
+            self._write_file("/etc/rc.d/rc.local", rc_local, False)
+        self.session.cmd("chmod 755 /etc/rc.d/rc.local")
+
+    def _persistent_tuned_adm(self, profile):
+        tune_current = self.session.cmd("tuned-adm active")
+        tune_current = tune_current.split(':', 1)[1].strip()
+        if tune_current != "virtual-host":
+            # Change the profile
+            self._set("persistent_setup/tuned_adm_profile", tune_current)
+            self.session.cmd("tuned-adm profile %s" % profile)
+
+    def _persistent_grub_args(self, grub_args):
+        self.host.reboot_request = True
+        cmdline = self._read_file("/proc/cmdline")
+        args = " ".join(arg for arg in grub_args
+                        if arg not in cmdline)
+        self._set("persistent_setup/grub_args", args)
+        self.session.cmd('grubby --args="%s" --update-kernel='
+                         '"$(grubby --default-kernel)"' % args)
+
+    def _apply_persistent(self):
+        """
+        Perfrom persistent setup
+        """
+        # set_profile will be set on the next boot (if succeeds)
+        self._remove("set_profile")
+        self._set("persistent_profile_expected", "")
+        if self._rc_local:
+            self._persistent_rc_local(self._rc_local)
+
+        if self._tuned_adm_profile:
+            self._persistent_tuned_adm(self._tuned_adm_profile)
+
+        if self._grub_args:
+            self._persistent_grub_args(self._grub_args)
+        return True
+
+    def _revert(self):
+        cmdline = self._get("persistent_setup/grub_args", -1)
+        if cmdline != -1:
+            self.host.reboot_request = True
+            self.session.cmd('grubby --remove-args="%s" --update-kernel='
+                             '"$(grubby --default-kernel)"' % cmdline)
+            self._remove("persistent_setup/grub_args")
+        tuneadm = self._get("persistent_setup/tuned_adm_profile", -1)
+        if tuneadm != -1:
+            self.session.cmd("tuned-adm profile %s" % tuneadm)
+            self._remove("persistent_setup/tuned_adm_profile")
+        rc_local = self._get('persistent_setup/rc_local', -1)
+        if rc_local != -1:
+            self._write_file("/etc/rc.d/rc.local", rc_local)
+            self._remove("persistent_setup/rc_local")
+        elif self._get('persistent_setup/rc_local_was_missing') != -1:
+            self.session.cmd("rm -f /etc/rc.d/rc.local")
+        self.session.cmd("rm -Rf %s" % self.performed_setup_path)
+        self._remove("persistent_setup_expected")
+        self._remove("profile/TunedLibvirt/persistent")
+        return True
+
+    def get_info(self):
+        info = BaseProfile.get_info(self)
+        if 'persistent' not in info:
+            info['persistent'] = {}
+        params = info['persistent']
+        if self._rc_local:
+            params["rc_local"] = self._read_file("/etc/rc.d/rc.local")
+        if self._tuned_adm_profile:
+            params["tuned_adm_profile"] = self.session.cmd("tuned-adm active")
+        return info
 
 
 class Localhost(BaseProfile):
@@ -295,11 +444,12 @@ class DefaultLibvirt(BaseProfile):
         return out
 
     def _revert(self):
-        for vm in self.vms:
+        for vm in getattr(self, "vms", []):
             vm.cleanup()
         self.workers = []
         self._remove("set_profile")
         self._remove("applied_profile")
+        return False
 
 
 class Overcommit1p5(DefaultLibvirt):
@@ -315,7 +465,7 @@ class Overcommit1p5(DefaultLibvirt):
                           self.host.params['guest_cpus'] * 1.5)
 
 
-class TunedLibvirt(DefaultLibvirt):
+class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls-to-init]
     """
     Use a single guest defined by $host-tuned.xml libvirt definition
 
@@ -330,138 +480,53 @@ class TunedLibvirt(DefaultLibvirt):
     profile = "TunedLibvirt"
 
     def __init__(self, host, rp_paths):
+        extra_params = {"image_format": "raw",
+                        "xml": self._get_xml(host, rp_paths)}
+        DefaultLibvirt.__init__(self, host, rp_paths,
+                                extra_params=extra_params)
+        PersistentProfile.__init__(self, host, rp_paths, skip_init_call=True)
+        self.mem_per_node = int(self.host.params["guest_mem_m"] * 1024 /
+                                self.host.params["hugepage_kb"] /
+                                self.host.params["numa_nodes"])
+        total_hp = int(self.host.params["guest_mem_m"] * 1024 /
+                       self.host.params["hugepage_kb"])
+        with open(os.path.join(os.path.dirname(__file__), "assets",
+                               "profiles", "TunedLibvirt",
+                               "rc.local.sh")) as rc_local_fd:
+            params = {"mem_per_node": self.mem_per_node,
+                      "performed_setup_path": self.performed_setup_path}
+            params.update(self.host.params)
+            self._rc_local = rc_local_fd.read() % params
+        self._tuned_adm_profile = "virtual-host"
+        self._grub_args.update(("default_hugepagesz=1G", "hugepagesz=1G",
+                                "nosoftlockup", "nohz=on",
+                                "hugepages=%s" % total_hp))
+
+    def _get_xml(self, host, rp_paths):
         for path in rp_paths:
             path_xml = os.path.join(path, 'libvirt',
                                     "%s-tuned.xml" % host.addr)
             if os.path.exists(path_xml):
                 with open(path_xml) as xml_fd:
-                    xml_content = xml_fd.read()
-                    break
-        else:
-            raise ValueError("%s-tuned.xml not found in %s, unable to apply "
-                             "%s" % (host.addr, rp_paths, self.profile))
-        extra_params = {"image_format": "raw", "xml": xml_content}
-        super(TunedLibvirt, self).__init__(host, extra_params)
-        self.mem_per_node = int(self.host.params["guest_mem_m"] * 1024 /
-                                self.host.params["hugepage_kb"] /
-                                self.host.params["numa_nodes"])
+                    return xml_fd.read()
+        raise ValueError("%s-tuned.xml not found in %s, unable to apply "
+                         "%s" % (host.addr, rp_paths, self.profile))
 
     def _apply(self, setup_script):
-        for node in range(self.host.params["numa_nodes"]):
-            hps = self._read_file("/sys/devices/system/node/node%s/hugepages/"
-                                  "hugepages-%skB/nr_hugepages"
-                                  % (node, self.host.params["hugepage_kb"]))
-            if int(hps) < self.mem_per_node:
-                return self._apply_persistent()
-
-        # TODO: Also check other parts...
-        return super(TunedLibvirt, self)._apply(setup_script)
-
-    def _apply_persistent(self):
-        if self._get("profile/TunedLibvirt/persistent", -1) != -1:
-            raise RuntimeError("Trying to set persistent multiple times...")
-        self._remove("set_profile")
-        self._set("profile/TunedLibvirt/persistent", "")
-        # When we are here we know the host needs to be rebooted
-        self.host.reboot_request = True
-        rc_local = ['']
-        applied_profile_path = self._persistent_storage_path("applied_profile")
-        # Remove is_applied_profile as this is set when rc_local succeeds
-        rc_local.append("# RUNPERF PROFILE")
-        rc_local.append("rm '%s'" % applied_profile_path)
-        # HUGEPAGES
-        rc_local.append("# HUGEPAGES")
-        rc_local.append("for I in $(seq 10); do")
-        for node in range(self.host.params["numa_nodes"]):
-            rc_local.append("    echo %s > /sys/devices/system/"
-                            "node/node%s/hugepages/hugepages-%skB/"
-                            "nr_hugepages"
-                            % (self.mem_per_node, node,
-                               self.host.params["hugepage_kb"]))
-            rc_local.append("    sleep 0.5")
-            rc_local.append("    echo 3 > /proc/sys/vm/drop_caches")
-        rc_local.append("done")
-        rc_local.append("")
-
-        # CGROUPS
-        rc_local.append("# CGROUPS (move all but libvirtd to -1 cpu)")
-        rc_local.append("RUNPERF_CGROUP=$(mktemp -d /sys/fs/cgroup/cpuset/"
-                        "runperf-XXXXXX)")
-        rc_local.append('cat /sys/fs/cgroup/cpuset/cpuset.mems > '
-                        '"$RUNPERF_CGROUP/cpuset.mems"')
-        # Only allow last cpu for system tasks
-        rc_local.append("echo $(($(getconf _NPROCESSORS_ONLN) - 1)) > "
-                        '"$RUNPERF_CGROUP/cpuset.cpus"')
-        rc_local.append("for I in $(seq 3); do")
-        rc_local.append("    for TASK in $(cat /sys/fs/cgroup/cpuset/tasks); "
-                        "do")
-        rc_local.append("        [[ \"$(cat /proc/$TASK/cmdline)\" = "
-                        "*'libvirtd'* ]] || "
-                        "echo $TASK >> $RUNPERF_CGROUP/tasks")
-        rc_local.append("    done")
-        rc_local.append("done")
-        rc_local.append("touch /var/lock/subsys/local")
-        rc_local.append("exit 0")
-        rc_local.append("")
-
-        rc_local_content = self._read_file("/etc/rc.d/rc.local", -1)
-        if rc_local_content == -1:
-            self._write_file("/etc/rc.d/rc.local", "#!/bin/bash")
-        else:
-            self._set('profile/TunedLibvirt/rc.local', rc_local_content, True)
-        self._write_file("/etc/rc.d/rc.local", '\n'.join(rc_local), True)
-        self.session.cmd("chmod 755 /etc/rc.d/rc.local")
-
-        # TUNEADM
-        tune_current = self.session.cmd("tuned-adm active")
-        tune_current = tune_current.split(':', 1)[1].strip()
-        if tune_current != "virtual-host":
-            # Change the profile
-            self._set("profile/TunedLibvirt/tuned", tune_current)
-            self.session.cmd("tuned-adm profile virtual-host")
-
-        # GRUBBY
-        cmdline = self._read_file("/proc/cmdline")
-        total_hp = int(self.host.params["guest_mem_m"] * 1024 /
-                       self.host.params["hugepage_kb"])
-        args = ["default_hugepagesz=1G", "hugepagesz=1G", "nosoftlockup",
-                "nohz=on", "hugepages=%s" % total_hp]
-        args = " ".join(arg for arg in args if arg not in cmdline)
-        self._set("profile/TunedLibvirt/kernel_cmdline", args)
-        self.session.cmd('grubby --args="%s" '
-                         '--update-kernel="$(grubby --default-kernel)"'
-                         % args)
-        return True
+        ret = PersistentProfile._apply(self, setup_script)
+        if ret:
+            return ret
+        return DefaultLibvirt._apply(self, setup_script)
 
     def _revert(self):
-        self.host.reboot_request = True
-        cmdline = self._get("profile/TunedLibvirt/kernel_cmdline", -1)
-        if cmdline != -1:
-            self.session.cmd('grubby --remove-args="%s" '
-                             '--update-kernel="$(grubby --default-kernel)"'
-                             % cmdline)
-            self._remove("profile/TunedLibvirt/kernel_cmdline")
-        tuneadm = self._get("profile/TunedLibvirt/tuned", -1)
-        if tuneadm != -1:
-            self.session.cmd("tuned-adm profile %s" % tuneadm)
-            self._remove("profile/TunedLibvirt/tuned")
-        rc_local = self._get('profile/TunedLibvirt/rc.local', -1)
-        if rc_local != -1:
-            self._write_file("/etc/rc.d/rc.local", rc_local)
-            self._remove("profile/TunedLibvirt/rc.local")
-        else:
-            self.session.cmd("rm -f /etc/rc.d/rc.local")
-        super(TunedLibvirt, self)._revert()
-        self._remove("profile/TunedLibvirt/persistent")
-        return True
+        ret = PersistentProfile._revert(self)
+        ret |= DefaultLibvirt._revert(self)
+        return ret
 
     def get_info(self):
-        # TODO: Add a variable to store all tweaks and list them here.
-        #       This is tricky as persistent setting (that contains
-        #       most of the tweaks) is only applied once and profile
-        #       gets reinstantiated before the next iteration. This can
-        #       be part of the rework where we intend to improve this workflow.
-        return DefaultLibvirt.get_info(self)
+        info = PersistentProfile.get_info(self)
+        info.update(DefaultLibvirt.get_info(self))
+        return info
 
 
 def get(profile, host, paths):

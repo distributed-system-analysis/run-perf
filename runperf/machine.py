@@ -384,14 +384,14 @@ class Controller:
     def apply_profile(self, profile):
         """Apply profile on each host, report list of lists of workers"""
         self.log.info("APPLY profile %s", profile)
-        # Allow 3 attempts, one to revert previous profile, one to apply
-        # and one extra in case one boot fails to get resources (eg. hugepages)
+        # Allow 5 attempts, one to revert previous profile, one to apply
+        # and 3 extra in case one boot fails to get resources (eg. hugepages)
         if self._worker_setup_script:
             with open(self._worker_setup_script) as setup_script_fd:
                 setup_script = setup_script_fd.read()
         else:
             setup_script = None
-        self.for_each_host_retry(3, self.hosts, 'apply_profile',
+        self.for_each_host_retry(5, self.hosts, 'apply_profile',
                                  (profile, setup_script, self.paths))
         self.profile = self.main_host.profile.profile
         return [host.workers for host in self.hosts]
@@ -457,7 +457,7 @@ class Controller:
     def cleanup(self):
         """Post-testing cleanup"""
         self.log.info("CLEANUP hosts %s" % self.hosts)
-        self.for_each_host(self.hosts, 'cleanup')
+        self.for_each_host_retry(2, self.hosts, 'cleanup')
 
 
 class Host(BaseMachine):
@@ -522,6 +522,7 @@ class Host(BaseMachine):
 
     def _process_params(self, args):
         # Use args.paths to find yaml file for given machine
+        path_cfg = None
         for path in args.paths:
             path_cfg = os.path.join(path, 'hosts', self.addr + '.yaml')
             if os.path.exists(path_cfg):
