@@ -29,6 +29,8 @@ from runperf import profiles
 from runperf.machine import Host, ShellSession
 from runperf.profiles import Localhost, DefaultLibvirt
 
+from . import Selftest
+
 
 class TunedLibvirt(profiles.TunedLibvirt):
 
@@ -50,13 +52,9 @@ class TunedLibvirt(profiles.TunedLibvirt):
         return profiles.TunedLibvirt._read_file(self, path, default=default)
 
 
-class ProfileUnitTests(unittest.TestCase):
+class ProfileUnitTests(Selftest):
 
     """Various profile unit tests"""
-
-    def setUp(self):
-        # runperf dir must end with '/'
-        self.tmpdir = tempfile.mkdtemp(prefix="runperf-selftest") + os.path.sep
 
     def test_file_handling(self):
         asset_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
@@ -163,29 +161,10 @@ class ProfileUnitTests(unittest.TestCase):
                                             None, setup_script_path)
             self.assertEqual(None, out)
 
-    def tearDown(self):
-        if self.tmpdir and os.path.exists(self.tmpdir):
-            shutil.rmtree(self.tmpdir)
 
-
-class RunPerfTest(unittest.TestCase):
+class RunPerfTest(Selftest):
 
     """Full runperf workflow tests"""
-
-    def setUp(self):
-        self.tmpdir = tempfile.mkdtemp(prefix="runperf-selftest")
-
-    def _check_calls(self, acts, exps):
-        i = 0
-        for call in acts:
-            if exps[i] in str(call):
-                i += 1
-                if len(exps) == i:
-                    break
-        self.assertEqual(i, len(exps), "Some calls were not present at all or"
-                         " in the expected order. Expected:\n%s\n\nActual:\n%s"
-                         % ("\n".join(str(_) for _ in exps),
-                            "\n".join(str(_) for _ in acts)))
 
     def test_tuned_libvirt(self):
         # runperf dir must end with '/'
@@ -211,7 +190,7 @@ class RunPerfTest(unittest.TestCase):
             session.cmd_status.return_value = 1
             session.cmd_output.return_value = "some:value"
             self.assertEqual(True, profile.apply(None))
-            self._check_calls(session.mock_calls,
+            self.check_calls(session.mock_calls,
                               ["set_profile",
                                "persistent_profile_expected << ", "rc_local",
                                "tuned-adm profile virtual-host",
@@ -246,7 +225,3 @@ class RunPerfTest(unittest.TestCase):
                         "rc_local", "persistent_setup_finished",
                         "persistent_setup_expected"):
                 self.assertIn(cmd, str(session.mock_calls))
-
-    def tearDown(self):
-        if self.tmpdir and os.path.exists(self.tmpdir):
-            shutil.rmtree(self.tmpdir)

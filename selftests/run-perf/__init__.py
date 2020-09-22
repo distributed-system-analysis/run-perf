@@ -12,6 +12,10 @@
 #
 # Copyright: Red Hat Inc. 2020
 # Author: Lukas Doktor <ldoktor@redhat.com>
+import shutil
+import tempfile
+import unittest
+
 from runperf import utils
 from runperf.machine import Host, ShellSession, Controller
 
@@ -34,3 +38,29 @@ class DummyHost(Host):
 
     def copy_from(self, src, dst):
         """Do nothing"""
+
+
+class Selftest(unittest.TestCase):
+    tmpdir = None
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="runperf-selftest")
+
+    def check_calls(self, acts, exps):
+        """
+        Check that all exps calls were called in the order they are expected
+        """
+        i = 0
+        for call in acts:
+            if exps[i] in str(call):
+                i += 1
+                if len(exps) == i:
+                    break
+        self.assertEqual(i, len(exps), "Some calls were not present at all or"
+                         " in the expected order. Expected:\n%s\n\nActual:\n%s"
+                         % ("\n".join(str(_) for _ in exps),
+                            "\n".join(str(_) for _ in acts)))
+
+    def tearDown(self):
+        if self.tmpdir:
+            shutil.rmtree(self.tmpdir)

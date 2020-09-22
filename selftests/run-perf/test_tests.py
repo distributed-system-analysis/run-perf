@@ -30,15 +30,10 @@ import unittest
 from runperf import tests
 from runperf import utils
 
-from . import DummyHost
+from . import DummyHost, Selftest
 
 
-class PBenchTest(unittest.TestCase):
-    tmpdir = None
-
-    def setUp(self):
-        self.tmpdir = tempfile.mkdtemp(prefix="runperf-selftest")
-
+class PBenchTest(Selftest):
     def check(self, klass, metadata, extra, exp_cmdline,
               prepend_host_cmd_output_side_effect=None):
         distro = "distro-%s" % utils.random_string(4)
@@ -77,28 +72,14 @@ class PBenchTest(unittest.TestCase):
                 test.run()
                 test.cleanup()
 
-        mcall = mock.call
-        calls = (mcall.cmd_output(exp_cmdline, timeout=172800),
-                 mcall.cmd_status("[ -e '%s/result.json' ]" % result_path),
-                 mcall.cmd("cp '%s/result.json' '%s/result.json.backup'"
-                           % (result_path, result_path)))
+        calls = [exp_cmdline, "[ -e '%s/result.json' ]" % result_path,
+                 "cp '%s/result.json' '%s/result.json.backup'"
+                 % (result_path, result_path)]
         if "pbench_server_publish" in metadata:
-            calls += (mcall.cmd('pbench-copy-results --user asdf --prefix '
-                                'fdsa', timeout=600),)
-        calls += (mcall.cmd('echo profile=%s >> metadata_runperf.log'
-                            % profile),
-                  mcall.cmd('echo distro=%s >> metadata_runperf.log' % distro))
-        act_calls = host.mock_session.method_calls
-        i = 0
-        for call in act_calls:
-            if call == calls[i]:
-                i += 1
-                if len(calls) == i:
-                    break
-        self.assertEqual(i, len(calls), "Some calls were not present at all or"
-                         " in the expected order. Expected:\n%s\n\nActual:\n%s"
-                         % ("\n".join(str(_) for _ in calls),
-                            "\n".join(str(_) for _ in act_calls)))
+            calls.append('pbench-copy-results --user asdf --prefix fdsa')
+        calls.append('echo profile=%s >> metadata_runperf.log' % profile)
+        calls.append('echo distro=%s >> metadata_runperf.log' % distro)
+        self.check_calls(host.mock_session.method_calls, calls)
 
     def test_fio_default(self):
         self.check(tests.PBenchFio, {}, {}, 'pbench-fio  --ramptime=10 '
@@ -126,10 +107,6 @@ class PBenchTest(unittest.TestCase):
                    "--threads=1,4,8,12,16 --clients=addr2 "
                    "--linpack-binary='/my/path/to/linpack'",
                    ["/my/path/to/linpack"])
-
-    def tearDown(self):
-        if self.tmpdir:
-            shutil.rmtree(self.tmpdir)
 
 
 if __name__ == '__main__':
