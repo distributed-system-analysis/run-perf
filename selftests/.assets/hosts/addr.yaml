@@ -4,4 +4,4 @@ numa_nodes: 2
 host_cpus: 16
 guest_cpus: 8
 guest_mem_m: 22528
-disable_smt: true
+disable_smt: false
