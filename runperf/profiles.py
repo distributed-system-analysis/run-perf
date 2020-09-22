@@ -143,11 +143,16 @@ class BaseProfile:
             raise NotImplementedError("Reverting non-matching profiles not "
                                       "yet supported (%s != %s)"
                                       % (_profile, self.profile))
+        return self._do_revert(_profile)
 
+    def _do_revert(self, profile):
+        """
+        Perform the revert (executed when preconditions are checked)
+        """
         self._remove("applied_profile")
         ret = self._revert()
         if self.workers:
-            raise RuntimeError("Workers not cleaned by profile %s" % _profile)
+            raise RuntimeError("Workers not cleaned by profile %s" % profile)
         for path in self._get("cleanup/paths_to_be_removed", "").splitlines():
             self.session.cmd("rm -rf '%s'" % path)
         session = self.session
@@ -233,6 +238,34 @@ class PersistentProfile(BaseProfile):
         # Persistent setup applied and are already applied
         return False
 
+    def _persistent_rc_local(self, rc_local):
+        self.host.reboot_request = True
+        self._append("persistent_setup_expected", "rc_local")
+        rc_local_content = self._read_file("/etc/rc.d/rc.local", -1)
+        if rc_local_content == -1:
+            self._set('persistent_setup/rc_local_was_missing', "missing")
+        else:
+            self._set('persistent_setup/rc_local', rc_local_content, True)
+            self._write_file("/etc/rc.d/rc.local", rc_local, False)
+        self.session.cmd("chmod 755 /etc/rc.d/rc.local")
+
+    def _persistent_tuned_adm(self, profile):
+        tune_current = self.session.cmd("tuned-adm active")
+        tune_current = tune_current.split(':', 1)[1].strip()
+        if tune_current != "virtual-host":
+            # Change the profile
+            self._set("persistent_setup/tuned_adm_profile", tune_current)
+            self.session.cmd("tuned-adm profile %s" % profile)
+
+    def _persistent_grub_args(self, grub_args):
+        self.host.reboot_request = True
+        cmdline = self._read_file("/proc/cmdline")
+        args = " ".join(arg for arg in grub_args
+                        if arg not in cmdline)
+        self._set("persistent_setup/grub_args", args)
+        self.session.cmd('grubby --args="%s" --update-kernel='
+                         '"$(grubby --default-kernel)"' % args)
+
     def _apply_persistent(self):
         """
         Perfrom persistent setup
@@ -241,33 +274,13 @@ class PersistentProfile(BaseProfile):
         self._remove("set_profile")
         self._set("persistent_profile_expected", "")
         if self._rc_local:
-            self.host.reboot_request = True
-            self._append("persistent_setup_expected", "rc_local")
-            rc_local_content = self._read_file("/etc/rc.d/rc.local", -1)
-            if rc_local_content == -1:
-                self._set('persistent_setup/rc_local_was_missing', "missing")
-            else:
-                self._set('persistent_setup/rc_local', rc_local_content, True)
-                self._write_file("/etc/rc.d/rc.local", self._rc_local, False)
-            self.session.cmd("chmod 755 /etc/rc.d/rc.local")
+            self._persistent_rc_local(self._rc_local)
 
         if self._tuned_adm_profile:
-            tune_current = self.session.cmd("tuned-adm active")
-            tune_current = tune_current.split(':', 1)[1].strip()
-            if tune_current != "virtual-host":
-                # Change the profile
-                self._set("persistent_setup/tuned_adm_profile", tune_current)
-                self.session.cmd("tuned-adm profile %s"
-                                 % self._tuned_adm_profile)
+            self._persistent_tuned_adm(self._tuned_adm_profile)
 
         if self._grub_args:
-            self.host.reboot_request = True
-            cmdline = self._read_file("/proc/cmdline")
-            args = " ".join(arg for arg in self._grub_args
-                            if arg not in cmdline)
-            self._set("persistent_setup/grub_args", args)
-            self.session.cmd('grubby --args="%s" --update-kernel='
-                             '"$(grubby --default-kernel)"' % args)
+            self._persistent_grub_args(self._grub_args)
         return True
 
     def _revert(self):
@@ -452,7 +465,7 @@ class Overcommit1p5(DefaultLibvirt):
                           self.host.params['guest_cpus'] * 1.5)
 
 
-class TunedLibvirt(DefaultLibvirt, PersistentProfile):
+class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls-to-init]
     """
     Use a single guest defined by $host-tuned.xml libvirt definition
 
@@ -467,17 +480,8 @@ class TunedLibvirt(DefaultLibvirt, PersistentProfile):
     profile = "TunedLibvirt"
 
     def __init__(self, host, rp_paths):
-        for path in rp_paths:
-            path_xml = os.path.join(path, 'libvirt',
-                                    "%s-tuned.xml" % host.addr)
-            if os.path.exists(path_xml):
-                with open(path_xml) as xml_fd:
-                    xml_content = xml_fd.read()
-                    break
-        else:
-            raise ValueError("%s-tuned.xml not found in %s, unable to apply "
-                             "%s" % (host.addr, rp_paths, self.profile))
-        extra_params = {"image_format": "raw", "xml": xml_content}
+        extra_params = {"image_format": "raw",
+                        "xml": self._get_xml(host, rp_paths)}
         DefaultLibvirt.__init__(self, host, rp_paths,
                                 extra_params=extra_params)
         PersistentProfile.__init__(self, host, rp_paths, skip_init_call=True)
@@ -497,6 +501,16 @@ class TunedLibvirt(DefaultLibvirt, PersistentProfile):
         self._grub_args.update(("default_hugepagesz=1G", "hugepagesz=1G",
                                 "nosoftlockup", "nohz=on",
                                 "hugepages=%s" % total_hp))
+
+    def _get_xml(self, host, rp_paths):
+        for path in rp_paths:
+            path_xml = os.path.join(path, 'libvirt',
+                                    "%s-tuned.xml" % host.addr)
+            if os.path.exists(path_xml):
+                with open(path_xml) as xml_fd:
+                    return xml_fd.read()
+        raise ValueError("%s-tuned.xml not found in %s, unable to apply "
+                         "%s" % (host.addr, rp_paths, self.profile))
 
     def _apply(self, setup_script):
         ret = PersistentProfile._apply(self, setup_script)

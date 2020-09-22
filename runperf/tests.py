@@ -218,7 +218,8 @@ class PBenchTest(BaseTest):
                 digit_lines = [l for l in ret.splitlines()
                                if l.strip().isdigit()]
                 if digit_lines:
-                    assert int(digit_lines[0].strip()) == 0, "Execution failed"
+                    if int(digit_lines[0].strip()) != 0:
+                        raise RuntimeError("Execution failed %s" % digit_lines)
                 else:
                     raise RuntimeError("Failed to get status")
                 src = session.cmd_output("echo $(ls -dt /var/lib/pbench-agent/"
@@ -354,10 +355,11 @@ class PBenchNBD(PBenchFio):
     """
     name = "fio-nbd"
     default_args = (("numjobs", 4),
-                    ("job-file", "/tmp/runperf-nbd/nbd.fio"))
+                    ("job-file", "/var/lib/runperf/runperf-nbd/nbd.fio"))
+    base_path = "/var/lib/runperf/runperf-nbd/"
 
     def __init__(self, host, workers, base_output_path, metadata, extra):
-        self.fio_job_file = extra.get("job-file", "/tmp/runperf-nbd/nbd.fio")
+        self.fio_job_file = extra.get("job-file", self.base_path + "nbd.fio")
         PBenchFio.__init__(self, host, workers, base_output_path, metadata,
                            extra)
 
@@ -365,8 +367,8 @@ class PBenchNBD(PBenchFio):
         PBenchFio.setup(self)
         with open(os.path.join(os.path.dirname(__file__), "assets", "pbench",
                                "nbd-check.fio")) as fio_check:
-            fio_check_tpl = utils.shell_write_content_cmd("/tmp/runperf-"
-                                                          "nbd/nbd-check.fio",
+            fio_check_tpl = utils.shell_write_content_cmd(self.base_path +
+                                                          "nbd-check.fio",
                                                           fio_check.read())
         with open(os.path.join(os.path.dirname(__file__), "assets", "pbench",
                                "nbd.fio")) as fio:
@@ -375,35 +377,36 @@ class PBenchNBD(PBenchFio):
         for workers in self.workers:
             for worker in workers:
                 with worker.get_session_cont() as session:
-                    session.cmd("mkdir -p /tmp/runperf-nbd")
+                    session.cmd("mkdir -p " + self.base_path)
                     session.cmd(fio_check_tpl)
-                    ret = session.cmd_status("fio --parse-only /tmp/runperf-"
-                                             "nbd/nbd-check.fio")
+                    ret = session.cmd_status("fio --parse-only %s/"
+                                             "nbd-check.fio" % self.base_path)
                     if ret:
                         raise exceptions.TestSkip("Fio %s does not support "
                                                   "ioengine=nbd on worker %s"
                                                   % (session.cmd("which fio"),
                                                      worker))
-                    session.cmd("truncate -s 256M /tmp/runperf-nbd/disk.img")
-                    session.cmd("nohup qemu-nbd -t -k /tmp/runperf-nbd/socket"
-                                " -f raw /tmp/runperf-nbd/disk.img &> "
-                                "$(mktemp /tmp/runperf-nbd/qemu_nbd_XXXX.log)"
-                                " & echo $! >> /tmp/runperf-nbd/kill_pids")
+                    session.cmd("truncate -s 256M %s/disk.img" % self.base_path)
+                    session.cmd("nohup qemu-nbd -t -k %s/socket"
+                                " -f raw %s/disk.img &> "
+                                "$(mktemp %s/qemu_nbd_XXXX.log)"
+                                " & echo $! >> %s/kill_pids"
+                                % (self.base_path,) * 5)
         with self.host.get_session_cont(hop=self.host) as session:
-            session.cmd("mkdir -p /tmp/runperf-nbd")
+            session.cmd("mkdir -p " + self.base_path)
             session.cmd(fio_tpl)
 
     def cleanup(self):
         for workers in self.workers:
             for worker in workers:
                 with worker.get_session_cont() as session:
-                    pids = session.cmd("cat /tmp/runperf-nbd/kill_pids "
-                                       "2>/dev/null || true")
+                    pids = session.cmd("cat %s/kill_pids 2>/dev/null || true"
+                                       % self.base_path)
                     for pid in pids.splitlines():
                         session.cmd_status("kill -9 '%s'" % pid)
-                    session.cmd("rm -Rf /tmp/runperf-nbd")
+                    session.cmd("rm -Rf " + self.base_path)
         with self.host.get_session_cont(hop=self.host) as session:
-            session.cmd("rm -Rf /tmp/runperf-nbd")
+            session.cmd("rm -Rf %s" % self.base_path)
         PBenchFio.cleanup(self)
 
 def get(name):
