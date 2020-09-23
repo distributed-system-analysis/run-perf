@@ -85,7 +85,7 @@ def comma_separated_ranges_to_list(text):
             start, end = value.split('-')
             for val in range(int(start), int(end) + 1):
                 values.append(int(val))
-        else:
+        elif value:
             values.append(int(value))
     return values
 
