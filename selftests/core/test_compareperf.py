@@ -17,18 +17,16 @@ Tests for the main runperf app
 """
 
 import os
-import shutil
-import tempfile
 from unittest import mock
-import unittest
 
 from runperf import ComparePerf
 
+from . import Selftest
 
-class RunPerfTest(unittest.TestCase):
+
+class RunPerfTest(Selftest):
 
     def setUp(self):
-        self.tmpdir = tempfile.mkdtemp(prefix="runperf-selftest")
         self.base_dir = os.path.dirname(os.path.dirname(
             os.path.dirname(__file__)))
 
@@ -94,7 +92,3 @@ class RunPerfTest(unittest.TestCase):
                 os.path.join(self.tmpdir, "non", "existing", "location")]
         with mock.patch("sys.stderr"):
             self.assertRaises(SystemExit, self._run, args)
-
-    def tearDown(self):
-        if self.tmpdir:
-            shutil.rmtree(self.tmpdir)

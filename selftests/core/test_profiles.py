@@ -21,9 +21,7 @@ Tests for the profiles handling
 import argparse
 import os
 import shutil
-import tempfile
 from unittest import mock
-import unittest
 
 from runperf import profiles
 from runperf.machine import Host, ShellSession
@@ -39,6 +37,7 @@ class TunedLibvirt(profiles.TunedLibvirt):
     selftest_root = None
 
     def _get_image(self, session, setup_script):
+        del session, setup_script
         return os.path.join(self.selftest_root, "__test_image__.qcow2")
 
     def _start_vms(self):
@@ -191,10 +190,10 @@ class RunPerfTest(Selftest):
             session.cmd_output.return_value = "some:value"
             self.assertEqual(True, profile.apply(None))
             self.check_calls(session.mock_calls,
-                              ["set_profile",
-                               "persistent_profile_expected << ", "rc_local",
-                               "tuned-adm profile virtual-host",
-                               "persistent_setup/grub_args <<"])
+                             ["set_profile",
+                              "persistent_profile_expected << ", "rc_local",
+                              "tuned-adm profile virtual-host",
+                              "persistent_setup/grub_args <<"])
             session.reset_mock()
             # Non-persistent apply, should report (mocked) VMs
             session.cmd_output.return_value = "rc_local"
