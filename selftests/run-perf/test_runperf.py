@@ -17,27 +17,23 @@ Tests for the main runperf app
 """
 
 import argparse
+import json
 import os
-import shutil
-import tempfile
 from unittest import mock
-import unittest
-from unittest.mock import mock_open
 
 from runperf import main
 import runperf
 from runperf.version import get_version
 
+from . import Selftest
 
-class RunPerfTest(unittest.TestCase):
 
-    def setUp(self):
-        self.tmpdir = tempfile.mkdtemp(prefix="runperf-selftest")
+class RunPerfTest(Selftest):
 
     def test(self):
         args = ["run-perf", "--output", self.tmpdir, '--', 'fio']
         with mock.patch("sys.argv", args):
-            with mock.patch("runperf.Controller") as controller:
+            with mock.patch("runperf.Controller"):
                 main()
         os.path.exists(self.tmpdir)
         metadata_path = os.path.join(self.tmpdir, "RUNPERF_METADATA")
@@ -73,7 +69,7 @@ class RunPerfTest(unittest.TestCase):
                        ':{"foo": "bar"} fio linpack'
                        % result_dir)
         with mock.patch("sys.argv", args):
-            with mock.patch("runperf.Controller") as controller:
+            with mock.patch("runperf.Controller"):
                 main()
         metadata_path = os.path.join(result_dir, "RUNPERF_METADATA")
         self.assertTrue(os.path.exists(metadata_path), "RUNPERF_METADATA not"
@@ -93,6 +89,33 @@ class RunPerfTest(unittest.TestCase):
                       "https://foo/192.168.122.5/details,"
                       "https://foo/192.168.122.6/details", metadata)
 
+    def test_full_workflow(self):
+        asset_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                                  ".assets")
+        args = ["run-perf", "--hosts", "addr", "--profiles", "Localhost",
+                "--output", os.path.join(self.tmpdir, "result"),
+                "--paths", asset_path, '--', 'DummyTest', 'DummyTest']
+        with mock.patch("runperf.profiles.CONFIG_DIR",
+                        os.path.join(self.tmpdir, "var/")):
+            with mock.patch("sys.argv", args):
+                with mock.patch("runperf.machine.BaseMachine.get_ssh_cmd",
+                                lambda *args, **kwargs: "sh"):
+                    main()
+        # Check only for test dirs, metadata are checked in other tests
+        self.assertTrue(os.path.exists(os.path.join(self.tmpdir, "result")))
+        for serial in ["0000", "0001"]:
+            result_path = os.path.join(self.tmpdir, "result", "Localhost",
+                                       "DummyTest", serial, "result.json")
+            self.assertTrue(os.path.exists(result_path))
+            with open(result_path) as fd_result:
+                out = json.load(fd_result)
+                self.assertEqual(len(out), 3)
+                for result in out:
+                    user_data = result["iteration_data"]["parameters"]["user"][0]
+                    self.assertIn("profile", user_data)
+                    self.assertIn("workers", user_data)
+                    self.assertIn("cmdline", user_data)
+
     def test_create_metadata(self):
         args = argparse.Namespace(metadata=[], distro=None, guest_distro=None,
                                   hosts=[("localhost", "127.0.0.1")])
@@ -109,7 +132,3 @@ class RunPerfTest(unittest.TestCase):
             metadata = metadata_fd.read()
         self.assertIn("\nrunperf_cmd:--default-password MASKED MASKED\n",
                       metadata)
-
-    def tearDown(self):
-        if self.tmpdir:
-            shutil.rmtree(self.tmpdir)

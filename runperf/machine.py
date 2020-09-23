@@ -481,23 +481,6 @@ class Host(BaseMachine):
         self.params = self._process_params(args)
         self.guest_distro = args.guest_distro or args.distro
 
-        if hop:
-            self._ssh_cmd = (self.hop.get_ssh_cmd() +
-                             " -A -t ssh -o BatchMode=yes "
-                             "-o StrictHostKeyChecking=no "
-                             "-o ControlMaster=auto "
-                             "-o ControlPath='/var/tmp/%%r@%%h-%%p' "
-                             "-o ControlPersist=60 "
-                             "-o UserKnownHostsFile=/dev/null root@%s"
-                             % self.addr)
-        else:
-            self._ssh_cmd = ("ssh -o BatchMode=yes -o ControlMaster=auto "
-                             "-o ControlPath='/var/tmp/%%r@%%h-%%p' "
-                             "-o ControlPersist=60 "
-                             "-o StrictHostKeyChecking=no"
-                             " -o UserKnownHostsFile=/dev/null root@%s"
-                             % self.addr)
-
     def setup(self):
         """
         Prepare host

@@ -1,0 +1,2099 @@
+[
+   {
+      "iteration_data" : {
+         "latency" : {
+            "clat" : [
+               {
+                  "client_hostname" : "%(hostname)s",
+                  "closest_sample" : 5,
+                  "description" : "Average completion latency per I/O operation",
+                  "mean" : 169900,
+                  "role" : "client",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 184521
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 173003
+                           }
+                        ],
+                        "value" : 179991.8
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 183353
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 164042
+                           }
+                        ],
+                        "value" : 178467.5
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 163112
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 155681
+                           }
+                        ],
+                        "value" : 163133.133333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 155838
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 157965
+                           }
+                        ],
+                        "value" : 158114.633333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 196443
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 158178
+                           }
+                        ],
+                        "value" : 169633.966666667
+                     }
+                  ],
+                  "stddev" : 8485,
+                  "stddevpct" : 4.995,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               },
+               {
+                  "client_hostname" : "all",
+                  "closest_sample" : 5,
+                  "description" : "Average completion latency per I/O operation",
+                  "mean" : 169900,
+                  "role" : "aggregate",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 184521
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 173003
+                           }
+                        ],
+                        "value" : 179991.8
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 183353
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 164042
+                           }
+                        ],
+                        "value" : 178467.5
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 163112
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 155681
+                           }
+                        ],
+                        "value" : 163133.133333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 155838
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 157965
+                           }
+                        ],
+                        "value" : 158114.633333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 196443
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 158178
+                           }
+                        ],
+                        "value" : 169633.966666667
+                     }
+                  ],
+                  "stddev" : 8485,
+                  "stddevpct" : 4.995,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               }
+            ],
+            "lat" : [
+               {
+                  "client_hostname" : "%(hostname)s",
+                  "closest_sample" : 5,
+                  "description" : "Average total latency per I/O operation",
+                  "mean" : 174300,
+                  "role" : "client",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 189393
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 177454
+                           }
+                        ],
+                        "value" : 184735.633333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 188214
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 168397
+                           }
+                        ],
+                        "value" : 183170.933333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 167398
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 159795
+                           }
+                        ],
+                        "value" : 167427.833333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 159921
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 162113
+                           }
+                        ],
+                        "value" : 162263.466666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 201731
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 162366
+                           }
+                        ],
+                        "value" : 174143.7
+                     }
+                  ],
+                  "stddev" : 8715,
+                  "stddevpct" : 4.998,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               },
+               {
+                  "client_hostname" : "all",
+                  "closest_sample" : 5,
+                  "description" : "Average total latency per I/O operation",
+                  "mean" : 174300,
+                  "role" : "aggregate",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 189393
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 177454
+                           }
+                        ],
+                        "value" : 184735.633333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 188214
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 168397
+                           }
+                        ],
+                        "value" : 183170.933333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 167398
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 159795
+                           }
+                        ],
+                        "value" : 167427.833333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 159921
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 162113
+                           }
+                        ],
+                        "value" : 162263.466666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 201731
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 162366
+                           }
+                        ],
+                        "value" : 174143.7
+                     }
+                  ],
+                  "stddev" : 8715,
+                  "stddevpct" : 4.998,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               }
+            ],
+            "slat" : [
+               {
+                  "client_hostname" : "%(hostname)s",
+                  "closest_sample" : 5,
+                  "description" : "Average submission latency per I/O operation",
+                  "mean" : 4330,
+                  "role" : "client",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 4700
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 4302
+                           }
+                        ],
+                        "value" : 4581.53333333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 4693
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 4209
+                           }
+                        ],
+                        "value" : 4544.4
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 4142
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 3976
+                           }
+                        ],
+                        "value" : 4151.3
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 3945
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 4010
+                           }
+                        ],
+                        "value" : 4010.26666666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 5117
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 0,
+                              "value" : 4048
+                           }
+                        ],
+                        "value" : 4360.33333333333
+                     }
+                  ],
+                  "stddev" : 221.1,
+                  "stddevpct" : 5.106,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               },
+               {
+                  "client_hostname" : "all",
+                  "closest_sample" : 5,
+                  "description" : "Average submission latency per I/O operation",
+                  "mean" : 4330,
+                  "role" : "aggregate",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 4700
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 4302
+                           }
+                        ],
+                        "value" : 4581.53333333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 4693
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 4209
+                           }
+                        ],
+                        "value" : 4544.4
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 4142
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 3976
+                           }
+                        ],
+                        "value" : 4151.3
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 3945
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 4010
+                           }
+                        ],
+                        "value" : 4010.26666666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 5117
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 4048
+                           }
+                        ],
+                        "value" : 4360.33333333333
+                     }
+                  ],
+                  "stddev" : 221.1,
+                  "stddevpct" : 5.106,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               }
+            ]
+         },
+         "parameters" : {
+            "benchmark" : [
+               {
+                  "benchmark_name" : "fio",
+                  "bs" : "4k",
+                  "clocksource" : "gettimeofday",
+                  "direct" : "1",
+                  "filename" : "/tmp/fio",
+                  "iodepth" : "32",
+                  "ioengine" : "libaio",
+                  "log_avg_msec" : "1000",
+                  "log_hist_msec" : "10000",
+                  "max_stddevpct" : 5,
+                  "numjobs" : "1",
+                  "primary_metric" : "iops_sec",
+                  "ramp_time" : "5",
+                  "runtime" : "30",
+                  "rw" : "read",
+                  "size" : "4096M",
+                  "sync" : "0",
+                  "time_based" : "1",
+                  "uid" : "benchmark_name:%%benchmark_name%%-controller_host:%%controller_host%%"
+               }
+            ]
+         },
+         "throughput" : {
+            "iops_sec" : [
+               {
+                  "client_hostname" : "%(hostname)s",
+                  "closest_sample" : 5,
+                  "description" : "Number of I/O operations sent by client for a period of 1 second",
+                  "mean" : 183700,
+                  "role" : "client",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 168616
+                           },
+                           {
+                              "date" : 29000,
+                              "read_or_write" : 0,
+                              "value" : 185839
+                           }
+                        ],
+                        "value" : 172685.620689655
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 169664
+                           },
+                           {
+                              "date" : 29000,
+                              "read_or_write" : 0,
+                              "value" : 185780
+                           }
+                        ],
+                        "value" : 173918.413793103
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 190745
+                           },
+                           {
+                              "date" : 29000,
+                              "read_or_write" : 0,
+                              "value" : 200419
+                           }
+                        ],
+                        "value" : 190405.896551724
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 199654
+                           },
+                           {
+                              "date" : 29000,
+                              "read_or_write" : 0,
+                              "value" : 196104
+                           }
+                        ],
+                        "value" : 196685.862068966
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 0,
+                              "value" : 158311
+                           },
+                           {
+                              "date" : 29000,
+                              "read_or_write" : 0,
+                              "value" : 196070
+                           }
+                        ],
+                        "value" : 184600.517241379
+                     }
+                  ],
+                  "stddev" : 9289,
+                  "stddevpct" : 5.058,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               },
+               {
+                  "client_hostname" : "all",
+                  "closest_sample" : 5,
+                  "description" : "Number of I/O operations sent by client for a period of 1 second",
+                  "mean" : 183700,
+                  "role" : "aggregate",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 168616
+                           },
+                           {
+                              "date" : 29000,
+                              "value" : 185839
+                           }
+                        ],
+                        "value" : 172685.620689655
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 169664
+                           },
+                           {
+                              "date" : 29000,
+                              "value" : 185780
+                           }
+                        ],
+                        "value" : 173918.413793103
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 190745
+                           },
+                           {
+                              "date" : 29000,
+                              "value" : 200419
+                           }
+                        ],
+                        "value" : 190405.896551724
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 199654
+                           },
+                           {
+                              "date" : 29000,
+                              "value" : 196104
+                           }
+                        ],
+                        "value" : 196685.862068966
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 158311
+                           },
+                           {
+                              "date" : 29000,
+                              "value" : 196070
+                           }
+                        ],
+                        "value" : 184600.517241379
+                     }
+                  ],
+                  "stddev" : 9289,
+                  "stddevpct" : 5.058,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               }
+            ]
+         }
+      },
+      "iteration_name" : "read-4KiB",
+      "iteration_number" : 1
+   },
+   {
+      "iteration_data" : {
+         "latency" : {
+            "clat" : [
+               {
+                  "client_hostname" : "%(hostname)s",
+                  "closest_sample" : 3,
+                  "description" : "Average completion latency per I/O operation",
+                  "mean" : 335000,
+                  "role" : "client",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 262275
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 245946
+                           }
+                        ],
+                        "value" : 252693.1
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 12375100
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 255067
+                           }
+                        ],
+                        "value" : 659228.8
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 255202
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 251885
+                           }
+                        ],
+                        "value" : 256151.466666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 253485
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 252822
+                           }
+                        ],
+                        "value" : 253542.433333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 252724
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 245325
+                           }
+                        ],
+                        "value" : 253288.733333333
+                     }
+                  ],
+                  "stddev" : 162100,
+                  "stddevpct" : 48.4,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               },
+               {
+                  "client_hostname" : "all",
+                  "closest_sample" : 3,
+                  "description" : "Average completion latency per I/O operation",
+                  "mean" : 335000,
+                  "role" : "aggregate",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 262275
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 245946
+                           }
+                        ],
+                        "value" : 252693.1
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 12375100
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 255067
+                           }
+                        ],
+                        "value" : 659228.8
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 255202
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 251885
+                           }
+                        ],
+                        "value" : 256151.466666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 253485
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 252822
+                           }
+                        ],
+                        "value" : 253542.433333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 252724
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 245325
+                           }
+                        ],
+                        "value" : 253288.733333333
+                     }
+                  ],
+                  "stddev" : 162100,
+                  "stddevpct" : 48.4,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               }
+            ],
+            "lat" : [
+               {
+                  "client_hostname" : "%(hostname)s",
+                  "closest_sample" : 3,
+                  "description" : "Average total latency per I/O operation",
+                  "mean" : 340100,
+                  "role" : "client",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 267762
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 251131
+                           }
+                        ],
+                        "value" : 257891.766666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 12380237
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 260375
+                           }
+                        ],
+                        "value" : 664413.333333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 260407
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 257512
+                           }
+                        ],
+                        "value" : 261361.6
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 258738
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 258007
+                           }
+                        ],
+                        "value" : 258666.666666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 257499
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 250256
+                           }
+                        ],
+                        "value" : 258387.466666667
+                     }
+                  ],
+                  "stddev" : 162100,
+                  "stddevpct" : 47.67,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               },
+               {
+                  "client_hostname" : "all",
+                  "closest_sample" : 3,
+                  "description" : "Average total latency per I/O operation",
+                  "mean" : 340100,
+                  "role" : "aggregate",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 267762
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 251131
+                           }
+                        ],
+                        "value" : 257891.766666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 12380237
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 260375
+                           }
+                        ],
+                        "value" : 664413.333333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 260407
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 257512
+                           }
+                        ],
+                        "value" : 261361.6
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 258738
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 258007
+                           }
+                        ],
+                        "value" : 258666.666666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 257499
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 250256
+                           }
+                        ],
+                        "value" : 258387.466666667
+                     }
+                  ],
+                  "stddev" : 162100,
+                  "stddevpct" : 47.67,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               }
+            ],
+            "slat" : [
+               {
+                  "client_hostname" : "%(hostname)s",
+                  "closest_sample" : 2,
+                  "description" : "Average submission latency per I/O operation",
+                  "mean" : 4966,
+                  "role" : "client",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 5284
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 4988
+                           }
+                        ],
+                        "value" : 5003.4
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 4934
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 5104
+                           }
+                        ],
+                        "value" : 4982.6
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 5002
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 5422
+                           }
+                        ],
+                        "value" : 5009.5
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 5057
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 4987
+                           }
+                        ],
+                        "value" : 4930.53333333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 4589
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 4735
+                           }
+                        ],
+                        "value" : 4904.23333333333
+                     }
+                  ],
+                  "stddev" : 41.57,
+                  "stddevpct" : 0.837,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               },
+               {
+                  "client_hostname" : "all",
+                  "closest_sample" : 2,
+                  "description" : "Average submission latency per I/O operation",
+                  "mean" : 4966,
+                  "role" : "aggregate",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 5284
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 4988
+                           }
+                        ],
+                        "value" : 5003.4
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 4934
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 5104
+                           }
+                        ],
+                        "value" : 4982.6
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 5002
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 5422
+                           }
+                        ],
+                        "value" : 5009.5
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 5057
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 4987
+                           }
+                        ],
+                        "value" : 4930.53333333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 4589
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 4735
+                           }
+                        ],
+                        "value" : 4904.23333333333
+                     }
+                  ],
+                  "stddev" : 41.57,
+                  "stddevpct" : 0.837,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               }
+            ]
+         },
+         "parameters" : {
+            "benchmark" : [
+               {
+                  "benchmark_name" : "fio",
+                  "bs" : "4k",
+                  "clocksource" : "gettimeofday",
+                  "direct" : "1",
+                  "filename" : "/tmp/fio",
+                  "iodepth" : "32",
+                  "ioengine" : "libaio",
+                  "log_avg_msec" : "1000",
+                  "log_hist_msec" : "10000",
+                  "max_stddevpct" : 5,
+                  "numjobs" : "1",
+                  "primary_metric" : "iops_sec",
+                  "ramp_time" : "5",
+                  "runtime" : "30",
+                  "rw" : "randwrite",
+                  "size" : "4096M",
+                  "sync" : "0",
+                  "time_based" : "1",
+                  "uid" : "benchmark_name:%%benchmark_name%%-controller_host:%%controller_host%%"
+               }
+            ]
+         },
+         "throughput" : {
+            "iops_sec" : [
+               {
+                  "client_hostname" : "%(hostname)s",
+                  "closest_sample" : 4,
+                  "description" : "Number of I/O operations sent by client for a period of 1 second",
+                  "mean" : 123000,
+                  "role" : "client",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 119156
+                           },
+                           {
+                              "date" : 29000,
+                              "read_or_write" : 1,
+                              "value" : 124621
+                           }
+                        ],
+                        "value" : 123589.172413793
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 126253
+                           },
+                           {
+                              "date" : 29000,
+                              "read_or_write" : 1,
+                              "value" : 122939
+                           }
+                        ],
+                        "value" : 122621.551724138
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 122517
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 123762
+                           }
+                        ],
+                        "value" : 122084.9
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 123323
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 123525
+                           }
+                        ],
+                        "value" : 123291.266666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 123917
+                           },
+                           {
+                              "date" : 29000,
+                              "read_or_write" : 1,
+                              "value" : 125685
+                           }
+                        ],
+                        "value" : 123303.413793103
+                     }
+                  ],
+                  "stddev" : 548.1,
+                  "stddevpct" : 0.4457,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               },
+               {
+                  "client_hostname" : "all",
+                  "closest_sample" : 4,
+                  "description" : "Number of I/O operations sent by client for a period of 1 second",
+                  "mean" : 123000,
+                  "role" : "aggregate",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 119156
+                           },
+                           {
+                              "date" : 29000,
+                              "value" : 124621
+                           }
+                        ],
+                        "value" : 123589.172413793
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 126253
+                           },
+                           {
+                              "date" : 29000,
+                              "value" : 122939
+                           }
+                        ],
+                        "value" : 122621.551724138
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 122517
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 123762
+                           }
+                        ],
+                        "value" : 122084.9
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 123323
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 123525
+                           }
+                        ],
+                        "value" : 123291.266666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 123917
+                           },
+                           {
+                              "date" : 29000,
+                              "value" : 125685
+                           }
+                        ],
+                        "value" : 123303.413793103
+                     }
+                  ],
+                  "stddev" : 548.1,
+                  "stddevpct" : 0.4457,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               }
+            ]
+         }
+      },
+      "iteration_name" : "randwrite-4KiB",
+      "iteration_number" : 10
+   },
+   {
+      "iteration_data" : {
+         "latency" : {
+            "clat" : [
+               {
+                  "client_hostname" : "%(hostname)s",
+                  "closest_sample" : 2,
+                  "description" : "Average completion latency per I/O operation",
+                  "mean" : 806700,
+                  "role" : "client",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 593235
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 619748
+                           }
+                        ],
+                        "value" : 581039.4
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 627584
+                           },
+                           {
+                              "date" : 83051,
+                              "read_or_write" : 1,
+                              "value" : 3025808
+                           }
+                        ],
+                        "value" : 684710.076923077
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 583668
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 619813
+                           }
+                        ],
+                        "value" : 650907.6
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 26069800
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 622142
+                           }
+                        ],
+                        "value" : 1476512.6
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 740963
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 610653
+                           }
+                        ],
+                        "value" : 640397.733333333
+                     }
+                  ],
+                  "stddev" : 336600,
+                  "stddevpct" : 41.72,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               },
+               {
+                  "client_hostname" : "all",
+                  "closest_sample" : 2,
+                  "description" : "Average completion latency per I/O operation",
+                  "mean" : 806700,
+                  "role" : "aggregate",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 593235
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 619748
+                           }
+                        ],
+                        "value" : 581039.4
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 627584
+                           },
+                           {
+                              "date" : 83051,
+                              "value" : 3025808
+                           }
+                        ],
+                        "value" : 684710.076923077
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 583668
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 619813
+                           }
+                        ],
+                        "value" : 650907.6
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 26069800
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 622142
+                           }
+                        ],
+                        "value" : 1476512.6
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 740963
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 610653
+                           }
+                        ],
+                        "value" : 640397.733333333
+                     }
+                  ],
+                  "stddev" : 336600,
+                  "stddevpct" : 41.72,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               }
+            ],
+            "lat" : [
+               {
+                  "client_hostname" : "%(hostname)s",
+                  "closest_sample" : 2,
+                  "description" : "Average total latency per I/O operation",
+                  "mean" : 816700,
+                  "role" : "client",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 602326
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 628555
+                           }
+                        ],
+                        "value" : 590150.1
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 637045
+                           },
+                           {
+                              "date" : 83051,
+                              "read_or_write" : 1,
+                              "value" : 3034820
+                           }
+                        ],
+                        "value" : 694510.384615385
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 594966
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 630365
+                           }
+                        ],
+                        "value" : 661448.5
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 26079432
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 632421
+                           }
+                        ],
+                        "value" : 1486346.5
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 752039
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 621369
+                           }
+                        ],
+                        "value" : 651055.766666667
+                     }
+                  ],
+                  "stddev" : 336500,
+                  "stddevpct" : 41.2,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               },
+               {
+                  "client_hostname" : "all",
+                  "closest_sample" : 2,
+                  "description" : "Average total latency per I/O operation",
+                  "mean" : 816700,
+                  "role" : "aggregate",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 602326
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 628555
+                           }
+                        ],
+                        "value" : 590150.1
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 637045
+                           },
+                           {
+                              "date" : 83051,
+                              "value" : 3034820
+                           }
+                        ],
+                        "value" : 694510.384615385
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 594966
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 630365
+                           }
+                        ],
+                        "value" : 661448.5
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 26079432
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 632421
+                           }
+                        ],
+                        "value" : 1486346.5
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 752039
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 621369
+                           }
+                        ],
+                        "value" : 651055.766666667
+                     }
+                  ],
+                  "stddev" : 336500,
+                  "stddevpct" : 41.2,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               }
+            ],
+            "slat" : [
+               {
+                  "client_hostname" : "%(hostname)s",
+                  "closest_sample" : 4,
+                  "description" : "Average submission latency per I/O operation",
+                  "mean" : 9742,
+                  "role" : "client",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 8869
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 8590
+                           }
+                        ],
+                        "value" : 8885
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 9243
+                           },
+                           {
+                              "date" : 83051,
+                              "read_or_write" : 1,
+                              "value" : 8801
+                           }
+                        ],
+                        "value" : 9566.84615384615
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 11016
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 10276
+                           }
+                        ],
+                        "value" : 10272.6666666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 9401
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 10015
+                           }
+                        ],
+                        "value" : 9598.33333333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 10770
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 10423
+                           }
+                        ],
+                        "value" : 10386.8
+                     }
+                  ],
+                  "stddev" : 544.6,
+                  "stddevpct" : 5.591,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               },
+               {
+                  "client_hostname" : "all",
+                  "closest_sample" : 4,
+                  "description" : "Average submission latency per I/O operation",
+                  "mean" : 9742,
+                  "role" : "aggregate",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 8869
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 8590
+                           }
+                        ],
+                        "value" : 8885
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 9243
+                           },
+                           {
+                              "date" : 83051,
+                              "value" : 8801
+                           }
+                        ],
+                        "value" : 9566.84615384615
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 11016
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 10276
+                           }
+                        ],
+                        "value" : 10272.6666666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 9401
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 10015
+                           }
+                        ],
+                        "value" : 9598.33333333333
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 10770
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 10423
+                           }
+                        ],
+                        "value" : 10386.8
+                     }
+                  ],
+                  "stddev" : 544.6,
+                  "stddevpct" : 5.591,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               }
+            ]
+         },
+         "parameters" : {
+            "benchmark" : [
+               {
+                  "benchmark_name" : "fio",
+                  "bs" : "64k",
+                  "clocksource" : "gettimeofday",
+                  "direct" : "1",
+                  "filename" : "/tmp/fio",
+                  "iodepth" : "32",
+                  "ioengine" : "libaio",
+                  "log_avg_msec" : "1000",
+                  "log_hist_msec" : "10000",
+                  "max_stddevpct" : 5,
+                  "numjobs" : "1",
+                  "primary_metric" : "iops_sec",
+                  "ramp_time" : "5",
+                  "runtime" : "30",
+                  "rw" : "randwrite",
+                  "size" : "4096M",
+                  "sync" : "0",
+                  "time_based" : "1",
+                  "uid" : "benchmark_name:%%benchmark_name%%-controller_host:%%controller_host%%"
+               }
+            ]
+         },
+         "throughput" : {
+            "iops_sec" : [
+               {
+                  "client_hostname" : "%(hostname)s",
+                  "closest_sample" : 4,
+                  "description" : "Number of I/O operations sent by client for a period of 1 second",
+                  "mean" : 50990,
+                  "role" : "client",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 53425
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 54203
+                           }
+                        ],
+                        "value" : 54196.9666666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 52868
+                           },
+                           {
+                              "date" : 26000,
+                              "read_or_write" : 1,
+                              "value" : 24424
+                           }
+                        ],
+                        "value" : 52149.0384615385
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 50499
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 50029
+                           }
+                        ],
+                        "value" : 48468.5
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 48292
+                           },
+                           {
+                              "date" : 29000,
+                              "read_or_write" : 1,
+                              "value" : 45250
+                           }
+                        ],
+                        "value" : 50558.6551724138
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "read_or_write" : 1,
+                              "value" : 48150
+                           },
+                           {
+                              "date" : 30000,
+                              "read_or_write" : 1,
+                              "value" : 51088
+                           }
+                        ],
+                        "value" : 49563.1
+                     }
+                  ],
+                  "stddev" : 2010,
+                  "stddevpct" : 3.943,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               },
+               {
+                  "client_hostname" : "all",
+                  "closest_sample" : 4,
+                  "description" : "Number of I/O operations sent by client for a period of 1 second",
+                  "mean" : 50990,
+                  "role" : "aggregate",
+                  "samples" : [
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 53425
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 54203
+                           }
+                        ],
+                        "value" : 54196.9666666667
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 52868
+                           },
+                           {
+                              "date" : 26000,
+                              "value" : 24424
+                           }
+                        ],
+                        "value" : 52149.0384615385
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 50499
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 50029
+                           }
+                        ],
+                        "value" : 48468.5
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 48292
+                           },
+                           {
+                              "date" : 29000,
+                              "value" : 45250
+                           }
+                        ],
+                        "value" : 50558.6551724138
+                     },
+                     {
+                        "timeseries" : [
+                           {
+                              "date" : 1000,
+                              "value" : 48150
+                           },
+                           {
+                              "date" : 30000,
+                              "value" : 51088
+                           }
+                        ],
+                        "value" : 49563.1
+                     }
+                  ],
+                  "stddev" : 2010,
+                  "stddevpct" : 3.943,
+                  "uid" : "client_hostname:%%client_hostname%%"
+               }
+            ]
+         }
+      },
+      "iteration_name" : "randwrite-64KiB",
+      "iteration_number" : 11
+   }
+]

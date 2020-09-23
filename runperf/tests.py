@@ -132,7 +132,14 @@ class DummyTest(BaseTest):
     name = "DummyTest"
 
     def _run(self):
-        pass
+        result_path = os.path.join(self.output, "result.json")
+        with open(result_path, 'w') as result:
+            with open(os.path.join(os.path.dirname(__file__), "assets",
+                                   "tests", "DummyTest",
+                                   "result.json")) as src:
+                result.write(src.read() % {"hostname": self.host.get_addr()})
+        with self.host.get_session_cont() as session:
+            self.inject_metadata(session, result_path)
 
 class PBenchTest(BaseTest):
     """
