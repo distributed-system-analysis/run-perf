@@ -398,7 +398,7 @@ class PBenchNBD(PBenchFio):
                                 " -f raw %s/disk.img &> "
                                 "$(mktemp %s/qemu_nbd_XXXX.log)"
                                 " & echo $! >> %s/kill_pids"
-                                % (self.base_path,) * 5)
+                                % ((self.base_path,) * 4))
         with self.host.get_session_cont(hop=self.host) as session:
             session.cmd("mkdir -p " + self.base_path)
             session.cmd(fio_tpl)
