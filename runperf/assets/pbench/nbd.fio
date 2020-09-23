@@ -30,7 +30,7 @@ log_hist_msec = 10000
 # log_hist_coarseness = 4 # 76 bins
 
 rw = $@
-uri=nbd+unix:///?socket=/tmp/runperf-nbd/socket
+uri=nbd+unix:///?socket=/var/lib/runperf/runperf-nbd/socket
 # Starting from nbdkit 1.14 the following will work:
 #uri=${uri}
 
