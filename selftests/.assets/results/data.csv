@@ -1,0 +1,7 @@
+test,"result_20200726_080654","result_20200726_091827","result_20200726_092842","result_20200726_093220","result_20200726_093657"
+Localhost/fio/0000:./read-1024KiB/throughput/iops_sec.mean,-100,-100,-100,6883.76271186441,6391.23728813559,
+Localhost/fio/0000:./read-1024KiB/throughput/iops_sec.stddev,-100,-100,-100,0,0,
+Localhost/fio/0000:./read-4KiB/throughput/iops_sec.mean,183743.169491525,180638.779661017,172656.847457627,181495.288135593,178208.220338983,
+Localhost/fio/0000:./read-4KiB/throughput/iops_sec.stddev,0,0,0,0,0,
+Localhost/fio/0000:./read-64KiB/throughput/iops_sec.mean,103308.033898305,99541.8305084746,100432.542372881,98646.6271186441,100485.372881356,
+Localhost/fio/0000:./read-64KiB/throughput/iops_sec.stddev,0,0,0,0,0,
