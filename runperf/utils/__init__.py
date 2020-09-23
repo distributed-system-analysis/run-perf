@@ -85,7 +85,7 @@ def comma_separated_ranges_to_list(text):
             start, end = value.split('-')
             for val in range(int(start), int(end) + 1):
                 values.append(int(val))
-        else:
+        elif value:
             values.append(int(value))
     return values
 
@@ -257,18 +257,13 @@ def string_to_safe_path(input_str):
     :param input_str: String to be converted
     :return: String which is safe to pass as a file/dir name (on recent fs)
     """
+    input_str = input_str[:255].encode('utf-8').decode('ascii',
+                                                       errors='replace')
     if input_str.startswith("."):
         input_str = "_" + input_str[1:255]
     elif len(input_str) > 255:
         input_str = input_str[:255]
-
-    try:
-        return input_str.translate(_FS_TRANSLATE)
-    except TypeError:
-        # Deal with incorrect encoding
-        for bad_chr in FS_UNSAFE_CHARS:
-            input_str = input_str.replace(bad_chr, "_")
-        return input_str
+    return input_str.translate(_FS_TRANSLATE).replace(chr(65533), '_')
 
 
 def ssh_copy_id(log, addr, passwords, hop=None):
