@@ -17,13 +17,9 @@ Tests for the runperf.tests module
 """
 
 import argparse
-import json
 import logging
 import os
 import random
-import shutil
-import sys
-import tempfile
 from unittest import mock
 import unittest
 
@@ -55,10 +51,12 @@ class PBenchTest(Selftest):
         with open(os.path.join(asset_path, "tests",
                                "PBenchTestResult.json")) as json_fd:
             result_json = json_fd.read()
-        host.mock_session = mock.Mock(
-            **{'cmd_status.return_value': 0,
-               'cmd_output.side_effect': prepend_host_cmd_output_side_effect +
-               ["", "prefix+self._cmd", "0", result_path, result_json]})
+        mock_args = {'cmd_status.return_value': 0,
+                     'cmd_output.side_effect': (
+                         prepend_host_cmd_output_side_effect +
+                         ["", "prefix+self._cmd", "0", result_path,
+                          result_json])}
+        host.mock_session = mock.Mock(**mock_args)
         host.profile = mock.Mock(profile=profile)
         worker = DummyHost(logging.getLogger(''), 'Test2', 'addr2',
                            guest_distro or distro, args)

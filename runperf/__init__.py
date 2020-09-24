@@ -409,12 +409,15 @@ class AnalyzePerf:
         args = parser.parse_args()
         setup_logging(args.verbose, "%(levelname)-5s| %(message)s")
 
+        primary = set()
         storage = {}
         result_names = set()
         for path in args.results:
             results_name = os.path.basename(path)
             result_names.add(results_name)
-            for test, score, _, _ in result.iter_results(path, True):
+            for test, score, prim, _ in result.iter_results(path, True):
+                if prim:
+                    primary.add(test)
                 if test not in storage:
                     storage[test] = {}
                 storage[test][results_name] = score
@@ -430,7 +433,7 @@ class AnalyzePerf:
                 csv.write("test,%s" % ",".join(csv_safe_str(_)
                                                for _ in result_names))
                 for test in sorted(storage.keys()):
-                    if "Gb_sec.mean" not in test:
+                    if test not in primary:
                         continue
                     test_results = storage.get(test, {})
                     csv.write("\n%s," % test)

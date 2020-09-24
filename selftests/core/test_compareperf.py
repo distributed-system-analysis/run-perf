@@ -17,18 +17,19 @@ Tests for the main runperf app
 """
 
 import os
-import shutil
-import tempfile
+import re
 from unittest import mock
-import unittest
 
 from runperf import ComparePerf
 
+from . import Selftest
 
-class RunPerfTest(unittest.TestCase):
+
+class RunPerfTest(Selftest):
+    maxDiff = None
 
     def setUp(self):
-        self.tmpdir = tempfile.mkdtemp(prefix="runperf-selftest")
+        super().setUp()
         self.base_dir = os.path.dirname(os.path.dirname(
             os.path.dirname(__file__)))
 
@@ -64,9 +65,13 @@ class RunPerfTest(unittest.TestCase):
                                "html_result.html")) as exp:
             with open(html_path) as act:
                 self.assertEqual(exp.read(), act.read())
-        with open(xunit_path) as exp:
+        with open(os.path.join(self.base_dir, "selftests", ".assets",
+                               "results", "result.xunit")) as exp:
             with open(xunit_path) as act:
-                self.assertEqual(exp.read(), act.read())
+                act_filt = re.sub('timestamp="[^"]+"',
+                                  'timestamp="2020-09-01T11:13:07.912376"',
+                                  act.read())
+                self.assertEqual(exp.read(), act_filt)
 
     def test(self):
         args = ["compare-perf", "--", "selftests/.assets/results/1_base/"
@@ -94,7 +99,3 @@ class RunPerfTest(unittest.TestCase):
                 os.path.join(self.tmpdir, "non", "existing", "location")]
         with mock.patch("sys.stderr"):
             self.assertRaises(SystemExit, self._run, args)
-
-    def tearDown(self):
-        if self.tmpdir:
-            shutil.rmtree(self.tmpdir)
