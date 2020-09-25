@@ -25,6 +25,11 @@ insteresting ones:
   Some tests might use those metadata to perform extra actions like
   `pbench_server_publish=yes` which results in attempt to copy pbench results
   to the specified pbench_server (again via metadata)
+* ``--host-setup-script`` resp. ``--worker-setup-script`` - setup script to
+  be executed on host resp. on worker to prepare for execution. Some example
+  scripts can be found in ``contrib/setup_scripts`` directory. On worker
+  we usually assume the profile takes care of the potential reboot, on
+  host one can force-reboot via ``--host-setup-script-reboot`` argument.
 
 Followed by a number of arguments to allow tweaking the target machine or
 profiles or other aspects of the execution.
