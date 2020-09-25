@@ -692,6 +692,8 @@ class LibvirtGuest(BaseMachine):
         return "rhel8.0"  # This should be the safest option
 
     def _get_os_variant(self, session):
+        if not self.distro:
+            raise ValueError("No distro specified %s" % self.distro)
         lower = self.distro.lower()
         oss = session.cmd("osinfo-query os -f short-id")
         if lower in oss:
