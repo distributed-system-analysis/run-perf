@@ -691,8 +691,8 @@ class LibvirtGuest(BaseMachine):
             out = out.rsplit('.', 1)[0]
         return "rhel8.0"  # This should be the safest option
 
-    def _get_os_variant(self, session, os_build):
-        lower = os_build.lower()
+    def _get_os_variant(self, session):
+        lower = self.distro.lower()
         oss = session.cmd("osinfo-query os -f short-id")
         if lower in oss:
             return lower
@@ -701,7 +701,7 @@ class LibvirtGuest(BaseMachine):
         no_underscore = lower.replace('-', '')
         if no_underscore in oss:
             return no_underscore
-        raise NotImplementedError("Unknown os_variant: %s" % os_build)
+        raise NotImplementedError("Unknown os_variant: %s" % self.distro)
 
     def get_info(self):
         out = BaseMachine.get_info(self)
@@ -755,7 +755,7 @@ class LibvirtGuest(BaseMachine):
                         "--name '%s' --os-variant '%s' --vcpus '%s' "
                         "--noautoconsole"
                         % (self.image, self.mem, self.name,
-                           self._get_os_variant(session, self.host.distro),
+                           self._get_os_variant(session),
                            self.smp))
 
     def is_running(self):
