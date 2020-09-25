@@ -681,19 +681,29 @@ class LibvirtGuest(BaseMachine):
         return self._host_session
 
     @staticmethod
-    def _get_os_variant(session, os_build):
-        lower = os_build.lower()
+    def _get_os_variant_rhel(lower, oss):
+        out = "".join("".join(lower).split('-', 2)[:-1])
+        while True:
+            if re.search(r"%s$" % out, oss, re.MULTILINE):
+                return out
+            if '.' not in out:
+                break
+            out = out.rsplit('.', 1)[0]
+        return "rhel8.0"  # This should be the safest option
+
+    def _get_os_variant(self, session):
+        if not self.distro:
+            raise ValueError("No distro specified %s" % self.distro)
+        lower = self.distro.lower()
+        oss = session.cmd("osinfo-query os -f short-id")
+        if lower in oss:
+            return lower
         if lower.startswith('rhel'):
-            out = "".join("".join(lower).split('-', 2)[:-1])
-            oss = session.cmd("osinfo-query os -f short-id")
-            while True:
-                if re.search(r"%s$" % out, oss, re.MULTILINE):
-                    return out
-                if '.' not in out:
-                    break
-                out = out.rsplit('.', 1)[0]
-            return "rhel8.0"  # This should be the safest option
-        raise NotImplementedError("Unknown os_variant: %s" % os_build)
+            return self._get_os_variant_rhel(lower, oss)
+        no_underscore = lower.replace('-', '')
+        if no_underscore in oss:
+            return no_underscore
+        raise NotImplementedError("Unknown os_variant: %s" % self.distro)
 
     def get_info(self):
         out = BaseMachine.get_info(self)
@@ -747,7 +757,7 @@ class LibvirtGuest(BaseMachine):
                         "--name '%s' --os-variant '%s' --vcpus '%s' "
                         "--noautoconsole"
                         % (self.image, self.mem, self.name,
-                           self._get_os_variant(session, self.host.distro),
+                           self._get_os_variant(session),
                            self.smp))
 
     def is_running(self):
