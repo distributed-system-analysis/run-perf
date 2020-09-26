@@ -88,11 +88,11 @@ def generate_report(path, results, with_charts=False):
                     # Skip raw values comparison
                     continue
                 if key in src:
-                    # Store only diff lines starting wiht +- as
+                    # Store only diff lines starting with +- as
                     # we don't need a "useful" diff but just an
                     # overview of what is different.
                     raw_diff = unified_diff(
-                        src[key].splitlines(),
+                        str(src[key]).splitlines(),
                         value.splitlines())
                     # Skip first two lines as it contains +++ and ---
                     try:
