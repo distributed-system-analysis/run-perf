@@ -16,6 +16,7 @@
 import collections
 from difflib import unified_diff
 import json
+from pprint import pformat
 import re
 
 import jinja2
@@ -83,6 +84,7 @@ def generate_report(path, results, with_charts=False):
                     raw_value.pop(key)
             # In diff compare the non "_raw" values only
             diff = []
+            missing_src = []
             for key, value in environment.items():
                 if key.endswith("_raw"):
                     # Skip raw values comparison
@@ -91,9 +93,15 @@ def generate_report(path, results, with_charts=False):
                     # Store only diff lines starting with +- as
                     # we don't need a "useful" diff but just an
                     # overview of what is different.
-                    raw_diff = unified_diff(
-                        str(src[key]).splitlines(),
-                        value.splitlines())
+                    if (hasattr(src[key], "splitlines") and
+                            hasattr(value, "splitlines")):
+                        raw_diff = unified_diff(
+                            src[key].splitlines(),
+                            value.splitlines())
+                    else:
+                        raw_diff = unified_diff(
+                            pformat(src[key]).splitlines(),
+                            pformat(src[key]).splitlines())
                     # Skip first two lines as it contains +++ and ---
                     try:
                         next(raw_diff)
@@ -104,11 +112,18 @@ def generate_report(path, results, with_charts=False):
                                            if (line.startswith("+") or
                                                line.startswith("-")))
                 else:
-                    inner_diff = "+%s MISSING IN SRC" % key
+                    missing_src.append(key)
+                    continue
                 if inner_diff:
                     diff.append("\n%s\n%s\n%s"
                                 % (key, "=" * len(key),
                                    inner_diff))
+
+            missing_dst = set(src.keys()).difference(environment.keys())
+            if any((missing_src, missing_dst)):
+                diff.append("\nList of missing keys\n=====================")
+                diff.extend("+%s MISSING IN SRC" % _ for _ in missing_src)
+                diff.extend("-%s MISSING IN DST" % _ for _ in missing_dst)
             return raw_value, "\n".join(diff)
 
         def process_diff_environemnt(env, src_env):
