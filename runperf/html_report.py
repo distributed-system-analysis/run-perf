@@ -16,6 +16,7 @@
 import collections
 from difflib import unified_diff
 import json
+from pprint import pformat
 import re
 
 import jinja2
@@ -91,9 +92,15 @@ def generate_report(path, results, with_charts=False):
                     # Store only diff lines starting with +- as
                     # we don't need a "useful" diff but just an
                     # overview of what is different.
-                    raw_diff = unified_diff(
-                        str(src[key]).splitlines(),
-                        value.splitlines())
+                    if (hasattr(src[key], "splitlines") and
+                            hasattr(value, "splitlines")):
+                        raw_diff = unified_diff(
+                            src[key].splitlines(),
+                            value.splitlines())
+                    else:
+                        raw_diff = unified_diff(
+                            pformat(src[key]).splitlines(),
+                            pformat(src[key]).splitlines())
                     # Skip first two lines as it contains +++ and ---
                     try:
                         next(raw_diff)
