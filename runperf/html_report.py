@@ -84,6 +84,7 @@ def generate_report(path, results, with_charts=False):
                     raw_value.pop(key)
             # In diff compare the non "_raw" values only
             diff = []
+            missing_src = []
             for key, value in environment.items():
                 if key.endswith("_raw"):
                     # Skip raw values comparison
@@ -111,11 +112,18 @@ def generate_report(path, results, with_charts=False):
                                            if (line.startswith("+") or
                                                line.startswith("-")))
                 else:
-                    inner_diff = "+%s MISSING IN SRC" % key
+                    missing_src.append(key)
+                    continue
                 if inner_diff:
                     diff.append("\n%s\n%s\n%s"
                                 % (key, "=" * len(key),
                                    inner_diff))
+
+            missing_dst = set(src.keys()).difference(environment.keys())
+            if any((missing_src, missing_dst)):
+                diff.append("\nList of missing keys\n=====================")
+                diff.extend("+%s MISSING IN SRC" % _ for _ in missing_src)
+                diff.extend("-%s MISSING IN DST" % _ for _ in missing_dst)
             return raw_value, "\n".join(diff)
 
         def process_diff_environemnt(env, src_env):
