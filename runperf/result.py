@@ -429,12 +429,11 @@ class RelativeResults:
                     self.small.append("%s %.2f%%<-%s%%"
                                       % (name, difference, tolerance))
                     return FAIL_LOSS
-                else:
-                    self.good.append("%s %.2f%%~~%s%%" % (name, difference,
-                                                          tolerance))
-                    if abs(difference) > tolerance / 2:
-                        return MINOR_GAIN if difference > 0 else MINOR_LOSS
-                    return PASS
+                self.good.append("%s %.2f%%~~%s%%" % (name, difference,
+                                                      tolerance))
+                if abs(difference) > tolerance / 2:
+                    return MINOR_GAIN if difference > 0 else MINOR_LOSS
+                return PASS
 
             def report(self, status):
                 if status >= PASS:

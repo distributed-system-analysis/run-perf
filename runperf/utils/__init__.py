@@ -41,7 +41,7 @@ class ThreadWithStatus(threading.Thread):
     completed = False
 
     def run(self):
-        super(ThreadWithStatus, self).run()
+        super().run()
         self.completed = True
 
 
@@ -139,7 +139,7 @@ def check_output(*args, **kwargs):
         try:
             return subprocess.check_output(*args, **kwargs).decode("utf-8")
         except subprocess.CalledProcessError as exc:
-            raise RuntimeError("%s\n%s" % (exc, exc.output))
+            raise RuntimeError("%s\n%s" % (exc, exc.output)) from exc
 
 
 def wait_for(func, timeout, step=1.0, args=None, kwargs=None):

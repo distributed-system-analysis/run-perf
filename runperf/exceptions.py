@@ -21,7 +21,7 @@ class RebootRequest(Exception):
     """
 
     def __init__(self, hosts, interrupted_action):
-        super(RebootRequest, self).__init__()
+        super().__init__()
         self.hosts = hosts
         self.interrupted_action = interrupted_action
 
