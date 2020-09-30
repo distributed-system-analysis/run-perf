@@ -24,7 +24,6 @@ import numpy
 
 from . import result
 
-
 # HTML Colors
 C_BG_MEAN = "#f5f5ff"
 C_BG_STDDEV = "#fffef0"
@@ -74,8 +73,10 @@ def generate_report(path, results, with_charts=False):
     """
 
     def generate_builds(results):
+        """Populate builds dictionary"""
 
         def generate_build_diff(environment, src):
+            """Populate this env diff"""
             # In build_env replace values for "_raw" values if available
             raw_value = environment.copy()
             for key, value in environment.items():
@@ -218,6 +219,7 @@ def generate_report(path, results, with_charts=False):
             return build
 
         def get_failed_facts(dst_record, results, record_attr="records"):
+            """Process facts about failures"""
             name = dst_record.name
             failures = 0
             missing = 0
@@ -324,7 +326,10 @@ def generate_report(path, results, with_charts=False):
         return src, builds, dst
 
     def generate_charts(results):
+        """Generate charts"""
+
         def generate_data_serie(data):
+            """Generate min/1st/median/3rd/max values for a data serie"""
             return [[float("%.2f" % numpy.min(_)),
                      float("%.2f" % numpy.percentile(_, 25)),
                      float("%.2f" % numpy.median(_)),
@@ -332,6 +337,7 @@ def generate_report(path, results, with_charts=False):
                      float("%.2f" % numpy.max(_))]
                     if _ else [0, 0, 0, 0, 0]
                     for _ in data]
+
         improvements = [[], []]
         m_improvements = [[], []]
         equals = [[], []]
@@ -516,6 +522,7 @@ def generate_report(path, results, with_charts=False):
         return charts
 
     def get_build_param_diff(all_src_params, record):
+        """Generate param diffs"""
         params_raw = record.params.copy()
         params_diff = []
         src_params = all_src_params.get(record.name, {})
@@ -554,6 +561,7 @@ def generate_report(path, results, with_charts=False):
         return params_raw, "\n".join(params_diff)
 
     def generate_builds_statuses(results, values):
+        """Transform results into build statuses"""
         src_params = values["src"]["test_params_anonymized"]
         statuses = {}
         per_build_test_params_stat = []
@@ -605,18 +613,23 @@ def generate_report(path, results, with_charts=False):
                                         ("NA", "NA")))
                  for i in range(len(results))])
 
-        for i, env_test in enumerate(per_build_test_params_stat):
-            values["builds"][i+1]["environment"]["tests"] = env_test[1]
-            values["builds"][i+1]["environment_diff"]["tests"] = env_test[1]
-            values["builds"][i+1]["environment_short"]["tests"] = env_test[0]
+        for build, env_test in zip(values["builds"][1:],
+                                   per_build_test_params_stat):
+            build["environment"]["tests"] = env_test[1]
+            build["environment_diff"]["tests"] = env_test[1]
+            build["environment_short"]["tests"] = env_test[0]
         return builds_statuses
 
     def get_filters(results):
+        """Get all filters based on results"""
+
         def process_filters(match, filters, all_filters):
+            """Add filters per category when not already present"""
             for i, cat in enumerate(("profiles", "tests", "types"), 1):
                 if match[i] not in all_filters:
                     filters[cat].add(match[i])
                     all_filters.add(match[i])
+
         filters = {"profiles": set(), "tests": set(), "types": set()}
         all_filters = set()
         for res in results:

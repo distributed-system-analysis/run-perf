@@ -63,7 +63,6 @@ stage('Analyze') {
         def status = 0
         lock (worker_node) {
             // Avoid modifying worker_node's environment while executing compareperf
-            // TODO: Use venv
             sh 'python3 setup.py develop --user'
             status = sh returnStatus: true, script:  "python3 scripts/compare-perf -vvv --tolerance " + cmp_tolerance + " --stddev-tolerance " + cmp_stddev_tolerance + ' --xunit result.xml --html html/index.html ' + cmp_extra + ' -- src_result/* $(find . -maxdepth 1 -type d ! -name "*.tar.*" -name "result*")'
         }

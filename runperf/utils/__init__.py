@@ -92,7 +92,7 @@ def comma_separated_ranges_to_list(text):
 
 def list_of_threads(cpus):
     """How many threads to use depending on no cpus"""
-    if cpus >= 1:
+    if cpus < 1:
         raise ValueError("Cpus needs to be a positive number >=1 (%s)" % cpus)
     step = int(cpus / 4)
     if step <= 1:

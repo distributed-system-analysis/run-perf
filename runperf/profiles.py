@@ -485,11 +485,9 @@ class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls
         DefaultLibvirt.__init__(self, host, rp_paths,
                                 extra_params=extra_params)
         PersistentProfile.__init__(self, host, rp_paths, skip_init_call=True)
-        self.mem_per_node = int(self.host.params["guest_mem_m"] * 1024 /
-                                self.host.params["hugepage_kb"] /
-                                self.host.params["numa_nodes"])
         total_hp = int(self.host.params["guest_mem_m"] * 1024 /
                        self.host.params["hugepage_kb"])
+        self.mem_per_node = int(total_hp / self.host.params["numa_nodes"])
         with open(os.path.join(os.path.dirname(__file__), "assets",
                                "profiles", "TunedLibvirt",
                                "rc.local.sh")) as rc_local_fd:

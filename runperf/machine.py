@@ -567,7 +567,7 @@ class Host(BaseMachine):
             session.sendline("reboot")
         time.sleep(10)
         with self.get_session_cont(360):
-            pass
+            """Just checking whether it's obtainable"""
         self.log.debug("  Reboot DONE")
         self.reboot_request = False
 
@@ -802,16 +802,16 @@ class LibvirtGuest(BaseMachine):
         session = None
         try:
             session = self.get_host_session()
-            if self.is_defined():
-                # Try graceful shutdown first
-                if session.cmd_status("virsh destroy '%s' --graceful"
-                                      % self.name):
-                    time.sleep(5)
-                    # Double-check it does not exists and nuke it
-                    if (self.is_defined() and
-                            session.cmd_status("virsh destroy '%s'"
-                                               % self.name)):
-                        errs.append("destroy")
+            # Try graceful shutdown first
+            if (self.is_defined() and
+                session.cmd_status("virsh destroy '%s' --graceful"
+                                  % self.name)):
+                time.sleep(5)
+                # Double-check it does not exists and nuke it
+                if (self.is_defined() and
+                        session.cmd_status("virsh destroy '%s'"
+                                           % self.name)):
+                    errs.append("destroy")
             if (self.is_defined() and
                     session.cmd_status("virsh undefine '%s'" % self.name)):
                 errs.append("undefine")
