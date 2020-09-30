@@ -84,6 +84,16 @@ def generate_report(path, results, with_charts=False):
     :param with_charts: Whether to generate graphs
     """
 
+    def _format_raw_diff(raw_diff):
+        # Skip first two lines as it contains +++ and ---
+        try:
+            next(raw_diff)
+            next(raw_diff)
+        except StopIteration:
+            pass
+        return "\n".join(line for line in raw_diff
+                         if (line.startswith("+") or line.startswith("-")))
+
     def generate_builds(results):
         """Populate builds dictionary"""
 
@@ -115,15 +125,7 @@ def generate_report(path, results, with_charts=False):
                         raw_diff = unified_diff(
                             pformat(src[key]).splitlines(),
                             pformat(src[key]).splitlines())
-                    # Skip first two lines as it contains +++ and ---
-                    try:
-                        next(raw_diff)
-                        next(raw_diff)
-                    except StopIteration:
-                        pass
-                    inner_diff = "\n".join(line for line in raw_diff
-                                           if (line.startswith("+") or
-                                               line.startswith("-")))
+                    inner_diff = _format_raw_diff(raw_diff)
                 else:
                     missing_src.append(key)
                     continue
@@ -542,15 +544,7 @@ def generate_report(path, results, with_charts=False):
                 dst = sorted(anonymize_test_params(value.splitlines()))
                 raw_diff = unified_diff(src_params[key].splitlines(),
                                         dst)
-                # Skip first two lines as it contains +++ and ---
-                try:
-                    next(raw_diff)
-                    next(raw_diff)
-                except StopIteration:
-                    pass
-                diff = "\n".join(line for line in raw_diff
-                                 if (line.startswith("+") or
-                                     line.startswith("-")))
+                diff = _format_raw_diff(raw_diff)
             else:
                 diff = "+MISSING IN SRC"
             if diff:
