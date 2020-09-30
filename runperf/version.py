@@ -20,7 +20,8 @@ installed as well as 'make develop' deployments.
 
 
 import os
-import subprocess
+import shutil
+import subprocess   # nosec
 
 import pkg_resources
 
@@ -37,13 +38,15 @@ def _get_git_version():
     curdir = os.getcwd()
     try:
         os.chdir(SETUP_PATH)
-        version = subprocess.check_output(
-            ["git", "describe", "--tags", "HEAD"]).strip().decode("utf-8")
+        git = shutil.which("git")
+        version = subprocess.check_output(  # nosec
+            [git, "describe", "--tags",
+             "HEAD"]).strip().decode("utf-8")
         try:
-            subprocess.check_output(["git", "diff", "--quiet"])
+            subprocess.check_output([git, "diff", "--quiet"])  # nosec
         except subprocess.CalledProcessError:
             version += "-dirty"
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError, NameError):
         return None
     finally:
         os.chdir(curdir)
