@@ -156,8 +156,7 @@ class PBenchTest(BaseTest):
 
     def __init__(self, host, workers, base_output_path,
                  metadata, extra):
-        super(PBenchTest, self).__init__(host, workers, base_output_path,
-                                         metadata, extra)
+        super().__init__(host, workers, base_output_path, metadata, extra)
         if "pbench_server_publish" in self.metadata:
             self.pbench_publish = True
         else:
@@ -335,8 +334,7 @@ class UPerf(PBenchTest):
                     ("message-sizes", "1,64,16384"))
 
     def __init__(self, host, workers, base_output_path, metadata, extra):
-        super(UPerf, self).__init__(host, workers, base_output_path,
-                                    metadata, extra)
+        super().__init__(host, workers, base_output_path, metadata, extra)
         # FIXME: Workaround missing perl paths
         self._cmd = ("PERL5LIB=/opt/pbench-agent/tool-scripts/postprocess/:"
                      "/opt/pbench-agent/bench-scripts/postprocess/ %s"
@@ -367,8 +365,7 @@ class PBenchNBD(PBenchFio):
 
     def __init__(self, host, workers, base_output_path, metadata, extra):
         self.fio_job_file = extra.get("job-file", self.base_path + "nbd.fio")
-        PBenchFio.__init__(self, host, workers, base_output_path, metadata,
-                           extra)
+        super().__init__(host, workers, base_output_path, metadata, extra)
 
     def setup(self):
         PBenchFio.setup(self)

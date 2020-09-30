@@ -348,7 +348,7 @@ class DefaultLibvirt(BaseProfile):
     no_vms = 1
 
     def __init__(self, host, rp_paths, extra_params=None):
-        super(DefaultLibvirt, self).__init__(host, rp_paths)
+        super().__init__(host, rp_paths)
         self.host = host
         self.distro = self.host.guest_distro
         self.vms = []
@@ -460,7 +460,7 @@ class Overcommit1p5(DefaultLibvirt):
     profile = "Overcommit1_5"
 
     def __init__(self, host, rp_paths, extra_params=None):
-        super(Overcommit1p5, self).__init__(host, rp_paths, extra_params)
+        super().__init__(host, rp_paths, extra_params)
         self.no_vms = int(self.host.params['host_cpus'] /
                           self.host.params['guest_cpus'] * 1.5)
 

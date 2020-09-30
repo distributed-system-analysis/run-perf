@@ -43,7 +43,7 @@ def _get_git_version():
             subprocess.check_output(["git", "diff", "--quiet"])
         except subprocess.CalledProcessError:
             version += "-dirty"
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return None
     finally:
         os.chdir(curdir)

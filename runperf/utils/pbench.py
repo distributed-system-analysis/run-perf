@@ -134,7 +134,7 @@ def install_on(session, extra=None, test=None):
                 return
             errs.append("%s: %s" % (plugin, out))
         # We do want to skip unknown failures and proceed with the next plugin
-        except Exception as details:  # pylint: disable=R1710
+        except Exception as details:  # pylint: disable=W0703
             errs.append("%s: %s" % (plugin, details))
     raise RuntimeError("Failed to install pbench:\n  %s"
                        % "  \n".join(errs))

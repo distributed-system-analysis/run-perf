@@ -42,7 +42,7 @@ class ShellSession(aexpect.ShellSession):
     """
 
     def __init__(self, *args, **kwargs):
-        super(ShellSession, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__output_func = self.output_func
         for name in dir(self):
             if name.startswith('cmd'):
@@ -185,13 +185,13 @@ class BaseMachine:
                         if not self.default_passwords:
                             raise RuntimeError("Permission denied and no "
                                                "default passwords specified:\n"
-                                               "%s" % err)
+                                               "%s" % err) from err
                         self.ssh_copy_id(hop)
                     time.sleep(1)
         except Exception as err:
             if session:
                 session.close()
-            raise RuntimeError("Unable to get ssh session: %s" % err)
+            raise RuntimeError("Unable to get ssh session: %s" % err) from err
         raise RuntimeError("Timeout while getting ssh session (%s)"
                            % self.get_ssh_cmd(hop))
 
@@ -406,7 +406,7 @@ class Controller:
             for host in self.hosts:
                 try:
                     env.append(host.profile.get_info())
-                except Exception as details:
+                except Exception as details:    # pylint: disable=W0703
                     env.append({"failure": "Failed to get info: %s" % details})
             self.write_metadata("environment_profile_%s" % self.profile,
                                 json.dumps(env))
@@ -467,8 +467,8 @@ class Host(BaseMachine):
     """
 
     def __init__(self, parent_log, name, addr, distro, args, hop=None):
-        super(Host, self).__init__(parent_log.getChild(name), name, distro,
-                                   args.default_passwords)
+        super().__init__(parent_log.getChild(name), name, distro,
+                         args.default_passwords)
         self.addr = addr
         self.hop = hop
 
@@ -650,8 +650,8 @@ class LibvirtGuest(BaseMachine):
         if extra_params is None:
             extra_params = {}
         _name = "%s.%s" % (host.name, name)
-        super(LibvirtGuest, self).__init__(host.log.getChild(name), _name,
-                                           distro, default_passwords)
+        super().__init__(host.log.getChild(name), _name, distro,
+                         default_passwords)
         self.host = host
         self._host_session = None
         self.base_image = base_image

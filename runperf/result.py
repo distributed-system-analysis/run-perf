@@ -239,6 +239,48 @@ def iter_results(path, skip_incorrect=False):
     :param skip_incorrect: don't yield incorrect results
     :yield result: tuple(test_name, score, is_primary)
     """
+    def _find_all_result(test, results):
+        for res in results:
+            if res['client_hostname'] == 'all':
+                return res
+        logging.error("Unable to find "
+                      "client_hostname==all"
+                      " for %s", test)
+        return None
+
+    def _handle_iteration(data):
+        primary_metrics = []
+        test_params = {}
+        for i, benchmark in enumerate(data['parameters'].get('benchmark',
+                                                             [])):
+            primary_metric = benchmark.get('primary_metric')
+            if primary_metric:
+                primary_metrics.append(primary_metric)
+            test_params[i] = "\n".join("%s:%s" % item
+                                       for item in benchmark.items())
+        for workflow in ('throughput', 'latency'):
+            workflow_items = data.get(workflow, {}).items()
+            for workflow_type, results in workflow_items:
+                test = ("%s:./%s/%s/%s.mean"
+                        % (result_id, iteration_name, workflow,
+                           workflow_type))
+                res = _find_all_result(test, results)
+                if not res:
+                    continue
+                primary = bool(workflow_type in primary_metrics)
+                yield ("%s:./%s/%s/%s.mean"
+                       % (result_id, iteration_name, workflow,
+                          workflow_type),
+                       res['mean'],  # pylint: disable=W0631
+                       primary,
+                       test_params)
+                yield ("%s:./%s/%s/%s.stddev"
+                       % (result_id, iteration_name, workflow,
+                          workflow_type),
+                       res['stddevpct'],  # pylint: disable=W0631
+                       primary,
+                       test_params)
+
     LOG.debug("Processing %s", path)
     if skip_incorrect:
         result_name_glob = '[09]*'
@@ -256,43 +298,7 @@ def iter_results(path, skip_incorrect=False):
                     _RE_FAILED_ITERATION_NAME.match(iteration_name)):
                 # Skip failed iterations
                 continue
-            data = src_result['iteration_data']
-            primary_metrics = []
-            test_params = {}
-            for i, benchmark in enumerate(data['parameters'].get('benchmark',
-                                                                 [])):
-                primary_metric = benchmark.get('primary_metric')
-                if primary_metric:
-                    primary_metrics.append(primary_metric)
-                test_params[i] = "\n".join("%s:%s" % item
-                                           for item in benchmark.items())
-            for workflow in ('throughput', 'latency'):
-                workflow_items = data.get(workflow, {}).items()
-                for workflow_type, results in workflow_items:
-                    test = ("%s:./%s/%s/%s.mean"
-                            % (result_id, iteration_name, workflow,
-                               workflow_type))
-                    for res in results:
-                        if res['client_hostname'] == 'all':
-                            break
-                    else:
-                        logging.error("Unable to find "
-                                      "client_hostname==all"
-                                      " for %s", test)
-                        continue
-                    primary = bool(workflow_type in primary_metrics)
-                    yield ("%s:./%s/%s/%s.mean"
-                           % (result_id, iteration_name, workflow,
-                              workflow_type),
-                           res['mean'],  # pylint: disable=W0631
-                           primary,
-                           test_params)
-                    yield ("%s:./%s/%s/%s.stddev"
-                           % (result_id, iteration_name, workflow,
-                              workflow_type),
-                           res['stddevpct'],  # pylint: disable=W0631
-                           primary,
-                           test_params)
+            yield from _handle_iteration(src_result['iteration_data'])
 
 
 class ResultsContainer:
@@ -429,12 +435,11 @@ class RelativeResults:
                     self.small.append("%s %.2f%%<-%s%%"
                                       % (name, difference, tolerance))
                     return FAIL_LOSS
-                else:
-                    self.good.append("%s %.2f%%~~%s%%" % (name, difference,
-                                                          tolerance))
-                    if abs(difference) > tolerance / 2:
-                        return MINOR_GAIN if difference > 0 else MINOR_LOSS
-                    return PASS
+                self.good.append("%s %.2f%%~~%s%%" % (name, difference,
+                                                      tolerance))
+                if abs(difference) > tolerance / 2:
+                    return MINOR_GAIN if difference > 0 else MINOR_LOSS
+                return PASS
 
             def report(self, status):
                 if status >= PASS:
