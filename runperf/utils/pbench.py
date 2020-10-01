@@ -14,10 +14,9 @@
 # Author: Lukas Doktor <ldoktor@redhat.com>
 import os
 
-from pkg_resources import iter_entry_points as pkg_entry_points
-
 from . import shell_write_content_cmd
 import collections
+from runperf.utils import sorted_entry_points
 
 
 class Dnf:  # pylint: disable=R0903
@@ -126,7 +125,7 @@ def install_on(session, extra=None, test=None):
     Try available providers to install pbench
     """
     errs = []
-    for entry in pkg_entry_points('runperf.utils.pbench'):
+    for entry in sorted_entry_points('runperf.utils.pbench'):
         plugin = entry.load()(session, extra, test)
         try:
             out = plugin.install()

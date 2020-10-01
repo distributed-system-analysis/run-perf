@@ -20,6 +20,7 @@ from pkg_resources import iter_entry_points as pkg_entry_points
 
 from . import utils
 
+
 LOG = logging.getLogger(__name__)
 # : Persistent storage path
 CONFIG_DIR = '/var/lib/runperf/'
@@ -32,7 +33,7 @@ class BaseProfile:
     """
 
     # : Name of the profile (has to be string as it's stored in filesystem
-    profile = ""
+    name = ""
 
     def __init__(self, host, rp_paths):
         """
@@ -120,7 +121,7 @@ class BaseProfile:
         else:
             raise RuntimeError("Trying to apply profile but there is already "
                                "'%s' persistent profile applied.")
-        self._set("set_profile", self.profile)
+        self._set("set_profile", self.name)
         return self._apply(setup_script)
 
     def _apply(self, setup_script):
@@ -139,10 +140,10 @@ class BaseProfile:
         if _profile == -1:
             return False
         _profile = _profile.strip()
-        if _profile != self.profile:
+        if _profile != self.name:
             raise NotImplementedError("Reverting non-matching profiles not "
                                       "yet supported (%s != %s)"
-                                      % (_profile, self.profile))
+                                      % (_profile, self.name))
         return self._do_revert(_profile)
 
     def _do_revert(self, profile):
@@ -323,10 +324,10 @@ class Localhost(BaseProfile):
     Run on localhost
     """
 
-    profile = "Localhost"
+    name = "Localhost"
 
     def _apply(self, setup_script):
-        self._set("applied_profile", self.profile)
+        self._set("applied_profile", self.name)
         return [self.host]
 
     def _revert(self):
@@ -341,7 +342,7 @@ class DefaultLibvirt(BaseProfile):
     Use libvirt defaults to create one VM leaving some free CPUs
     """
 
-    profile = "DefaultLibvirt"
+    name = "DefaultLibvirt"
     img_base = "/var/lib/libvirt/images"
     deps = "libvirt libguestfs-tools-c virt-install"
     default_password = "redhat"
@@ -363,7 +364,7 @@ class DefaultLibvirt(BaseProfile):
         self._prerequisities(self.session)
         self.image = self._get_image(self.session, setup_script)
         ret = self._start_vms()
-        self._set("applied_profile", self.profile)
+        self._set("applied_profile", self.name)
         return ret
 
     def _prerequisities(self, session):
@@ -393,7 +394,7 @@ class DefaultLibvirt(BaseProfile):
 
     def _get_image(self, session, setup_script):
         entry_point = 'runperf.utils.cloud_image_providers'
-        for entry in pkg_entry_points(entry_point):
+        for entry in utils.sorted_entry_points(entry_point):
             klass = entry.load()
             if klass.is_for(self.distro, self.host.params['arch']):
                 plugin = klass(self.distro, self.host.params['arch'],
@@ -457,7 +458,7 @@ class Overcommit1p5(DefaultLibvirt):
     CPU host overcommit profile to use 1.5 host cpus using multiple guests
     """
 
-    profile = "Overcommit1_5"
+    name = "Overcommit1_5"
 
     def __init__(self, host, rp_paths, extra_params=None):
         super().__init__(host, rp_paths, extra_params)
@@ -477,7 +478,7 @@ class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls
     * use cgroups to move most processes to the unused cpus
     """
 
-    profile = "TunedLibvirt"
+    name = "TunedLibvirt"
 
     def __init__(self, host, rp_paths):
         extra_params = {"image_format": "raw",
@@ -508,7 +509,7 @@ class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls
                 with open(path_xml) as xml_fd:
                     return xml_fd.read()
         raise ValueError("%s-tuned.xml not found in %s, unable to apply "
-                         "%s" % (host.addr, rp_paths, self.profile))
+                         "%s" % (host.addr, rp_paths, self.name))
 
     def _apply(self, setup_script):
         ret = PersistentProfile._apply(self, setup_script)
@@ -536,8 +537,4 @@ def get(profile, host, paths):
     :param tmpdir: Temporary directory for resources
     :return: Initialized and started guests instance (`BaseGuests`)
     """
-    for entry in pkg_entry_points('runperf.profiles'):
-        plugin = entry.load()
-        if plugin.profile == profile:
-            return plugin(host, paths)
-    raise RuntimeError("No profile provider for %s" % profile)
+    return utils.named_entry_point('runperf.profiles', profile)(host, paths)

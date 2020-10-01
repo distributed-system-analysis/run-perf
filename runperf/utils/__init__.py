@@ -26,6 +26,8 @@ import threading
 import time
 
 import aexpect
+import pkg_resources
+
 
 # : String containing all fs-unfriendly chars (Windows-fat/Linux-ext3)
 FS_UNSAFE_CHARS = '<>:"/\\|?*;'
@@ -349,3 +351,29 @@ def wait_for_machine_calms_down(session, timeout=600):
         pass
     session.cmd("cat /proc/loadavg")
     return False
+
+
+def sorted_entry_points(group):
+    """
+    Return alphabetically sorted entry points for a given group
+
+    :param group: entry-point group
+    """
+    return sorted(pkg_resources.iter_entry_points(group),
+                  key=lambda ep: ep.name)
+
+
+def named_entry_point(group, loaded_name):
+    """
+    Return first matching plugin for a given group based on loaded name
+
+    :param group: entry-point group
+    :param name: plugin.name of the loaded entry point
+    """
+    for entry in sorted_entry_points(group):
+        plugin = entry.load()
+        if plugin.name == loaded_name:
+            return plugin
+    raise KeyError("No plugin provider for %s:%s (%s)"
+                   % (group, loaded_name,
+                      ",".join(str(_) for _ in sorted_entry_points(group))))

@@ -22,7 +22,6 @@ import time
 import uuid
 
 import aexpect
-from pkg_resources import iter_entry_points
 import yaml
 
 from . import exceptions, profiles, utils
@@ -231,7 +230,7 @@ class BaseMachine:
         Report basic info about this machine
         """
         output = {}
-        for entry in iter_entry_points('runperf.machine.distro_info'):
+        for entry in utils.sorted_entry_points('runperf.machine.distro_info'):
             out = entry.load()(self)
             if out:
                 output.update(out)
@@ -345,16 +344,9 @@ class Controller:
             else:
                 name = _name[0]
                 extra = {}
-            for entry in iter_entry_points('runperf.provisioners'):
-                if entry.name == name:
-                    plugin = entry.load()
-                    provisioner = plugin(self, extra)
-                    break
-            else:
-                entry = "runperf.provisioners"
-                plugins = ",".join(str(_) for _ in iter_entry_points(entry))
-                raise RuntimeError("Unable to find %s provisioner (%s)"
-                                   % (name, plugins))
+            plugin = utils.named_entry_point('runperf.provisioners',
+                                             name)
+            provisioner = plugin(self, extra)
             self.for_each_host(self.hosts, 'provision', (provisioner,))
 
         # Run per-host setup
@@ -393,7 +385,7 @@ class Controller:
             setup_script = None
         self.for_each_host_retry(5, self.hosts, 'apply_profile',
                                  (profile, setup_script, self.paths))
-        self.profile = self.main_host.profile.profile
+        self.profile = self.main_host.profile.name
         return [host.workers for host in self.hosts]
 
     def revert_profile(self):
@@ -792,7 +784,7 @@ class LibvirtGuest(BaseMachine):
         return self.host.get_addr()
 
     def cleanup(self):
-        """Destroy the machine and close hsot connection"""
+        """Destroy the machine and close host connection"""
         errs = []
         if not self._started:
             if self._host_session:
@@ -804,8 +796,8 @@ class LibvirtGuest(BaseMachine):
             session = self.get_host_session()
             # Try graceful shutdown first
             if (self.is_defined() and
-                session.cmd_status("virsh destroy '%s' --graceful"
-                                  % self.name)):
+                    session.cmd_status("virsh destroy '%s' --graceful"
+                                       % self.name)):
                 time.sleep(5)
                 # Double-check it does not exists and nuke it
                 if (self.is_defined() and

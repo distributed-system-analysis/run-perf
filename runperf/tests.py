@@ -20,8 +20,6 @@ import sys
 import tempfile
 import time
 
-import pkg_resources
-
 from . import exceptions
 from . import utils
 from .utils import pbench
@@ -86,7 +84,7 @@ class BaseTest:
             meta[key] = value
         meta['cmdline'] = str(sys.argv)
         meta['distro'] = self.host.distro
-        meta['profile'] = self.host.profile.profile
+        meta['profile'] = self.host.profile.name
         str_workers = {}
         for i, workers in enumerate(self.workers):
             str_workers[i] = {worker.name: worker.get_info()
@@ -244,7 +242,7 @@ class PBenchTest(BaseTest):
                                 % " ".join(extra_args), timeout=600)
                 self.add_metadata(session, "cmdline", str(sys.argv))
                 self.add_metadata(session, "profile",
-                                  self.host.profile.profile)
+                                  self.host.profile.name)
                 self.add_metadata(session, "distro", self.host.distro)
                 for workers in self.workers:
                     for worker in workers:
@@ -426,8 +424,4 @@ def get(name):
         extra = json.loads(_name[1])
     else:
         extra = {}
-    for entry in pkg_resources.iter_entry_points('runperf.tests'):
-        plugin = entry.load()
-        if plugin.name == name:
-            return (plugin, extra)
-    raise RuntimeError("No provider for %s" % name)
+    return (utils.named_entry_point('runperf.tests', name), extra)

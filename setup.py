@@ -78,24 +78,24 @@ if __name__ == '__main__':
                    'scripts/compare-perf'],
           entry_points={
               'runperf.profiles': [
-                  'Localhost = runperf.profiles:Localhost',
-                  'DefaultLibvirt = runperf.profiles:DefaultLibvirt',
-                  'Overcommit1_5 = runperf.profiles:Overcommit1p5',
-                  'TunedLibvirt = runperf.profiles:TunedLibvirt'],
+                  '50Localhost = runperf.profiles:Localhost',
+                  '50DefaultLibvirt = runperf.profiles:DefaultLibvirt',
+                  '50Overcommit1_5 = runperf.profiles:Overcommit1p5',
+                  '50TunedLibvirt = runperf.profiles:TunedLibvirt'],
               'runperf.tests': [
-                  'DummyTest = runperf.tests:DummyTest',
-                  'PBenchFio = runperf.tests:PBenchFio',
-                  'Linpack = runperf.tests:Linpack',
-                  'UPerf = runperf.tests:UPerf',
-                  'PBenchNBD = runperf.tests:PBenchNBD'],
+                  '50DummyTest = runperf.tests:DummyTest',
+                  '50PBenchFio = runperf.tests:PBenchFio',
+                  '50Linpack = runperf.tests:Linpack',
+                  '50UPerf = runperf.tests:UPerf',
+                  '50PBenchNBD = runperf.tests:PBenchNBD'],
               'runperf.machine.distro_info': [
-                  'get_distro_info = runperf.machine:get_distro_info'],
+                  '50get_distro_info = runperf.machine:get_distro_info'],
               'runperf.utils.cloud_image_providers': [
-                  'Fedora = runperf.utils.cloud_image_providers:Fedora'],
+                  '50Fedora = runperf.utils.cloud_image_providers:Fedora'],
               'runperf.provisioners': [
-                  'Beaker = runperf.provisioners:Beaker'],
+                  '50Beaker = runperf.provisioners:Beaker'],
               'runperf.utils.pbench': [
-                  'Dnf = runperf.utils.pbench:Dnf']},
+                  '50Dnf = runperf.utils.pbench:Dnf']},
           test_suite='selftests',
           python_requires='>=3.4',
           install_requires=['aexpect>=1.5.1', 'PyYAML', 'numpy'])
