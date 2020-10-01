@@ -25,6 +25,7 @@ class Beaker:
 
     Uses current machine to execute "bkr" client
     """
+    name = "Beaker"
 
     def __init__(self, controller, extra):
         """

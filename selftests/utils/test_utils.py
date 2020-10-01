@@ -101,6 +101,40 @@ class BasicUtils(unittest.TestCase):
         self.assertNotEqual(match, None)
         self.assertEqual(match[1], match[2])
 
+    def test_entry_points(self):
+        class EP:
+            def __init__(self, name=None, loaded_name=None):
+                self.name = name
+                self.loaded_name = loaded_name
+            def load(self):
+                plugin = mock.Mock()
+                plugin.name = self.loaded_name
+                plugin.plugin = self.name
+                return plugin
+        entries = lambda _: [EP("10"), EP("20"), EP("30")]
+        with mock.patch("runperf.utils.pkg_resources.iter_entry_points",
+                        entries):
+            self.assertEqual(["10", "20", "30"],
+                             [_.name for _ in utils.sorted_entry_points('')])
+        entries = lambda _: [EP("20"), EP("30"), EP("10")]
+        with mock.patch("runperf.utils.pkg_resources.iter_entry_points",
+                        entries):
+            self.assertEqual(["10", "20", "30"],
+                             [_.name for _ in utils.sorted_entry_points('')])
+        entries = lambda _: [EP("20", "foo"), EP("30", "foo"), EP("10", "bar")]
+        with mock.patch("runperf.utils.pkg_resources.iter_entry_points",
+                        entries):
+            act = utils.named_entry_point("", "foo")
+            self.assertEqual(("foo", "20"), (act.name, act.plugin))
+        entries = lambda _: [EP("30", "foo"), EP("20", "foo"), EP("10", "bar")]
+        with mock.patch("runperf.utils.pkg_resources.iter_entry_points",
+                        entries):
+            act = utils.named_entry_point("", "foo")
+            self.assertEqual(("foo", "20"), (act.name, act.plugin))
+        with mock.patch("runperf.utils.pkg_resources.iter_entry_points",
+                        entries):
+            self.assertRaises(KeyError, utils.named_entry_point, "", "missing")
+
 
 if __name__ == '__main__':
     unittest.main()

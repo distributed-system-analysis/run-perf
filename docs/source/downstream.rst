@@ -31,4 +31,7 @@ Available ones are:
 * runperf.utils.pbench - to add custom pbench setup
 * runperf.machine.distro_info - to extend machine sysinfo collection
 
-the order depends on which entry point was installed first.
+The plugins are checked in the alphabetical order based on the entry
+point name. Default entry points are prefixed leaving enough space
+to prefix more or less important downstream plugins with lower or
+higher values.

@@ -57,7 +57,8 @@ class PBenchTest(Selftest):
                          ["", "prefix+self._cmd", "0", result_path,
                           result_json])}
         host.mock_session = mock.Mock(**mock_args)
-        host.profile = mock.Mock(profile=profile)
+        host.profile = mock.Mock()
+        host.profile.name = profile
         worker = DummyHost(logging.getLogger(''), 'Test2', 'addr2',
                            guest_distro or distro, args)
         worker.mock_session = mock.Mock(
