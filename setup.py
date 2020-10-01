@@ -14,11 +14,12 @@
 # Author: Lukas Doktor <ldoktor@redhat.com>
 
 import os
-import subprocess
-# pylint: disable=E0611
+import shutil
+import subprocess   # nosec
 
 from setuptools import setup, find_packages
 
+# pylint: disable=E0611
 SETUP_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -31,13 +32,15 @@ def _get_git_version():
     curdir = os.getcwd()
     try:
         os.chdir(SETUP_PATH)
-        version = subprocess.check_output(
-            ["git", "describe", "--tags", "HEAD"]).strip().decode("utf-8")
+        git = shutil.which("git")
+        version = subprocess.check_output(  # nosec
+            [git, "describe", "--tags",
+             "HEAD"]).strip().decode("utf-8")
         try:
-            subprocess.check_output(["git", "diff", "--quiet"])
+            subprocess.check_output([git, "diff", "--quiet"])  # nosec
         except subprocess.CalledProcessError:
             version += "-dirty"
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError, NameError):
         return None
     finally:
         os.chdir(curdir)

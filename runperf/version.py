@@ -12,21 +12,20 @@
 #
 # Copyright: Red Hat Inc. 2020
 # Author: Lukas Doktor <ldoktor@redhat.com>
-
 """
 The purpose of this implementation is to return the right version for
 installed as well as 'make develop' deployments.
 """
 
-
 import os
-import subprocess
+import shutil
+import subprocess   # nosec
 
 import pkg_resources
 
-
 # Path to setup.py. It only exists when used from sources
 SETUP_PATH = os.path.dirname(os.path.dirname(__file__))
+
 
 def _get_git_version():
     """
@@ -37,17 +36,20 @@ def _get_git_version():
     curdir = os.getcwd()
     try:
         os.chdir(SETUP_PATH)
-        version = subprocess.check_output(
-            ["git", "describe", "--tags", "HEAD"]).strip().decode("utf-8")
+        git = shutil.which("git")
+        version = subprocess.check_output(  # nosec
+            [git, "describe", "--tags",
+             "HEAD"]).strip().decode("utf-8")
         try:
-            subprocess.check_output(["git", "diff", "--quiet"])
+            subprocess.check_output([git, "diff", "--quiet"])  # nosec
         except subprocess.CalledProcessError:
             version += "-dirty"
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError, NameError):
         return None
     finally:
         os.chdir(curdir)
     return version
+
 
 def get_version():
     """
@@ -58,5 +60,6 @@ def get_version():
         if version:
             return version
     return pkg_resources.get_distribution("runperf").version
+
 
 __version__ = get_version()

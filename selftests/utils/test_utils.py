@@ -25,8 +25,8 @@ from runperf import utils
 class BasicUtils(unittest.TestCase):
 
     def test_list_of_threads(self):
-        self.assertRaises(AssertionError, utils.list_of_threads, -5)
-        self.assertRaises(AssertionError, utils.list_of_threads, 0)
+        self.assertRaises(ValueError, utils.list_of_threads, -5)
+        self.assertRaises(ValueError, utils.list_of_threads, 0)
         self.assertEqual(utils.list_of_threads(1), "1")
         self.assertEqual(utils.list_of_threads(2), "1,2")
         self.assertEqual(utils.list_of_threads(7), "1,2,3,4,5,6,7")

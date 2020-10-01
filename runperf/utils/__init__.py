@@ -21,7 +21,7 @@ import os
 import pipes
 import random
 import string
-import subprocess
+import subprocess   # nosec
 import threading
 import time
 
@@ -92,7 +92,8 @@ def comma_separated_ranges_to_list(text):
 
 def list_of_threads(cpus):
     """How many threads to use depending on no cpus"""
-    assert cpus >= 1, "Cpus needs to be a positive number >=1 (%s)" % cpus
+    if cpus < 1:
+        raise ValueError("Cpus needs to be a positive number >=1 (%s)" % cpus)
     step = int(cpus / 4)
     if step <= 1:
         step = 1
@@ -110,7 +111,7 @@ def random_string(length):
     :param length: number or characters to generate
     """
     chars = string.ascii_letters + string.digits
-    return ''.join(random.choice(chars) for _ in range(length))
+    return ''.join(random.choice(chars) for _ in range(length))  # nosec
 
 
 def check_output(*args, **kwargs):
@@ -137,7 +138,7 @@ def check_output(*args, **kwargs):
                               " ".join(pipes.quote(_) for _ in args[0]),
                               str(args[1:]), str(kwargs))
         try:
-            return subprocess.check_output(*args, **kwargs).decode("utf-8")
+            return subprocess.check_output(*args, **kwargs).decode("utf-8")  # nosec
         except subprocess.CalledProcessError as exc:
             raise RuntimeError("%s\n%s" % (exc, exc.output)) from exc
 

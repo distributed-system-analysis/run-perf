@@ -24,30 +24,12 @@ import numpy
 
 from . import result
 
-
 # HTML Colors
 C_BG_MEAN = "#f5f5ff"
 C_BG_STDDEV = "#fffef0"
 
 RE_NAME_FILTERS = re.compile(r'([^/]+)/([^/]+)/[^/]+/[^-/]+[^/]*/[^/]+/'
                              r'[^\.]+\.(.*)')
-
-
-def num2char(num):
-    """
-    Convert number to char (A,B,C, ...,BA, BB, ...)
-    """
-    if num < 0:
-        raise ValueError("Positive numbers only (%s)" % num)
-    out = []
-    while True:
-        if num <= 25:
-            out.append(chr(num + 65))
-            break
-        mod = num % 26
-        out.append(chr(mod + 65))
-        num = int(num / 26)
-    return "".join(out[::-1])
 
 
 def anonymize_test_params(lines):
@@ -64,6 +46,35 @@ def anonymize_test_params(lines):
     return out
 
 
+class KnownItems:
+
+    """Class to keep track of known items"""
+
+    def __init__(self):
+        self.items = []
+
+    def add(self, value):
+        """Add item to the list of known items"""
+        if value not in self.items:
+            self.items.append(value)
+
+    def get_short(self, value):
+        """Get a short representation of this value (A, B, AA, ...)"""
+        self.add(value)
+        num = self.items.index(value)
+        if num < 0:
+            raise ValueError("Positive numbers only (%s)" % num)
+        out = []
+        while True:
+            if num <= 25:
+                out.append(chr(num + 65))
+                break
+            mod = num % 26
+            out.append(chr(mod + 65))
+            num = int(num / 26)
+        return "".join(out[::-1])
+
+
 def generate_report(path, results, with_charts=False):
     """
     Generate html report from results
@@ -73,9 +84,21 @@ def generate_report(path, results, with_charts=False):
     :param with_charts: Whether to generate graphs
     """
 
+    def _format_raw_diff(raw_diff):
+        # Skip first two lines as it contains +++ and ---
+        try:
+            next(raw_diff)
+            next(raw_diff)
+        except StopIteration:
+            pass
+        return "\n".join(line for line in raw_diff
+                         if (line.startswith("+") or line.startswith("-")))
+
     def generate_builds(results):
+        """Populate builds dictionary"""
 
         def generate_build_diff(environment, src):
+            """Populate this env diff"""
             # In build_env replace values for "_raw" values if available
             raw_value = environment.copy()
             for key, value in environment.items():
@@ -102,15 +125,7 @@ def generate_report(path, results, with_charts=False):
                         raw_diff = unified_diff(
                             pformat(src[key]).splitlines(),
                             pformat(src[key]).splitlines())
-                    # Skip first two lines as it contains +++ and ---
-                    try:
-                        next(raw_diff)
-                        next(raw_diff)
-                    except StopIteration:
-                        pass
-                    inner_diff = "\n".join(line for line in raw_diff
-                                           if (line.startswith("+") or
-                                               line.startswith("-")))
+                    inner_diff = _format_raw_diff(raw_diff)
                 else:
                     missing_src.append(key)
                     continue
@@ -185,14 +200,10 @@ def generate_report(path, results, with_charts=False):
                 build["runperf_version"] = metadata.default_factory()
             build["guest_distro"] = metadata.get("guest_distro",
                                                  build["distro"])
-            if build["distro"] not in known_items['distros']:
-                known_items['distros'].append(build["distro"])
-            build["distro_short"] = num2char(
-                known_items['distros'].index(build["distro"]))
-            if build["runperf_cmd"] not in known_items['commands']:
-                known_items['commands'].append(build["runperf_cmd"])
-            build["runperf_cmd_short"] = num2char(
-                known_items['commands'].index(build["runperf_cmd"]))
+            build["distro_short"] = (known_items["distro"]
+                                     .get_short(build["distro"]))
+            build["runperf_cmd_short"] = (known_items["commands"]
+                                          .get_short("runperf_cmd"))
             env, profiles = collect_environment(metadata)
             build['profiles'] = profiles
             if src_env is not None:
@@ -211,13 +222,12 @@ def generate_report(path, results, with_charts=False):
                 build["environment_short"][key] = []
                 for value in values:
                     known_item = known_items["env %s" % key]
-                    if value not in known_item:
-                        known_item.append(value)
-                    build["environment_short"][key].append(num2char(
-                        known_item.index(value)))
+                    build["environment_short"][key].append(
+                        known_item.get_short(value))
             return build
 
         def get_failed_facts(dst_record, results, record_attr="records"):
+            """Process facts about failures"""
             name = dst_record.name
             failures = 0
             missing = 0
@@ -246,7 +256,7 @@ def generate_report(path, results, with_charts=False):
                     for key, value in params.items()}
 
         builds = []
-        known_items = collections.defaultdict(list)
+        known_items = collections.defaultdict(KnownItems)
         # SRC
         src = process_metadata(results.src_metadata, known_items)
         src["score"] = 0
@@ -324,7 +334,10 @@ def generate_report(path, results, with_charts=False):
         return src, builds, dst
 
     def generate_charts(results):
+        """Generate charts"""
+
         def generate_data_serie(data):
+            """Generate min/1st/median/3rd/max values for a data serie"""
             return [[float("%.2f" % numpy.min(_)),
                      float("%.2f" % numpy.percentile(_, 25)),
                      float("%.2f" % numpy.median(_)),
@@ -332,6 +345,7 @@ def generate_report(path, results, with_charts=False):
                      float("%.2f" % numpy.max(_))]
                     if _ else [0, 0, 0, 0, 0]
                     for _ in data]
+
         improvements = [[], []]
         m_improvements = [[], []]
         equals = [[], []]
@@ -516,6 +530,7 @@ def generate_report(path, results, with_charts=False):
         return charts
 
     def get_build_param_diff(all_src_params, record):
+        """Generate param diffs"""
         params_raw = record.params.copy()
         params_diff = []
         src_params = all_src_params.get(record.name, {})
@@ -529,15 +544,7 @@ def generate_report(path, results, with_charts=False):
                 dst = sorted(anonymize_test_params(value.splitlines()))
                 raw_diff = unified_diff(src_params[key].splitlines(),
                                         dst)
-                # Skip first two lines as it contains +++ and ---
-                try:
-                    next(raw_diff)
-                    next(raw_diff)
-                except StopIteration:
-                    pass
-                diff = "\n".join(line for line in raw_diff
-                                 if (line.startswith("+") or
-                                     line.startswith("-")))
+                diff = _format_raw_diff(raw_diff)
             else:
                 diff = "+MISSING IN SRC"
             if diff:
@@ -554,6 +561,7 @@ def generate_report(path, results, with_charts=False):
         return params_raw, "\n".join(params_diff)
 
     def generate_builds_statuses(results, values):
+        """Transform results into build statuses"""
         src_params = values["src"]["test_params_anonymized"]
         statuses = {}
         per_build_test_params_stat = []
@@ -562,11 +570,11 @@ def generate_report(path, results, with_charts=False):
         src_result_diff = {test: "" for test, _ in src_params.items()}
         # We are going to inject group records to src_result_diff, we need
         # a copy here to avoid mutation
-        known_test_params_diffs = [src_result_diff]
+        known_test_params_diffs = KnownItems()
         values["builds"][0]["environment"]["tests"] = ""
         values["builds"][0]["environment_diff"]["tests"] = ""
-        values["builds"][0]["environment_short"]["tests"] = num2char(
-            known_test_params_diffs.index(src_result_diff))
+        values["builds"][0]["environment_short"]["tests"] = (
+            known_test_params_diffs.get_short(src_result_diff))
 
         # Now generate diffs for the remaining builds
         for i, res in enumerate(results):
@@ -587,10 +595,8 @@ def generate_report(path, results, with_charts=False):
                     statuses[record.name] = {}
                 statuses[record.name][i] = (record.status, record.details,
                                             "%.1f" % record.score, ("", ""))
-            if this_result_diff not in known_test_params_diffs:
-                known_test_params_diffs.append(this_result_diff)
             per_build_test_params_stat.append(
-                [num2char(known_test_params_diffs.index(this_result_diff)),
+                [known_test_params_diffs.get_short(this_result_diff),
                  "\n".join(key for key, value in this_result_diff.items()
                            if value)])
         builds_statuses = []
@@ -605,18 +611,23 @@ def generate_report(path, results, with_charts=False):
                                         ("NA", "NA")))
                  for i in range(len(results))])
 
-        for i, env_test in enumerate(per_build_test_params_stat):
-            values["builds"][i+1]["environment"]["tests"] = env_test[1]
-            values["builds"][i+1]["environment_diff"]["tests"] = env_test[1]
-            values["builds"][i+1]["environment_short"]["tests"] = env_test[0]
+        for build, env_test in zip(values["builds"][1:],
+                                   per_build_test_params_stat):
+            build["environment"]["tests"] = env_test[1]
+            build["environment_diff"]["tests"] = env_test[1]
+            build["environment_short"]["tests"] = env_test[0]
         return builds_statuses
 
     def get_filters(results):
+        """Get all filters based on results"""
+
         def process_filters(match, filters, all_filters):
+            """Add filters per category when not already present"""
             for i, cat in enumerate(("profiles", "tests", "types"), 1):
                 if match[i] not in all_filters:
                     filters[cat].add(match[i])
                     all_filters.add(match[i])
+
         filters = {"profiles": set(), "tests": set(), "types": set()}
         all_filters = set()
         for res in results:

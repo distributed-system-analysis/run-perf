@@ -24,7 +24,7 @@ import logging
 import os
 import re
 import string
-from xml.dom.minidom import Document
+from xml.dom.minidom import Document    # nosec
 
 import numpy
 
@@ -515,9 +515,7 @@ class RelativeResults:
             testcase.setAttribute('name', _str(test_name[1]))
             testcase.setAttribute('time', "0.000")
             status = test.status
-            if status >= PASS:
-                pass
-            else:
+            if status < PASS:
                 # Use SKIP for gain to better distinguish these in Jenkins
                 if status == FAIL_GAIN:
                     skipped += 1

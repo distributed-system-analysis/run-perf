@@ -28,7 +28,6 @@ stage('Analyze') {
         def status = 0
         lock (worker_node) {
             // Avoid modifying worker_node's environment while executing compareperf
-            // TODO: Use venv
             sh 'python3 setup.py develop --user'
             status = sh returnStatus: true, script:  "python3 scripts/analyze-perf -vvv -l model.json " + extra_args + " -- results/*"
         }

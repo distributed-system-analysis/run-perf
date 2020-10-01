@@ -55,7 +55,7 @@ def prune_result(path, before):
     for pth in glob.glob(os.path.join(path, "archive", "*.tar.*")):
         os.unlink(pth)
     with open(treated_path, 'wb'):
-        pass
+        """touching the file"""
 
 
 def prune_results(job, age):
