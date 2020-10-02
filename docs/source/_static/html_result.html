@@ -10814,7 +10814,7 @@ function tableOfFailuresFilter() {
 	}
 }
 
-function tableOfFailuresToggleByStatus(stat) {
+function tableOfFailuresToggleByStatus(stat, table) {
 	var button = document.getElementById('table_of_failures_' + stat)
 	if (table_of_failures_show_statuses.has(stat)) {
 		table_of_failures_show_statuses.delete(stat);
@@ -10850,11 +10850,83 @@ function tableOfFailuresToggleMultiple(action, statuses) {
 </script>
 
 <script language="javascript">
+var table_of_group_failures_show_statuses = new Set()
+var table_of_group_failures_hide_name_segments = new Set()
+
+function tableOfGroupFailuresFilter() {
+	var items = document.getElementById('table_of_group_failures').querySelectorAll('tr');
+	var i;
+	var show;
+	<!-- skip first item because that is the header !-->
+	for (i = 1; i < items.length; i++) {
+		display = "none";
+		var statuses = table_of_group_failures_show_statuses.values()
+		for (var status = ""; status = statuses.next().value;) {
+			if (items[i].className.includes(" " + status + " ")) {
+				display = "table-row";
+				break;
+			}
+		}
+		if (display != "none") {
+			var names = table_of_group_failures_hide_name_segments.values()
+			for (var name = ""; name = names.next().value;) {
+				if (items[i].querySelectorAll('td')[0].innerText.includes(name)) {
+					display = "none";
+					break;
+				}
+			}
+		}
+		items[i].style.display = display;
+	}
+}
+
+function tableOfGroupFailuresToggleByStatus(stat, table) {
+	var button = document.getElementById('table_of_group_failures_' + stat)
+	if (table_of_group_failures_show_statuses.has(stat)) {
+		table_of_group_failures_show_statuses.delete(stat);
+		button.innerHTML = button.innerHTML.toLowerCase();
+	} else {
+		table_of_group_failures_show_statuses.add(stat);
+		button.innerHTML = button.innerHTML.toUpperCase();
+	}
+	tableOfGroupFailuresFilter()
+}
+
+function tableOfGroupFailuresToggleByNameSegment(name) {
+	var button = document.getElementById('table_of_group_failures_button_' + name)
+	if (table_of_group_failures_hide_name_segments.has(name)) {
+		table_of_group_failures_hide_name_segments.delete(name);
+		button.innerHTML = button.innerHTML.toUpperCase();
+		button.className = "status_0"
+	} else {
+		table_of_group_failures_hide_name_segments.add(name);
+		button.innerHTML = button.innerHTML.toLowerCase();
+		button.className = "status_-1"
+	}
+	tableOfGroupFailuresFilter()
+}
+
+function tableOfGroupFailuresToggleMultiple(action, statuses) {
+	for (i = 0; i < statuses.length; i++) {
+		if (table_of_group_failures_show_statuses.has(statuses[i]) != action) {
+			tableOfGroupFailuresToggleByStatus(statuses[i]);
+		}
+	}
+}
+</script>
+
+<script language="javascript">
 function initialize() {
-	tableOfFailuresToggleMultiple(true, ['status_99', 'status_-1', 'status_-2',
+    /* table of failures */
+    tableOfFailuresToggleMultiple(true, ['status_99', 'status_-1', 'status_-2',
 		'status_-3', 'any_status_99', 'any_status_-1', 'any_status_-2',
 		'any_status_-3']);
 	tableOfFailuresToggleByNameSegment('stddev');
+	/* table of group failures */
+	tableOfGroupFailuresToggleMultiple(true, ['status_99', 'status_-1', 'status_-2',
+		'status_-3', 'any_status_99', 'any_status_-1', 'any_status_-2',
+		'any_status_-3']);
+	tableOfGroupFailuresToggleByNameSegment('stddev');
 }
 </script>
 
@@ -11226,6 +11298,102 @@ Localhost/fio/0000:./read-64KiB/throughput/iops_sec.stddev</pre></span></div></t
     </table>
 </div>
 
+<h1>Group stats</h1>
+<a id="div_table_of_group_failures-hide" href="javascript:toggle_short('table_of_group_failures');">[-]</a><br>
+
+<div id='div_table_of_group_failures' style="display: block">
+    <span>This build status: </span>
+    <a id='table_of_group_failures_status_0' href="javascript:tableOfGroupFailuresToggleByStatus('status_0')" class="status_0">equals</a>
+    <a id='table_of_group_failures_status_1' href="javascript:tableOfGroupFailuresToggleByStatus('status_1')" class="status_1">minor gains</a>
+    <a id='table_of_group_failures_status_2' href="javascript:tableOfGroupFailuresToggleByStatus('status_2')" class="status_2">minor losses</a>
+    <a id='table_of_group_failures_status_99' href="javascript:tableOfGroupFailuresToggleByStatus('status_99')" class="status_99">skips</a>
+    <a id='table_of_group_failures_status_-1' href="javascript:tableOfGroupFailuresToggleByStatus('status_-1')" class="status_-1">losses</a>
+    <a id='table_of_group_failures_status_-3' href="javascript:tableOfGroupFailuresToggleByStatus('status_-3')" class="status_-3">gains</a>
+    <a id='table_of_group_failures_status_-2' href="javascript:tableOfGroupFailuresToggleByStatus('status_-2')" class="status_-2">errors</a>
+    <a id='table_of_group_failures_status_0' href="javascript:tableOfGroupFailuresToggleMultiple(true, ['status_0', 'status_1', 'status_2'])" class="status_-2">+good</a>
+    <a id='table_of_group_failures_status_0' href="javascript:tableOfGroupFailuresToggleMultiple(false, ['status_0', 'status_1', 'status_2'])" class="status_-2">-good</a>
+    <a id='table_of_group_failures_status_-1' href="javascript:tableOfGroupFailuresToggleMultiple(true, ['status_99', 'status_-1', 'status_-2', 'status_-3'])" class="status_-2">+bad</a>
+    <a id='table_of_group_failures_status_-1' href="javascript:tableOfGroupFailuresToggleMultiple(false, ['status_99', 'status_-1', 'status_-2', 'status_-3'])" class="status_-2">-bad</a>
+    <br>
+    <span>Any build status: </span>
+    <a id='table_of_group_failures_any_status_0' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_0')" class="status_0">equals</a>
+    <a id='table_of_group_failures_any_status_1' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_1')" class="status_1">minor gains</a>
+    <a id='table_of_group_failures_any_status_2' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_2')" class="status_2">minor losses</a>
+    <a id='table_of_group_failures_any_status_99' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_99')" class="status_99">skips</a>
+    <a id='table_of_group_failures_any_status_-1' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_-1')" class="status_-1">losses</a>
+    <a id='table_of_group_failures_any_status_-3' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_-3')" class="status_-3">gains</a>
+    <a id='table_of_group_failures_any_status_-2' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_-2')" class="status_-2">errors</a>
+    <a id='table_of_group_failures_status_0' href="javascript:tableOfGroupFailuresToggleMultiple(true, ['any_status_0', 'any_status_1', 'any_status_2'])" class="status_-2">+good</a>
+    <a id='table_of_group_failures_status_0' href="javascript:tableOfGroupFailuresToggleMultiple(false, ['any_status_0', 'any_status_1', 'any_status_2'])" class="status_-2">-good</a>
+    <a id='table_of_group_failures_status_-1' href="javascript:tableOfGroupFailuresToggleMultiple(true, ['any_status_99', 'any_status_-1', 'any_status_-2', 'any_status_-3'])" class="status_-2">+bad</a>
+    <a id='table_of_group_failures_status_-1' href="javascript:tableOfGroupFailuresToggleMultiple(false, ['any_status_99', 'any_status_-1', 'any_status_-2', 'any_status_-3'])" class="status_-2">-bad</a>
+    <br>
+    <span>types: </span>
+    <a id='table_of_group_failures_button_mean' href="javascript:tableOfGroupFailuresToggleByNameSegment('mean')" class="status_0">MEAN</a>
+    <a id='table_of_group_failures_button_stddev' href="javascript:tableOfGroupFailuresToggleByNameSegment('stddev')" class="status_0">STDDEV</a><br>
+    <table id='table_of_group_failures' border=1>
+    <tr>
+        <th>Test</th>
+        <th><a href="Unknown">7
+</a></th>
+        <th><a href="Unknown">8
+</a></th>
+        <th><a href="Unknown">9
+</a></th>
+        <th><a href="Unknown">10
+</a></th>
+    </tr>
+    
+    <tr class=" status_1 any_status_0 any_status_2 any_status_1 ">
+        <td class="status_*/fio/0000:./read-*/throughput/iops_sec.mean"><div class="tooltip">*/fio/0000:./read-*/throughput/iops_sec.mean<span class="tooltiptext">*/fio/0000:./read-*/throughput/iops_sec.mean</span></div></td>
+        <td class="status_0"><div class="tooltip">-3.7<span class="tooltiptext">GOOD raw -3.67%~~10.0% (-3.672460540203626; -3.672460540203626)</span></div></td>
+        <td class="status_0"><div class="tooltip">-1.0<span class="tooltiptext">GOOD raw -1.03%~~10.0% (-1.0277634875204447; -1.0277634875204447)</span></div></td>
+        <td class="status_2"><div class="tooltip">-8.0<span class="tooltiptext">GOOD raw -8.02%~~10.0% (-8.023339057835141; -8.023339057835141)</span></div></td>
+        <td class="status_1"><div class="tooltip">7.6<span class="tooltiptext">GOOD raw 7.63%~~10.0% (7.629249498837623; 7.629249498837623)</span></div></td>
+    </tr>
+    
+    <tr class=" status_0 any_status_0 any_status_0 any_status_0 ">
+        <td class="status_*/fio/0000:./read-*/throughput/iops_sec.stddev"><div class="tooltip">*/fio/0000:./read-*/throughput/iops_sec.stddev<span class="tooltiptext">*/fio/0000:./read-*/throughput/iops_sec.stddev</span></div></td>
+        <td class="status_0"><div class="tooltip">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
+        <td class="status_0"><div class="tooltip">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
+        <td class="status_0"><div class="tooltip">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
+        <td class="status_0"><div class="tooltip">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
+    </tr>
+    
+    <tr class=" status_1 any_status_0 any_status_2 any_status_1 ">
+        <td class="status_Localhost/*/*:./*-*/*/*.mean"><div class="tooltip">Localhost/*/*:./*-*/*/*.mean<span class="tooltiptext">Localhost/*/*:./*-*/*/*.mean</span></div></td>
+        <td class="status_0"><div class="tooltip">-3.7<span class="tooltiptext">GOOD raw -3.67%~~10.0% (-3.672460540203626; -3.672460540203626)</span></div></td>
+        <td class="status_0"><div class="tooltip">-1.0<span class="tooltiptext">GOOD raw -1.03%~~10.0% (-1.0277634875204447; -1.0277634875204447)</span></div></td>
+        <td class="status_2"><div class="tooltip">-8.0<span class="tooltiptext">GOOD raw -8.02%~~10.0% (-8.023339057835141; -8.023339057835141)</span></div></td>
+        <td class="status_1"><div class="tooltip">7.6<span class="tooltiptext">GOOD raw 7.63%~~10.0% (7.629249498837623; 7.629249498837623)</span></div></td>
+    </tr>
+    
+    <tr class=" status_0 any_status_0 any_status_0 any_status_0 ">
+        <td class="status_Localhost/*/*:./*-*/*/*.stddev"><div class="tooltip">Localhost/*/*:./*-*/*/*.stddev<span class="tooltiptext">Localhost/*/*:./*-*/*/*.stddev</span></div></td>
+        <td class="status_0"><div class="tooltip">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
+        <td class="status_0"><div class="tooltip">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
+        <td class="status_0"><div class="tooltip">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
+        <td class="status_0"><div class="tooltip">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
+    </tr>
+    
+    <tr class=" status_1 any_status_0 any_status_2 any_status_1 ">
+        <td class="status_Localhost/fio/0000:./read-*/throughput/iops_sec.mean"><div class="tooltip">Localhost/fio/0000:./read-*/throughput/iops_sec.mean<span class="tooltiptext">Localhost/fio/0000:./read-*/throughput/iops_sec.mean</span></div></td>
+        <td class="status_0"><div class="tooltip">-3.7<span class="tooltiptext">GOOD raw -3.67%~~10.0% (-3.672460540203626; -3.672460540203626)</span></div></td>
+        <td class="status_0"><div class="tooltip">-1.0<span class="tooltiptext">GOOD raw -1.03%~~10.0% (-1.0277634875204447; -1.0277634875204447)</span></div></td>
+        <td class="status_2"><div class="tooltip">-8.0<span class="tooltiptext">GOOD raw -8.02%~~10.0% (-8.023339057835141; -8.023339057835141)</span></div></td>
+        <td class="status_1"><div class="tooltip">7.6<span class="tooltiptext">GOOD raw 7.63%~~10.0% (7.629249498837623; 7.629249498837623)</span></div></td>
+    </tr>
+    
+    <tr class=" status_0 any_status_0 any_status_0 any_status_0 ">
+        <td class="status_Localhost/fio/0000:./read-*/throughput/iops_sec.stddev"><div class="tooltip">Localhost/fio/0000:./read-*/throughput/iops_sec.stddev<span class="tooltiptext">Localhost/fio/0000:./read-*/throughput/iops_sec.stddev</span></div></td>
+        <td class="status_0"><div class="tooltip">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
+        <td class="status_0"><div class="tooltip">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
+        <td class="status_0"><div class="tooltip">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
+        <td class="status_0"><div class="tooltip">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
+    </tr>
+    </table>
+</div>
+
 <h1>Failures</h1>
 <a id="div_table_of_failures-hide" href="javascript:toggle_short('table_of_failures');">[-]</a><br>
 
@@ -11277,66 +11445,12 @@ Localhost/fio/0000:./read-64KiB/throughput/iops_sec.stddev</pre></span></div></t
 </a></th>
     </tr>
     
-    <tr class=" status_1 any_status_0 any_status_2 any_status_1 ">
-        <td class="status_*/fio/0000:./read-*/throughput/iops_sec.mean"><div class="tooltip" onclick="elementValueToClipboard('env-test-1-1-raw')">*/fio/0000:./read-*/throughput/iops_sec.mean<textarea style="position: absolute; left: -9999px;"  id="env-test-1-1-raw">NA</textarea>&#x1f527;<span class="tooltiptext">*/fio/0000:./read-*/throughput/iops_sec.mean<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
-NA</pre></span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-1-2-raw')">-3.7<span class="tooltiptext">GOOD raw -3.67%~~10.0% (-3.672460540203626; -3.672460540203626)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-1-3-raw')">-1.0<span class="tooltiptext">GOOD raw -1.03%~~10.0% (-1.0277634875204447; -1.0277634875204447)</span></div></td>
-        <td class="status_2"><div class="tooltip" onclick="elementValueToClipboard('env-test-1-4-raw')">-8.0<span class="tooltiptext">GOOD raw -8.02%~~10.0% (-8.023339057835141; -8.023339057835141)</span></div></td>
-        <td class="status_1"><div class="tooltip" onclick="elementValueToClipboard('env-test-1-5-raw')">7.6<span class="tooltiptext">GOOD raw 7.63%~~10.0% (7.629249498837623; 7.629249498837623)</span></div></td>
-    </tr>
-    
-    <tr class=" status_0 any_status_0 any_status_0 any_status_0 ">
-        <td class="status_*/fio/0000:./read-*/throughput/iops_sec.stddev"><div class="tooltip" onclick="elementValueToClipboard('env-test-2-1-raw')">*/fio/0000:./read-*/throughput/iops_sec.stddev<textarea style="position: absolute; left: -9999px;"  id="env-test-2-1-raw">NA</textarea>&#x1f527;<span class="tooltiptext">*/fio/0000:./read-*/throughput/iops_sec.stddev<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
-NA</pre></span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-2-2-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-2-3-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-2-4-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-2-5-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
-    </tr>
-    
-    <tr class=" status_1 any_status_0 any_status_2 any_status_1 ">
-        <td class="status_Localhost/*/*:./*-*/*/*.mean"><div class="tooltip" onclick="elementValueToClipboard('env-test-3-1-raw')">Localhost/*/*:./*-*/*/*.mean<textarea style="position: absolute; left: -9999px;"  id="env-test-3-1-raw">NA</textarea>&#x1f527;<span class="tooltiptext">Localhost/*/*:./*-*/*/*.mean<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
-NA</pre></span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-3-2-raw')">-3.7<span class="tooltiptext">GOOD raw -3.67%~~10.0% (-3.672460540203626; -3.672460540203626)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-3-3-raw')">-1.0<span class="tooltiptext">GOOD raw -1.03%~~10.0% (-1.0277634875204447; -1.0277634875204447)</span></div></td>
-        <td class="status_2"><div class="tooltip" onclick="elementValueToClipboard('env-test-3-4-raw')">-8.0<span class="tooltiptext">GOOD raw -8.02%~~10.0% (-8.023339057835141; -8.023339057835141)</span></div></td>
-        <td class="status_1"><div class="tooltip" onclick="elementValueToClipboard('env-test-3-5-raw')">7.6<span class="tooltiptext">GOOD raw 7.63%~~10.0% (7.629249498837623; 7.629249498837623)</span></div></td>
-    </tr>
-    
-    <tr class=" status_0 any_status_0 any_status_0 any_status_0 ">
-        <td class="status_Localhost/*/*:./*-*/*/*.stddev"><div class="tooltip" onclick="elementValueToClipboard('env-test-4-1-raw')">Localhost/*/*:./*-*/*/*.stddev<textarea style="position: absolute; left: -9999px;"  id="env-test-4-1-raw">NA</textarea>&#x1f527;<span class="tooltiptext">Localhost/*/*:./*-*/*/*.stddev<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
-NA</pre></span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-4-2-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-4-3-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-4-4-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-4-5-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
-    </tr>
-    
-    <tr class=" status_1 any_status_0 any_status_2 any_status_1 ">
-        <td class="status_Localhost/fio/0000:./read-*/throughput/iops_sec.mean"><div class="tooltip" onclick="elementValueToClipboard('env-test-5-1-raw')">Localhost/fio/0000:./read-*/throughput/iops_sec.mean<textarea style="position: absolute; left: -9999px;"  id="env-test-5-1-raw">NA</textarea>&#x1f527;<span class="tooltiptext">Localhost/fio/0000:./read-*/throughput/iops_sec.mean<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
-NA</pre></span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-5-2-raw')">-3.7<span class="tooltiptext">GOOD raw -3.67%~~10.0% (-3.672460540203626; -3.672460540203626)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-5-3-raw')">-1.0<span class="tooltiptext">GOOD raw -1.03%~~10.0% (-1.0277634875204447; -1.0277634875204447)</span></div></td>
-        <td class="status_2"><div class="tooltip" onclick="elementValueToClipboard('env-test-5-4-raw')">-8.0<span class="tooltiptext">GOOD raw -8.02%~~10.0% (-8.023339057835141; -8.023339057835141)</span></div></td>
-        <td class="status_1"><div class="tooltip" onclick="elementValueToClipboard('env-test-5-5-raw')">7.6<span class="tooltiptext">GOOD raw 7.63%~~10.0% (7.629249498837623; 7.629249498837623)</span></div></td>
-    </tr>
-    
-    <tr class=" status_0 any_status_0 any_status_0 any_status_0 ">
-        <td class="status_Localhost/fio/0000:./read-*/throughput/iops_sec.stddev"><div class="tooltip" onclick="elementValueToClipboard('env-test-6-1-raw')">Localhost/fio/0000:./read-*/throughput/iops_sec.stddev<textarea style="position: absolute; left: -9999px;"  id="env-test-6-1-raw">NA</textarea>&#x1f527;<span class="tooltiptext">Localhost/fio/0000:./read-*/throughput/iops_sec.stddev<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
-NA</pre></span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-6-2-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-6-3-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-6-4-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-6-5-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0.0; 0.0)</span></div></td>
-    </tr>
-    
     <tr class=" status_2 any_status_-1 any_status_-1 any_status_2 ">
-        <td class="status_Localhost/fio/0000:./read-4KiB/throughput/iops_sec.mean"><div class="tooltip" onclick="elementValueToClipboard('env-test-7-1-raw')">Localhost/fio/0000:./read-4KiB/throughput/iops_sec.mean<textarea style="position: absolute; left: -9999px;"  id="env-test-7-1-raw">{0: &#39;benchmark_name:fio\nbs:4k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:60\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">Localhost/fio/0000:./read-4KiB/throughput/iops_sec.mean<br><a href='#'>Click to copy raw src test params</a></span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-7-2-raw')">-1.3<span class="tooltiptext">GOOD model -1.26%~~5.0%, mraw -1.21%~~5.0%, raw -3.57%~~5.0% (179348.46101694903; 177181.152542373)</span></div></td>
-        <td class="status_-1"><div class="tooltip" onclick="elementValueToClipboard('env-test-7-3-raw')">-6.1<span class="tooltiptext">SMALL model -6.07%&lt;-5.0%, mraw -5.63%&lt;-5.0%, raw -7.89%&lt;-5.0% (179348.46101694903; 169245.372881356)</span></div></td>
-        <td class="status_-1"><div class="tooltip" onclick="elementValueToClipboard('env-test-7-4-raw')">-20.2<span class="tooltiptext">SMALL model -20.25%&lt;-5.0%, mraw -18.69%&lt;-5.0%, raw -20.64%&lt;-5.0% (179348.46101694903; 145825.271186441)</span></div></td>
-        <td class="status_2"><div class="tooltip" onclick="elementValueToClipboard('env-test-7-5-raw')">-4.9<textarea style="position: absolute; left: -9999px;"  id="env-test-7-5-raw">{0: &#39;benchmark_name:fio\nbs:4k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:61\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">GOOD model -4.88%~~5.0%, mraw -4.54%~~5.0% SMALL raw -6.83%&lt;-5.0% (179348.46101694903; 171197.389830508)<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
+        <td class="status_Localhost/fio/0000:./read-4KiB/throughput/iops_sec.mean"><div class="tooltip" onclick="elementValueToClipboard('env-test-1-1-raw')">Localhost/fio/0000:./read-4KiB/throughput/iops_sec.mean<textarea style="position: absolute; left: -9999px;"  id="env-test-1-1-raw">{0: &#39;benchmark_name:fio\nbs:4k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:60\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">Localhost/fio/0000:./read-4KiB/throughput/iops_sec.mean<br><a href='#'>Click to copy raw src test params</a></span></div></td>
+        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-1-2-raw')">-1.3<span class="tooltiptext">GOOD model -1.26%~~5.0%, mraw -1.21%~~5.0%, raw -3.57%~~5.0% (179348.46101694903; 177181.152542373)</span></div></td>
+        <td class="status_-1"><div class="tooltip" onclick="elementValueToClipboard('env-test-1-3-raw')">-6.1<span class="tooltiptext">SMALL model -6.07%&lt;-5.0%, mraw -5.63%&lt;-5.0%, raw -7.89%&lt;-5.0% (179348.46101694903; 169245.372881356)</span></div></td>
+        <td class="status_-1"><div class="tooltip" onclick="elementValueToClipboard('env-test-1-4-raw')">-20.2<span class="tooltiptext">SMALL model -20.25%&lt;-5.0%, mraw -18.69%&lt;-5.0%, raw -20.64%&lt;-5.0% (179348.46101694903; 145825.271186441)</span></div></td>
+        <td class="status_2"><div class="tooltip" onclick="elementValueToClipboard('env-test-1-5-raw')">-4.9<textarea style="position: absolute; left: -9999px;"  id="env-test-1-5-raw">{0: &#39;benchmark_name:fio\nbs:4k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:61\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">GOOD model -4.88%~~5.0%, mraw -4.54%~~5.0% SMALL raw -6.83%&lt;-5.0% (179348.46101694903; 171197.389830508)<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
 0
 =
 -runtime:60
@@ -11344,11 +11458,11 @@ NA</pre></span></div></td>
     </tr>
     
     <tr class=" status_0 any_status_0 any_status_0 any_status_0 ">
-        <td class="status_Localhost/fio/0000:./read-4KiB/throughput/iops_sec.stddev"><div class="tooltip" onclick="elementValueToClipboard('env-test-8-1-raw')">Localhost/fio/0000:./read-4KiB/throughput/iops_sec.stddev<textarea style="position: absolute; left: -9999px;"  id="env-test-8-1-raw">{0: &#39;benchmark_name:fio\nbs:4k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:60\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">Localhost/fio/0000:./read-4KiB/throughput/iops_sec.stddev<br><a href='#'>Click to copy raw src test params</a></span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-8-2-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-8-3-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-8-4-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-8-5-raw')">0.0<textarea style="position: absolute; left: -9999px;"  id="env-test-8-5-raw">{0: &#39;benchmark_name:fio\nbs:4k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:61\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
+        <td class="status_Localhost/fio/0000:./read-4KiB/throughput/iops_sec.stddev"><div class="tooltip" onclick="elementValueToClipboard('env-test-2-1-raw')">Localhost/fio/0000:./read-4KiB/throughput/iops_sec.stddev<textarea style="position: absolute; left: -9999px;"  id="env-test-2-1-raw">{0: &#39;benchmark_name:fio\nbs:4k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:60\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">Localhost/fio/0000:./read-4KiB/throughput/iops_sec.stddev<br><a href='#'>Click to copy raw src test params</a></span></div></td>
+        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-2-2-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)</span></div></td>
+        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-2-3-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)</span></div></td>
+        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-2-4-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)</span></div></td>
+        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-2-5-raw')">0.0<textarea style="position: absolute; left: -9999px;"  id="env-test-2-5-raw">{0: &#39;benchmark_name:fio\nbs:4k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:61\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
 0
 =
 -runtime:60
@@ -11356,11 +11470,11 @@ NA</pre></span></div></td>
     </tr>
     
     <tr class=" status_-3 any_status_1 any_status_1 any_status_-3 ">
-        <td class="status_Localhost/fio/0000:./read-64KiB/throughput/iops_sec.mean"><div class="tooltip" onclick="elementValueToClipboard('env-test-9-1-raw')">Localhost/fio/0000:./read-64KiB/throughput/iops_sec.mean<textarea style="position: absolute; left: -9999px;"  id="env-test-9-1-raw">{0: &#39;benchmark_name:fio\nbs:64k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:60\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">Localhost/fio/0000:./read-64KiB/throughput/iops_sec.mean<br><a href='#'>Click to copy raw src test params</a></span></div></td>
-        <td class="status_-1"><div class="tooltip" onclick="elementValueToClipboard('env-test-9-2-raw')">-6.8<span class="tooltiptext">SMALL model -6.75%&lt;-5.0%, mraw -6.14%&lt;-5.0%, raw -8.70%&lt;-5.0% (100482.88135593213; 94316.7627118644)</span></div></td>
-        <td class="status_1"><div class="tooltip" onclick="elementValueToClipboard('env-test-9-3-raw')">3.9<span class="tooltiptext">GOOD model 3.94%~~5.0%, mraw 3.58%~~5.0%, raw 0.75%~~5.0% (100482.88135593213; 104077.847457627)</span></div></td>
-        <td class="status_1"><div class="tooltip" onclick="elementValueToClipboard('env-test-9-4-raw')">2.9<span class="tooltiptext">GOOD model 2.91%~~5.0%, mraw 2.64%~~5.0%, raw -0.16%~~5.0% (100482.88135593213; 103140.627118644)</span></div></td>
-        <td class="status_-3"><div class="tooltip" onclick="elementValueToClipboard('env-test-9-5-raw')">21.8<textarea style="position: absolute; left: -9999px;"  id="env-test-9-5-raw">{0: &#39;benchmark_name:fio\nbs:64k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:61\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">BIG model 21.78%&gt;5.0%, mraw 19.80%&gt;5.0%, raw 16.53%&gt;5.0% (100482.88135593213; 120381.830508475)<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
+        <td class="status_Localhost/fio/0000:./read-64KiB/throughput/iops_sec.mean"><div class="tooltip" onclick="elementValueToClipboard('env-test-3-1-raw')">Localhost/fio/0000:./read-64KiB/throughput/iops_sec.mean<textarea style="position: absolute; left: -9999px;"  id="env-test-3-1-raw">{0: &#39;benchmark_name:fio\nbs:64k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:60\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">Localhost/fio/0000:./read-64KiB/throughput/iops_sec.mean<br><a href='#'>Click to copy raw src test params</a></span></div></td>
+        <td class="status_-1"><div class="tooltip" onclick="elementValueToClipboard('env-test-3-2-raw')">-6.8<span class="tooltiptext">SMALL model -6.75%&lt;-5.0%, mraw -6.14%&lt;-5.0%, raw -8.70%&lt;-5.0% (100482.88135593213; 94316.7627118644)</span></div></td>
+        <td class="status_1"><div class="tooltip" onclick="elementValueToClipboard('env-test-3-3-raw')">3.9<span class="tooltiptext">GOOD model 3.94%~~5.0%, mraw 3.58%~~5.0%, raw 0.75%~~5.0% (100482.88135593213; 104077.847457627)</span></div></td>
+        <td class="status_1"><div class="tooltip" onclick="elementValueToClipboard('env-test-3-4-raw')">2.9<span class="tooltiptext">GOOD model 2.91%~~5.0%, mraw 2.64%~~5.0%, raw -0.16%~~5.0% (100482.88135593213; 103140.627118644)</span></div></td>
+        <td class="status_-3"><div class="tooltip" onclick="elementValueToClipboard('env-test-3-5-raw')">21.8<textarea style="position: absolute; left: -9999px;"  id="env-test-3-5-raw">{0: &#39;benchmark_name:fio\nbs:64k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:61\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">BIG model 21.78%&gt;5.0%, mraw 19.80%&gt;5.0%, raw 16.53%&gt;5.0% (100482.88135593213; 120381.830508475)<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
 0
 =
 -runtime:60
@@ -11368,11 +11482,11 @@ NA</pre></span></div></td>
     </tr>
     
     <tr class=" status_0 any_status_0 any_status_0 any_status_0 ">
-        <td class="status_Localhost/fio/0000:./read-64KiB/throughput/iops_sec.stddev"><div class="tooltip" onclick="elementValueToClipboard('env-test-10-1-raw')">Localhost/fio/0000:./read-64KiB/throughput/iops_sec.stddev<textarea style="position: absolute; left: -9999px;"  id="env-test-10-1-raw">{0: &#39;benchmark_name:fio\nbs:64k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:60\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">Localhost/fio/0000:./read-64KiB/throughput/iops_sec.stddev<br><a href='#'>Click to copy raw src test params</a></span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-10-2-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-10-3-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-10-4-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)</span></div></td>
-        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-10-5-raw')">0.0<textarea style="position: absolute; left: -9999px;"  id="env-test-10-5-raw">{0: &#39;benchmark_name:fio\nbs:64k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:61\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
+        <td class="status_Localhost/fio/0000:./read-64KiB/throughput/iops_sec.stddev"><div class="tooltip" onclick="elementValueToClipboard('env-test-4-1-raw')">Localhost/fio/0000:./read-64KiB/throughput/iops_sec.stddev<textarea style="position: absolute; left: -9999px;"  id="env-test-4-1-raw">{0: &#39;benchmark_name:fio\nbs:64k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:60\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">Localhost/fio/0000:./read-64KiB/throughput/iops_sec.stddev<br><a href='#'>Click to copy raw src test params</a></span></div></td>
+        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-4-2-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)</span></div></td>
+        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-4-3-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)</span></div></td>
+        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-4-4-raw')">0.0<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)</span></div></td>
+        <td class="status_0"><div class="tooltip" onclick="elementValueToClipboard('env-test-4-5-raw')">0.0<textarea style="position: absolute; left: -9999px;"  id="env-test-4-5-raw">{0: &#39;benchmark_name:fio\nbs:64k\nclocksource:gettimeofday\ndirect:1\nfilename:/fio\niodepth:32\nioengine:libaio\nlog_avg_msec:1000\nlog_hist_msec:10000\nmax_stddevpct:5\nnumjobs:1\nprimary_metric:iops_sec\nramp_time:5\nruntime:61\nrw:read\nsize:1300000\nsync:0\ntime_based:1\nuid:benchmark_name:%benchmark_name%-controller_host:%controller_host%&#39;}</textarea>&#x1f527;<span class="tooltiptext">GOOD raw 0.00%~~10.0% (0; 0)<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
 0
 =
 -runtime:60

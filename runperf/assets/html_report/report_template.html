@@ -10326,7 +10326,7 @@ function tableOfFailuresFilter() {
 	}
 }
 
-function tableOfFailuresToggleByStatus(stat) {
+function tableOfFailuresToggleByStatus(stat, table) {
 	var button = document.getElementById('table_of_failures_' + stat)
 	if (table_of_failures_show_statuses.has(stat)) {
 		table_of_failures_show_statuses.delete(stat);
@@ -10362,11 +10362,83 @@ function tableOfFailuresToggleMultiple(action, statuses) {
 </script>
 
 <script language="javascript">
+var table_of_group_failures_show_statuses = new Set()
+var table_of_group_failures_hide_name_segments = new Set()
+
+function tableOfGroupFailuresFilter() {
+	var items = document.getElementById('table_of_group_failures').querySelectorAll('tr');
+	var i;
+	var show;
+	<!-- skip first item because that is the header !-->
+	for (i = 1; i < items.length; i++) {
+		display = "none";
+		var statuses = table_of_group_failures_show_statuses.values()
+		for (var status = ""; status = statuses.next().value;) {
+			if (items[i].className.includes(" " + status + " ")) {
+				display = "table-row";
+				break;
+			}
+		}
+		if (display != "none") {
+			var names = table_of_group_failures_hide_name_segments.values()
+			for (var name = ""; name = names.next().value;) {
+				if (items[i].querySelectorAll('td')[0].innerText.includes(name)) {
+					display = "none";
+					break;
+				}
+			}
+		}
+		items[i].style.display = display;
+	}
+}
+
+function tableOfGroupFailuresToggleByStatus(stat, table) {
+	var button = document.getElementById('table_of_group_failures_' + stat)
+	if (table_of_group_failures_show_statuses.has(stat)) {
+		table_of_group_failures_show_statuses.delete(stat);
+		button.innerHTML = button.innerHTML.toLowerCase();
+	} else {
+		table_of_group_failures_show_statuses.add(stat);
+		button.innerHTML = button.innerHTML.toUpperCase();
+	}
+	tableOfGroupFailuresFilter()
+}
+
+function tableOfGroupFailuresToggleByNameSegment(name) {
+	var button = document.getElementById('table_of_group_failures_button_' + name)
+	if (table_of_group_failures_hide_name_segments.has(name)) {
+		table_of_group_failures_hide_name_segments.delete(name);
+		button.innerHTML = button.innerHTML.toUpperCase();
+		button.className = "status_0"
+	} else {
+		table_of_group_failures_hide_name_segments.add(name);
+		button.innerHTML = button.innerHTML.toLowerCase();
+		button.className = "status_-1"
+	}
+	tableOfGroupFailuresFilter()
+}
+
+function tableOfGroupFailuresToggleMultiple(action, statuses) {
+	for (i = 0; i < statuses.length; i++) {
+		if (table_of_group_failures_show_statuses.has(statuses[i]) != action) {
+			tableOfGroupFailuresToggleByStatus(statuses[i]);
+		}
+	}
+}
+</script>
+
+<script language="javascript">
 function initialize() {
-	tableOfFailuresToggleMultiple(true, ['status_99', 'status_-1', 'status_-2',
+    /* table of failures */
+    tableOfFailuresToggleMultiple(true, ['status_99', 'status_-1', 'status_-2',
 		'status_-3', 'any_status_99', 'any_status_-1', 'any_status_-2',
 		'any_status_-3']);
 	tableOfFailuresToggleByNameSegment('stddev');
+	/* table of group failures */
+	tableOfGroupFailuresToggleMultiple(true, ['status_99', 'status_-1', 'status_-2',
+		'status_-3', 'any_status_99', 'any_status_-1', 'any_status_-2',
+		'any_status_-3']);
+	tableOfGroupFailuresToggleByNameSegment('stddev');
 }
 </script>
 
@@ -10492,6 +10564,50 @@ a {font-family: monospace;}
     <tr>
         <td>Build score</td>{% for build in builds %}
         <td style='{{ relative_score_color(build) }}'>{{build.score}}</td>{% endfor %}
+    </table>
+</div>
+
+<h1>Group stats</h1>
+<a id="div_table_of_group_failures-hide" href="javascript:toggle_short('table_of_group_failures');">[-]</a><br>
+
+<div id='div_table_of_group_failures' style="display: block">
+    <span>This build status: </span>
+    <a id='table_of_group_failures_status_0' href="javascript:tableOfGroupFailuresToggleByStatus('status_0')" class="status_0">equals</a>
+    <a id='table_of_group_failures_status_1' href="javascript:tableOfGroupFailuresToggleByStatus('status_1')" class="status_1">minor gains</a>
+    <a id='table_of_group_failures_status_2' href="javascript:tableOfGroupFailuresToggleByStatus('status_2')" class="status_2">minor losses</a>
+    <a id='table_of_group_failures_status_99' href="javascript:tableOfGroupFailuresToggleByStatus('status_99')" class="status_99">skips</a>
+    <a id='table_of_group_failures_status_-1' href="javascript:tableOfGroupFailuresToggleByStatus('status_-1')" class="status_-1">losses</a>
+    <a id='table_of_group_failures_status_-3' href="javascript:tableOfGroupFailuresToggleByStatus('status_-3')" class="status_-3">gains</a>
+    <a id='table_of_group_failures_status_-2' href="javascript:tableOfGroupFailuresToggleByStatus('status_-2')" class="status_-2">errors</a>
+    <a id='table_of_group_failures_status_0' href="javascript:tableOfGroupFailuresToggleMultiple(true, ['status_0', 'status_1', 'status_2'])" class="status_-2">+good</a>
+    <a id='table_of_group_failures_status_0' href="javascript:tableOfGroupFailuresToggleMultiple(false, ['status_0', 'status_1', 'status_2'])" class="status_-2">-good</a>
+    <a id='table_of_group_failures_status_-1' href="javascript:tableOfGroupFailuresToggleMultiple(true, ['status_99', 'status_-1', 'status_-2', 'status_-3'])" class="status_-2">+bad</a>
+    <a id='table_of_group_failures_status_-1' href="javascript:tableOfGroupFailuresToggleMultiple(false, ['status_99', 'status_-1', 'status_-2', 'status_-3'])" class="status_-2">-bad</a>
+    <br>
+    <span>Any build status: </span>
+    <a id='table_of_group_failures_any_status_0' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_0')" class="status_0">equals</a>
+    <a id='table_of_group_failures_any_status_1' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_1')" class="status_1">minor gains</a>
+    <a id='table_of_group_failures_any_status_2' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_2')" class="status_2">minor losses</a>
+    <a id='table_of_group_failures_any_status_99' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_99')" class="status_99">skips</a>
+    <a id='table_of_group_failures_any_status_-1' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_-1')" class="status_-1">losses</a>
+    <a id='table_of_group_failures_any_status_-3' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_-3')" class="status_-3">gains</a>
+    <a id='table_of_group_failures_any_status_-2' href="javascript:tableOfGroupFailuresToggleByStatus('any_status_-2')" class="status_-2">errors</a>
+    <a id='table_of_group_failures_status_0' href="javascript:tableOfGroupFailuresToggleMultiple(true, ['any_status_0', 'any_status_1', 'any_status_2'])" class="status_-2">+good</a>
+    <a id='table_of_group_failures_status_0' href="javascript:tableOfGroupFailuresToggleMultiple(false, ['any_status_0', 'any_status_1', 'any_status_2'])" class="status_-2">-good</a>
+    <a id='table_of_group_failures_status_-1' href="javascript:tableOfGroupFailuresToggleMultiple(true, ['any_status_99', 'any_status_-1', 'any_status_-2', 'any_status_-3'])" class="status_-2">+bad</a>
+    <a id='table_of_group_failures_status_-1' href="javascript:tableOfGroupFailuresToggleMultiple(false, ['any_status_99', 'any_status_-1', 'any_status_-2', 'any_status_-3'])" class="status_-2">-bad</a>
+    <br>{% for key, values in {"types": ["mean", "stddev"]}.items() %}
+    <span>{{key}}: </span>{% for value in values|sort %}
+    <a id='table_of_group_failures_button_{{value}}' href="javascript:tableOfGroupFailuresToggleByNameSegment('{{value}}')" class="status_0">{{value|upper}}</a>{% endfor %}<br>{% endfor %}
+    <table id='table_of_group_failures' border=1>
+    <tr>
+        <th>Test</th>{% for build in builds %}{% if loop.index != 1 %}
+        <th><a href="{{build.url}}">{{build.build}}</a></th>{% endif %}{% endfor %}
+    </tr>{% for builds_status in group_statuses %}{% set tests_loop = loop %}
+    {# FIXME: Bring unique back; probably using [] and append #}
+    <tr class=" status_{{builds_status[-1][0]}} {% for status, _, _ in builds_status %}{% if loop.index > 2 %}any_status_{{status}} {% endif %}{% endfor %}">{% for status, details, score in builds_status %}
+        <td class="status_{{status}}"><div class="tooltip">{{score}}<span class="tooltiptext">{{details}}</span></div></td>{% endfor %}
+    </tr>{% endfor %}
     </table>
 </div>
 

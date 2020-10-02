@@ -66,7 +66,7 @@ charts: ["Section name", {...}, {...}, "Section name", {...}, ...]   # dict of c
         invisible: False    # Make it invisible by default (optional)
 
 builds_statuses: [results_of_test1, results_of_test2, ...]  # List of results of all tests of all builds
-results_of_test1: [test_name, result_of_build1, result_of_build2, ... (-1, "foo", 0)]
+results_of_test1: [test_name, result_of_build1, result_of_build2, ...]
 result_of_build1: (-1, "foo", -3.1, ("short_version_of_params", "full_version_of_params"))    # where:
     # -1 is a build status, which should be in status_map and str_status_map
     # "foo" is the description of the failure/pass
@@ -76,6 +76,13 @@ result_of_build1: (-1, "foo", -3.1, ("short_version_of_params", "full_version_of
     # "full_version_of_params" will be stored in clipboard on click.
 
 filters: {category: [tag1, tag2, ...], "profiles": ["TunedLibvirt", "DefaultLibvirt"], ...}     # filters based on test name, always have to be unique and are used mainly in table_of_failures
+
+group_statuses: [group_results_1, group_results_2, ...]  # List of group results of all builds
+group_results_1: [test_name, result_of_build1, result_of_build2, ...]
+result_of_build1: (-1, "GOOD raw\n...", -3.1)	# where
+    # -1 is a build status, which should be in status_map and str_status_map
+    # "GOOD raw\n..." is the description of the failure/pass
+    # -3.1 is the build score (%.1f)
 
 profiles: [profile1, profile2, ...]  # List of profiles used to run tests on
 with_charts: False  # Whether to include graphs (they are nice but consume a lot of space)
@@ -87,6 +94,8 @@ with_charts: False  # Whether to include graphs (they are nice but consume a lot
 * chart section names must be unique
 * table_of_failures* are reserved for table_of_failures handling
 * table_of_failures_button* are reserved for name-filtering button ids
+* table_of_group_failures* are reserved for table_of_group_failures handling
+* table_of_group_failures_button* are reserved for group failures name-filtering button ids
 * status_* classes are intended for reported test statuses
 * any_status_* classes also maps to status_* but indicates any of the items are of those status
 * env_*-raw are reserved for the basic overview table's environment divs
