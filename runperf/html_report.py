@@ -564,6 +564,7 @@ def generate_report(path, results, with_charts=False):
         """Transform results into build statuses"""
         src_params = values["src"]["test_params_anonymized"]
         statuses = {}
+        grp_statuses = {}
         per_build_test_params_stat = []
 
         # First update the src build
@@ -591,15 +592,16 @@ def generate_report(path, results, with_charts=False):
             for record in res.grouped_records:
                 if not record.primary:
                     continue
-                if record.name not in statuses:
-                    statuses[record.name] = {}
-                statuses[record.name][i] = (record.status, record.details,
-                                            "%.1f" % record.score, ("", ""))
+                if record.name not in grp_statuses:
+                    grp_statuses[record.name] = {}
+                grp_statuses[record.name][i] = (record.status, record.details,
+                                                "%.1f" % record.score)
             per_build_test_params_stat.append(
                 [known_test_params_diffs.get_short(this_result_diff),
                  "\n".join(key for key, value in this_result_diff.items()
                            if value)])
         builds_statuses = []
+        group_statuses = []
         src_params_raw = values["src"]["test_params"]
         src_result_diff_raw = {test: (params, "")
                                for test, params in src_params_raw.items()}
@@ -610,13 +612,18 @@ def generate_report(path, results, with_charts=False):
                 [statuses[name].get(i, (result.ERROR, "Unknown", "NA",
                                         ("NA", "NA")))
                  for i in range(len(results))])
+        for name in sorted(grp_statuses.keys()):
+            group_statuses.append(
+                [(name, name, name)] +
+                [grp_statuses[name].get(i, (result.ERROR, "Unknown", "NA"))
+                 for i in range(len(results))])
 
         for build, env_test in zip(values["builds"][1:],
                                    per_build_test_params_stat):
             build["environment"]["tests"] = env_test[1]
             build["environment_diff"]["tests"] = env_test[1]
             build["environment_short"]["tests"] = env_test[0]
-        return builds_statuses
+        return builds_statuses, group_statuses
 
     def get_filters(results):
         """Get all filters based on results"""
@@ -647,8 +654,8 @@ def generate_report(path, results, with_charts=False):
     values["profiles"] = ["World"] + profiles
     if with_charts:
         values["charts"] = generate_charts(results)
-    values["builds_statuses"] = generate_builds_statuses(
-        results, values)
+    statuses = generate_builds_statuses(results, values)
+    values["builds_statuses"], values["group_statuses"] = statuses
     values["filters"] = get_filters(results)
     values["with_charts"] = with_charts
     loader = jinja2.PackageLoader("runperf", "assets/html_report")
