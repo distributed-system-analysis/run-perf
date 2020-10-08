@@ -19,6 +19,7 @@ import time
 from pkg_resources import iter_entry_points as pkg_entry_points
 
 from . import utils
+import json
 
 
 LOG = logging.getLogger(__name__)
@@ -35,7 +36,7 @@ class BaseProfile:
     # : Name of the profile (has to be string as it's stored in filesystem
     name = ""
 
-    def __init__(self, host, rp_paths):
+    def __init__(self, host, rp_paths, extra):
         """
         :param host: Host machine to apply profile on
         :param rp_paths: list of runperf paths
@@ -45,6 +46,7 @@ class BaseProfile:
         self.log = host.log
         self.session = host.get_session()
         self.rp_paths = rp_paths
+        self.extra = extra
         # List of available workers
         self.workers = []
 
@@ -201,7 +203,7 @@ class PersistentProfile(BaseProfile):
     # "tuned-adm profile $profile" to be enforced
     _tuned_adm_profile = None
 
-    def __init__(self, host, rp_paths, skip_init_call=False):
+    def __init__(self, host, rp_paths, extra, skip_init_call=False):
         """
         :param host: Host machine to apply profile on
         :param rp_paths: list of runperf paths
@@ -209,7 +211,7 @@ class PersistentProfile(BaseProfile):
             inheritance)
         """
         if not skip_init_call:
-            BaseProfile.__init__(self, host, rp_paths)
+            BaseProfile.__init__(self, host, rp_paths, extra)
         if self._grub_args is None:
             self._grub_args = set()
         self.performed_setup_path = self._persistent_storage_path(
@@ -348,14 +350,13 @@ class DefaultLibvirt(BaseProfile):
     default_password = "redhat"
     no_vms = 1
 
-    def __init__(self, host, rp_paths, extra_params=None):
-        super().__init__(host, rp_paths)
+    def __init__(self, host, rp_paths, extra):
+        super().__init__(host, rp_paths, extra)
         self.host = host
         self.distro = self.host.guest_distro
         self.vms = []
         self.image = None
         self.shared_pub_key = self.host.shared_pub_key
-        self.extra_params = extra_params
 
     def _apply(self, setup_script):
         if self.vms:
@@ -431,7 +432,7 @@ class DefaultLibvirt(BaseProfile):
                                       self.host.params['guest_cpus'],
                                       guest_mem_m,
                                       [self.default_password],
-                                      self.extra_params)
+                                      self.extra)
             self.vms.append(vm)
             vm.start()
 
@@ -460,8 +461,8 @@ class Overcommit1p5(DefaultLibvirt):
 
     name = "Overcommit1_5"
 
-    def __init__(self, host, rp_paths, extra_params=None):
-        super().__init__(host, rp_paths, extra_params)
+    def __init__(self, host, rp_paths, extra):
+        super().__init__(host, rp_paths, extra)
         self.no_vms = int(self.host.params['host_cpus'] /
                           self.host.params['guest_cpus'] * 1.5)
 
@@ -480,12 +481,13 @@ class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls
 
     name = "TunedLibvirt"
 
-    def __init__(self, host, rp_paths):
-        extra_params = {"image_format": "raw",
-                        "xml": self._get_xml(host, rp_paths)}
-        DefaultLibvirt.__init__(self, host, rp_paths,
-                                extra_params=extra_params)
-        PersistentProfile.__init__(self, host, rp_paths, skip_init_call=True)
+    def __init__(self, host, rp_paths, extra):
+        extra.setdefault("image_format", "raw")
+        if "xml" not in extra:
+            extra["xml"] = self._get_xml(host, rp_paths)
+        DefaultLibvirt.__init__(self, host, rp_paths, extra)
+        PersistentProfile.__init__(self, host, rp_paths, extra,
+                                   skip_init_call=True)
         total_hp = int(self.host.params["guest_mem_m"] * 1024 /
                        self.host.params["hugepage_kb"])
         self.mem_per_node = int(total_hp / self.host.params["numa_nodes"])
@@ -537,4 +539,11 @@ def get(profile, host, paths):
     :param tmpdir: Temporary directory for resources
     :return: Initialized and started guests instance (`BaseGuests`)
     """
-    return utils.named_entry_point('runperf.profiles', profile)(host, paths)
+    _profile = profile.split(':', 1)
+    if len(_profile) == 2:
+        profile = _profile[0]
+        extra = json.loads(_profile[1])
+    else:
+        extra = {}
+    plugin = utils.named_entry_point('runperf.profiles', profile)
+    return plugin(host, paths, extra)
