@@ -738,19 +738,17 @@ class LibvirtGuest(BaseMachine):
                         "'%s.xml'\n%s\nEOF"
                         % (image, self.name, uuid.uuid1(), image, xml))
             self.xml = True
-
-        # Finally start the machine
-        session = self.get_host_session()
-        if self.xml:
-            session.cmd("chown -R qemu:qemu /dev/hugepages/")
-            session.cmd("virsh create '%s.xml'" % self.image)
         else:
             session.cmd("virt-install --import --disk '%s' --memory '%s' "
                         "--name '%s' --os-variant '%s' --vcpus '%s' "
-                        "--noautoconsole"
+                        "--dry-run --print-xml > '%s.xml'"
                         % (self.image, self.mem, self.name,
                            self._get_os_variant(session),
-                           self.smp))
+                           self.smp, image))
+
+        # Finally start the machine
+        session.cmd("chown -R qemu:qemu /dev/hugepages/")
+        session.cmd("virsh create '%s.xml'" % self.image)
 
     def is_running(self):
         """Whether VM is running"""
@@ -808,7 +806,8 @@ class LibvirtGuest(BaseMachine):
                     session.cmd_status("virsh undefine '%s'" % self.name)):
                 errs.append("undefine")
             if self.image:
-                session.cmd_status("rm -f '%s'" % self.image)
+                session.cmd_status("rm -f '%s' '%s.xml'"
+                                   % (self.image, self.image))
             self._started = False
             if errs:
                 raise RuntimeError("Cleanup of %s failed" % errs)
