@@ -157,7 +157,7 @@ class BaseProfile:
         if self.workers:
             raise RuntimeError("Workers not cleaned by profile %s" % profile)
         for path in self._get("cleanup/paths_to_be_removed", "").splitlines():
-            self.session.cmd("rm -rf '%s'" % path)
+            self.session.cmd("rm -rf '%s'" % path, print_func="mute")
         session = self.session
         self.session = None
         session.close()
@@ -357,6 +357,7 @@ class DefaultLibvirt(BaseProfile):
         self.vms = []
         self.image = None
         self.shared_pub_key = self.host.shared_pub_key
+        self._custom_qemu = self.extra.get("qemu_bin", "")
 
     def _apply(self, setup_script):
         if self.vms:
@@ -371,7 +372,11 @@ class DefaultLibvirt(BaseProfile):
     def _prerequisities(self, session):
         if (session.cmd_status("systemctl is-active libvirtd") or
                 session.cmd_status("which virt-install")):
-            session.cmd("yum install -y %s" % self.deps)
+            if self._custom_qemu:
+                deps = self.deps + " git"
+            else:
+                deps = self.deps
+            session.cmd("yum install -y %s" % deps)
             session.cmd("systemctl start libvirtd")
 
     def _image_up_to_date(self, session, pubkey, image, setup_script,
@@ -443,7 +448,25 @@ class DefaultLibvirt(BaseProfile):
         for i, vm in enumerate(self.vms):
             for key, value in vm.get_info().items():
                 out["guest%s_%s" % (i, key)] = value
+        if self._custom_qemu:
+            out["custom_qemu_details"] = self._get_qemu_info()
         return out
+
+    def _get_qemu_info(self):
+        session = self.session
+        out = []
+        stat, version = session.cmd_status_output("%s -version"
+                                                  % self._custom_qemu)
+        if stat:
+            out.append("Failed to get %s -version" % self._custom_qemu)
+        else:
+            out.append("version: %s" % version)
+        stat, config = session.cmd_status_output(
+            "cat %s/../share/qemu/config.status"
+            % os.path.dirname(self._custom_qemu))
+        if not stat:
+            out.append("configuration:\n%s" % config)
+        return "\n".join(out)
 
     def _revert(self):
         for vm in getattr(self, "vms", []):

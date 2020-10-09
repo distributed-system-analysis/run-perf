@@ -745,6 +745,10 @@ class LibvirtGuest(BaseMachine):
                         % (self.image, self.mem, self.name,
                            self._get_os_variant(session),
                            self.smp, image))
+        if "qemu_bin" in self.extra_params:
+            session.cmd("echo -e 'cd /domain/devices/emulator\nset %s\nsave' "
+                        "| xmllint --shell '%s.xml'"
+                        % (self.extra_params['qemu_bin'], image))
 
         # Finally start the machine
         session.cmd("chown -R qemu:qemu /dev/hugepages/")
