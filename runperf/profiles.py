@@ -19,7 +19,6 @@ import time
 from pkg_resources import iter_entry_points as pkg_entry_points
 
 from . import utils
-import json
 
 
 LOG = logging.getLogger(__name__)
@@ -553,7 +552,7 @@ class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls
         return info
 
 
-def get(profile, host, paths):
+def get(profile, extra, host, paths):
     """
     Get initialized/started guests object matching the definition
 
@@ -562,11 +561,5 @@ def get(profile, host, paths):
     :param tmpdir: Temporary directory for resources
     :return: Initialized and started guests instance (`BaseGuests`)
     """
-    _profile = profile.split(':', 1)
-    if len(_profile) == 2:
-        profile = _profile[0]
-        extra = json.loads(_profile[1])
-    else:
-        extra = {}
     plugin = utils.named_entry_point('runperf.profiles', profile)
     return plugin(host, paths, extra)

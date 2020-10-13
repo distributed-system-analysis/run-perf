@@ -78,6 +78,14 @@ class DictAction(Action):
             setattr(namespace, self.dest, dictionary)
 
 
+def item_with_params(item):
+    """Deserialize item with optional params argument"""
+    _item = item.split(':', 1)
+    if len(_item) == 2:
+        return _item[0], json.loads(_item[1])
+    return item, {}
+
+
 def _parse_args():
     """
     Define parser and return parsed args
@@ -88,10 +96,10 @@ def _parse_args():
     parser.add_argument("tests", help="Set of tests to be executed; one can "
                         "optionally specify extra params using json format "
                         "separated by `:` (eg. 'fio:{\"type\":\"read\"}'",
-                        nargs='+')
+                        nargs='+', type=item_with_params)
     parser.add_argument("--profiles", help="Which profiles to use to execute "
                         "the tests (some might require reboot)", nargs='+',
-                        default=['default'])
+                        default=[('default', {})], type=item_with_params)
     parser.add_argument("--distro", help="Set the host distro name, eg. "
                         "RHEL-8.0-20180904.n.0", default="Unknown")
     parser.add_argument("--guest-distro", help="Guest distro (default is the "
@@ -102,7 +110,7 @@ def _parse_args():
                         default=[("localhost", "127.0.0.1")], nargs='+',
                         type=parse_host)
     parser.add_argument("--provisioner", help="Use plugin to provision the "
-                        "hosts")
+                        "hosts", type=item_with_params)
     parser.add_argument("--host-rpm", help="Url/path(s) to rpm packages to be "
                         "installed on host", nargs="+")
     parser.add_argument("--guest-rpm", help="Url/path(s) to rpm packages to be"
@@ -231,14 +239,14 @@ def main():
     try:
         # Initialize all hosts
         hosts = Controller(args, log)
-        test_defs = list(tests.get(test) for test in args.tests)
+        test_defs = list(tests.get(test, extra) for test, extra in args.tests)
         # provision, fetch assets, ...
         hosts.setup()
-        for profile in args.profiles:
+        for profile, profile_args in args.profiles:
             # Applies profile and set `hosts.workers` to contain list of IP
             # addrs to be used in tests. In case manual reboot is required
             # return non-zero.
-            workers = hosts.apply_profile(profile)
+            workers = hosts.apply_profile(profile, profile_args)
 
             # Run all tests under current profile
             for test, extra in test_defs:
