@@ -203,7 +203,7 @@ def create_metadata(output_dir, args):
             elif this in ("--host-setup-script", "--worker-setup-script"):
                 with open(cmd[i + 1], 'rb') as script:
                     cmd[i + 1] = "sha1:"
-                    cmd[i + 1] += hashlib.sha1(script.read()).hexdigest()[:6]
+                    cmd[i + 1] += hashlib.sha1(script.read()).hexdigest()[:6]  # nosec
         output.write("runperf_cmd:%s\n" % " ".join(cmd))
         output.write("machine:%s" % ",".join(_[1] for _ in args.hosts))
         if "machine_url_base" in args.metadata:
