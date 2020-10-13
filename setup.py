@@ -36,12 +36,17 @@ def _get_git_version():
         version = subprocess.check_output(  # nosec
             [git, "describe", "--tags",
              "HEAD"]).strip().decode("utf-8")
+        if version.count("-") == 2:
+            split = version.split('-')
+            version = "%s.%s+%s" % tuple(split)
+        else:
+            version = version.replace("-", ".")
         try:
             subprocess.check_output([git, "diff", "--quiet"])  # nosec
         except subprocess.CalledProcessError:
-            version += "-dirty"
+            version += "+dirty"
     except (OSError, subprocess.SubprocessError, NameError):
-        return None
+        return '0.0'
     finally:
         os.chdir(curdir)
     return version
