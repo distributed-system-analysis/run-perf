@@ -65,7 +65,7 @@ class ProfileUnitTests(Selftest):
             host = Host(mock.Mock(), "selftest", "addr", "__test_distro__",
                         args)
             host.get_session = lambda *args, **kwargs: ShellSession("sh")
-            profile = Localhost(host, self.tmpdir)
+            profile = Localhost(host, self.tmpdir, {})
             # basic handling
             self.assertEqual(-1, profile._get("foo"))
             obj = object()
@@ -105,7 +105,7 @@ class ProfileUnitTests(Selftest):
             # double revert
             profile.revert()
             # delete active profile
-            profile = Localhost(host, self.tmpdir)
+            profile = Localhost(host, self.tmpdir, {})
             session = profile.session
             del profile
             self.assertTrue(session.closed)
@@ -120,7 +120,7 @@ class ProfileUnitTests(Selftest):
             host = Host(mock.Mock(), "selftest", "addr", "__test_distro__",
                         args)
             host.get_session = lambda *args, **kwargs: ShellSession("sh")
-            profile = DefaultLibvirt(host, self.tmpdir)
+            profile = DefaultLibvirt(host, self.tmpdir, {})
             pubkey = os.path.join(self.tmpdir, "pubkey")
             image = os.path.join(self.tmpdir, "image")
             setup_script = "foo"
@@ -182,7 +182,7 @@ class RunPerfTest(Selftest):
         host.get_session = lambda *args, **kwargs: session
         host.copy_from = shutil.copy
         with mock.patch("runperf.profiles.CONFIG_DIR", runperf_dir):
-            profile = TunedLibvirt(host, [asset_path])
+            profile = TunedLibvirt(host, [asset_path], {})
             profile.selftest_root = runperf_dir
             # Persistent apply, should ask for reboot
             session.cmd.return_value = "some:value"

@@ -68,7 +68,7 @@ class ControllerTests(Selftest):
         with mock.patch("runperf.machine.profiles", mod_profiles):
             with mock.patch("runperf.machine.time"):
                 controller = DummyController(self.tmpdir)
-                workers = controller.apply_profile("dummy")
+                workers = controller.apply_profile("dummy", {})
                 self.assertEqual(len(profile.mock_calls), 3,
                                  profile.mock_calls)
                 self.assertEqual(workers, [['worker1', 'worker2']])

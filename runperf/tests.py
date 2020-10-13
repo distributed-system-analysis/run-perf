@@ -411,17 +411,11 @@ class PBenchNBD(PBenchFio):
             session.cmd("rm -Rf %s" % self.base_path)
         PBenchFio.cleanup(self)
 
-def get(name):
+def get(name, extra):
     """
     Get list of test classes based on test name
 
     :param test_name: Test name optionally followed by ':' and extra params
     :return: instance that allow performing the test and extra params
     """
-    _name = name.split(':', 1)
-    if len(_name) == 2:
-        name = _name[0]
-        extra = json.loads(_name[1])
-    else:
-        extra = {}
     return (utils.named_entry_point('runperf.tests', name), extra)

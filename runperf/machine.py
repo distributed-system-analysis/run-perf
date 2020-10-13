@@ -337,16 +337,9 @@ class Controller:
         self.log.info("SETUP hosts %s", ",".join(str(_) for _ in self.hosts))
         if self._provisioner:
             self.log.info("PROVISION %s", self.hosts)
-            _name = self._provisioner.split(':', 1)
-            if len(_name) == 2:
-                name = _name[0]
-                extra = json.loads(_name[1])
-            else:
-                name = _name[0]
-                extra = {}
             plugin = utils.named_entry_point('runperf.provisioners',
-                                             name)
-            provisioner = plugin(self, extra)
+                                             self._provisioner[0])
+            provisioner = plugin(self, self._provisioner[1])
             self.for_each_host(self.hosts, 'provision', (provisioner,))
 
         # Run per-host setup
@@ -373,9 +366,9 @@ class Controller:
             out.write("\n%s:" % key)
             out.write(value)
 
-    def apply_profile(self, profile):
+    def apply_profile(self, profile, extra):
         """Apply profile on each host, report list of lists of workers"""
-        self.log.info("APPLY profile %s", profile)
+        self.log.info("APPLY profile %s %s", profile, extra)
         # Allow 5 attempts, one to revert previous profile, one to apply
         # and 3 extra in case one boot fails to get resources (eg. hugepages)
         if self._worker_setup_script:
@@ -384,7 +377,7 @@ class Controller:
         else:
             setup_script = None
         self.for_each_host_retry(5, self.hosts, 'apply_profile',
-                                 (profile, setup_script, self.paths))
+                                 (profile, extra, setup_script, self.paths))
         self.profile = self.main_host.profile.name
         return [host.workers for host in self.hosts]
 
@@ -569,7 +562,7 @@ class Host(BaseMachine):
         provisioner.provision(self)
         self.log.debug("  Provisioning DONE")
 
-    def apply_profile(self, profile, setup_script, rp_paths):
+    def apply_profile(self, profile, extra, setup_script, rp_paths):
         """
         Apply profile and set new workers
 
@@ -578,7 +571,7 @@ class Host(BaseMachine):
         :param paths: paths to runperf assets
         """
         self.log.debug("  Applying profile %s", profile)
-        self.profile = profiles.get(profile, self, rp_paths)
+        self.profile = profiles.get(profile, extra, self, rp_paths)
         ret = self.profile.apply(setup_script)
         if ret is True:
             self.reboot_request = True
@@ -738,19 +731,21 @@ class LibvirtGuest(BaseMachine):
                         "'%s.xml'\n%s\nEOF"
                         % (image, self.name, uuid.uuid1(), image, xml))
             self.xml = True
-
-        # Finally start the machine
-        session = self.get_host_session()
-        if self.xml:
-            session.cmd("chown -R qemu:qemu /dev/hugepages/")
-            session.cmd("virsh create '%s.xml'" % self.image)
         else:
             session.cmd("virt-install --import --disk '%s' --memory '%s' "
                         "--name '%s' --os-variant '%s' --vcpus '%s' "
-                        "--noautoconsole"
+                        "--dry-run --print-xml > '%s.xml'"
                         % (self.image, self.mem, self.name,
                            self._get_os_variant(session),
-                           self.smp))
+                           self.smp, image))
+        if "qemu_bin" in self.extra_params:
+            session.cmd("echo -e 'cd /domain/devices/emulator\nset %s\nsave' "
+                        "| xmllint --shell '%s.xml'"
+                        % (self.extra_params['qemu_bin'], image))
+
+        # Finally start the machine
+        session.cmd("chown -R qemu:qemu /dev/hugepages/")
+        session.cmd("virsh create '%s.xml'" % self.image)
 
     def is_running(self):
         """Whether VM is running"""
@@ -808,7 +803,8 @@ class LibvirtGuest(BaseMachine):
                     session.cmd_status("virsh undefine '%s'" % self.name)):
                 errs.append("undefine")
             if self.image:
-                session.cmd_status("rm -f '%s'" % self.image)
+                session.cmd_status("rm -f '%s' '%s.xml'"
+                                   % (self.image, self.image))
             self._started = False
             if errs:
                 raise RuntimeError("Cleanup of %s failed" % errs)
