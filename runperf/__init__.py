@@ -107,8 +107,6 @@ def _parse_args():
                         "installed on host", nargs="+")
     parser.add_argument("--guest-rpm", help="Url/path(s) to rpm packages to be"
                         " installed on guest(s)", nargs="+")
-    parser.add_argument("--qemu-bin", help="Path to qemu binary to be used "
-                        "to start the guests.")
     parser.add_argument("--keep-tmp-files", action="store_true", help="Keep "
                         "the temporary files (local/remote)")
     parser.add_argument("--output", help="Force output directory (%(default)s",
