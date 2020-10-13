@@ -27,6 +27,14 @@ author = 'Lukáš Doktor'
 
 # The full version, including alpha/beta/rc tags
 release = _get_git_version()
+if release == '0.0̈́':
+    # Probably in shallow-cloned git, fetch the latest tag
+    try:
+        subprocess.call([shutil.which("git"), "fetch", "--depth=1",  # nosec
+                         "origin", "+refs/tags/*:refs/tags/*"])
+        release = _get_git_version()
+    except subprocess.SubprocessError:
+        pass
 
 # -- API docs ----------------------------------------------------------------
 API_SOURCE_DIR = os.path.join(ROOT_PATH, 'runperf')
@@ -44,7 +52,7 @@ API_SECTIONS = {"Runperf API": (None,
                                 tuple(),
                                 ('modules.rst',)), }
 
-subprocess.call([shutil.which("find"), BASE_API_OUTPUT_DIR, "-name",
+subprocess.call([shutil.which("find"), BASE_API_OUTPUT_DIR, "-name",  # nosec
                  "*.rst", "-delete"],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -58,7 +66,7 @@ for (section, params) in API_SECTIONS.items():
 
     # generate all rst files
     cmd = shlex.split(APIDOC_TEMPLATE % locals())
-    subprocess.call([shutil.which(cmd[0])] + cmd[1:],
+    subprocess.call([shutil.which(cmd[0])] + cmd[1:],  # nosec
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     # remove unnecessary ones
     for f in files_to_remove:
