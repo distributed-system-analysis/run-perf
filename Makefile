@@ -20,7 +20,6 @@ check: clean develop
 	@echo "RUNNING SELFTESTS:";
 	$(PYTHON) ./selftests/run
 	@echo RUNNING DOCUMENTATION CHECK:
-	$(PYTHON) setup.py --version
 	make -C docs html SPHINXOPTS="-W --keep-going -n"
 
 coverage: clean develop

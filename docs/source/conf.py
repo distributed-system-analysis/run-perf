@@ -27,11 +27,11 @@ author = 'Lukáš Doktor'
 
 # The full version, including alpha/beta/rc tags
 release = _get_git_version()
-if release == '0.0̈́':
+if release == '0.0':
     # Probably in shallow-cloned git, fetch the latest tag
     try:
-        subprocess.call([shutil.which("git"), "fetch", "--depth=1",  # nosec
-                         "origin", "+refs/tags/*:refs/tags/*"])
+        subprocess.call([shutil.which("git"), "fetch",  # nosec
+                         "--depth=500"])
         release = _get_git_version()
     except subprocess.SubprocessError:
         pass
