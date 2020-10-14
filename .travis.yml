@@ -13,7 +13,7 @@ jobs:
       env:
         - CC_TEST_REPORTER_ID=009b4c0bfafb850daeb66460df98eded574477a064df0b4a75f65752b18b1d01
       script:
-        - git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+        - git fetch --depth=500
         - pip install coverage
         - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
         - chmod +x ./cc-test-reporter
@@ -22,7 +22,5 @@ jobs:
         - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
     - name: "Selftests"
       script:
-        - python3 setup.py --version
-        - git fetch --depth=1 origin +refs/tags/*:refs/tags/*
-        - python3 setup.py --version
+        - git fetch --depth=500
         - make check
