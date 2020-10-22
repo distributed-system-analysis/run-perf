@@ -148,7 +148,7 @@ def generate_report(path, results, with_charts=False):
             """process the collected environment and produce diff/short"""
             build_env = {}
             build_diff = {}
-            for key, values in env.items():
+            for key, values in sorted(env.items()):
                 if not values:
                     continue
                 build_env[key] = []
