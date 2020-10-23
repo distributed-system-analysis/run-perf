@@ -74,9 +74,17 @@ def get_distro_info(machine):
     out = {"general": "Name:%s\nDistro:%s" % (machine.name,
                                               machine.distro)}
     with machine.get_session_cont() as session:
-        out["kernel"] = session.cmd("uname -r; uname -v; uname -m; uname -o;" +
-                                    " cat /proc/cmdline", print_func='mute',
-                                    ignore_all_errors=True)
+        # Get basic kernel info
+        kernel = session.cmd("uname -r; uname -v; uname -m; uname -o",
+                             print_func='mute', ignore_all_errors=True)
+        kernel_ver = kernel.split('\n', 1)[0].strip()
+        # Do not include kernel_version in the cmdline
+        kernel_cmd = session.cmd("cat /proc/cmdline", print_func='mute',
+                                 ignore_all_errors=True)
+        out["kernel_raw"] = kernel + '\n' + kernel_cmd
+        kernel_cmd = kernel_cmd.replace(kernel_ver, "FILTERED")
+        # Sort the kernel_cmdline parts as the order does not matter
+        out["kernel"] = kernel + '\n' + " ".join(sorted(kernel_cmd.split(' ')))
         out["mitigations"] = session.cmd("grep --color=never . "
                                          "/sys/devices/system/cpu/"
                                          "vulnerabilities/*",
