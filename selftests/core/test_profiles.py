@@ -80,8 +80,8 @@ class ProfileUnitTests(Selftest):
             info = list(profile.get_info().keys())
             if "rpm" in info:  # rpm is only there when rpm command available
                 info.remove("rpm")
-            self.assertEqual(["general", "kernel", "mitigations", "params"],
-                             info)
+            self.assertEqual(["general", "kernel_raw", "kernel",
+                              "mitigations", "params"], info)
             # revert not applied profile
             profile.revert()
             # revert different profile
@@ -213,9 +213,11 @@ class RunPerfTest(Selftest):
             if "rpm" in info:  # rpm is only there when rpm command available
                 info.remove("rpm")
                 info.remove("guest0_rpm")
-            self.assertEqual(['general', 'kernel', 'mitigations', 'params',
-                              'persistent', 'guest0_general', 'guest0_kernel',
-                              'guest0_mitigations', 'guest0_params'], info)
+            self.assertEqual(['general', 'kernel_raw', 'kernel',
+                              'mitigations', 'params', 'persistent',
+                              'guest0_general', 'guest0_kernel_raw',
+                              'guest0_kernel', 'guest0_mitigations',
+                              'guest0_params'], info)
             # Revert the profile
             session.cmd_status.return_value = 0
             session.cmd_output.return_value = "TunedLibvirt"

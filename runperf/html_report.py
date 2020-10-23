@@ -130,22 +130,25 @@ def generate_report(path, results, with_charts=False):
                     missing_src.append(key)
                     continue
                 if inner_diff:
-                    diff.append("\n%s\n%s\n%s"
+                    diff.append("%s\n%s\n%s"
                                 % (key, "=" * len(key),
                                    inner_diff))
+                else:
+                    diff.append("")
 
             missing_dst = set(src.keys()).difference(environment.keys())
             if any((missing_src, missing_dst)):
-                diff.append("\nList of missing keys\n=====================")
-                diff.extend("+%s MISSING IN SRC" % _ for _ in missing_src)
-                diff.extend("-%s MISSING IN DST" % _ for _ in missing_dst)
-            return raw_value, "\n".join(diff)
+                missing = ["List of missing keys\n====================="]
+                missing.extend("+%s MISSING IN SRC" % _ for _ in missing_src)
+                missing.extend("-%s MISSING IN DST" % _ for _ in missing_dst)
+                diff.append("\n".join(missing))
+            return raw_value, diff
 
         def process_diff_environemnt(env, src_env):
             """process the collected environment and produce diff/short"""
             build_env = {}
             build_diff = {}
-            for key, values in env.items():
+            for key, values in sorted(env.items()):
                 if not values:
                     continue
                 build_env[key] = []
@@ -157,7 +160,7 @@ def generate_report(path, results, with_charts=False):
                         this_env, this_diff = generate_build_diff(value, src)
                     else:
                         this_env = value
-                        this_diff = "+%s PROFILE MISSING IN SRC" % key
+                        this_diff = ["+%s PROFILE MISSING IN SRC" % key]
                     build_env[key].append(this_env)
                     build_diff[key].append(this_diff)
             for key, value in src_env.items():
@@ -214,16 +217,17 @@ def generate_report(path, results, with_charts=False):
                 build["environment"] = {key: values
                                         for key, values in env.items()
                                         if values}
-                build["environment_diff"] = {key: [""]
+                build["environment_diff"] = {key: [[""]]
                                              for key, value in env.items()
                                              if value}
             build["environment_short"] = {}
             for key, values in build["environment_diff"].items():
-                build["environment_short"][key] = []
-                for value in values:
-                    known_item = known_items["env %s" % key]
-                    build["environment_short"][key].append(
-                        known_item.get_short(value))
+                build["environment_short"][key] = [[] for _ in values]
+                for i, sections in enumerate(values):
+                    for value in sections:
+                        known_item = known_items["env %s" % key]
+                        build["environment_short"][key][i].append(
+                            known_item.get_short(value))
             return build
 
         def get_failed_facts(dst_record, results, record_attr="records"):
