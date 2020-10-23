@@ -42,6 +42,7 @@ class DummyHost(Host):
 
 class Selftest(unittest.TestCase):
     tmpdir = None
+    maxDiff = None
 
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(prefix="runperf-selftest")

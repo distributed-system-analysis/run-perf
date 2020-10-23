@@ -26,8 +26,6 @@ from . import Selftest
 
 class RunPerfTest(Selftest):
 
-    maxDiff = None
-
     def setUp(self):
         super().setUp()
         self.base_dir = os.path.dirname(os.path.dirname(
