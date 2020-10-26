@@ -101,76 +101,83 @@ def generate_report(path, results, with_charts=False):
             """Populate this env diff"""
             # In build_env replace values for "_raw" values if available
             raw_value = environment.copy()
-            for key, value in environment.items():
-                if key.endswith('_raw'):
-                    raw_value[key[:-4]] = value
-                    raw_value.pop(key)
+            for section, value in environment.items():
+                if section.endswith('_raw'):
+                    raw_value[section[:-4]] = value
+                    raw_value.pop(section)
             # In diff compare the non "_raw" values only
             diff = []
             missing_src = []
-            for key, value in environment.items():
-                if key.endswith("_raw"):
+            diff_section_cnt = 0
+            for section, value in environment.items():
+                if section.endswith("_raw"):
                     # Skip raw values comparison
                     continue
-                if key in src:
+                if section in src:
                     # Store only diff lines starting with +- as
                     # we don't need a "useful" diff but just an
                     # overview of what is different.
-                    if (hasattr(src[key], "splitlines") and
+                    if (hasattr(src[section], "splitlines") and
                             hasattr(value, "splitlines")):
                         raw_diff = unified_diff(
-                            src[key].splitlines(),
+                            src[section].splitlines(),
                             value.splitlines())
                     else:
                         raw_diff = unified_diff(
-                            pformat(src[key]).splitlines(),
-                            pformat(src[key]).splitlines())
+                            pformat(src[section]).splitlines(),
+                            pformat(src[section]).splitlines())
                     inner_diff = _format_raw_diff(raw_diff)
                 else:
-                    missing_src.append(key)
+                    diff_section_cnt += 1
+                    missing_src.append(section)
                     continue
                 if inner_diff:
-                    diff.append("%s\n%s\n%s"
-                                % (key, "=" * len(key),
+                    diff_section_cnt += 1
+                    diff.append("\n%s\n%s\n%s"
+                                % (section, "=" * len(section),
                                    inner_diff))
-                else:
-                    diff.append("")
 
             missing_dst = set(src.keys()).difference(environment.keys())
             if any((missing_src, missing_dst)):
-                missing = ["List of missing keys\n====================="]
-                missing.extend("+%s MISSING IN SRC" % _ for _ in missing_src)
-                missing.extend("-%s MISSING IN DST" % _ for _ in missing_dst)
-                diff.append("\n".join(missing))
-            return raw_value, diff
+                diff_section_cnt += len(missing_src)
+                diff_section_cnt += len(missing_dst)
+                diff.append("\nList of missing keys\n=====================")
+                diff.extend("+%s MISSING IN SRC" % _ for _ in missing_src)
+                diff.extend("-%s MISSING IN DST" % _ for _ in missing_dst)
+            return raw_value, "\n".join(diff), diff_section_cnt
 
         def process_diff_environemnt(env, src_env):
             """process the collected environment and produce diff/short"""
             build_env = {}
             build_diff = {}
-            for key, values in sorted(env.items()):
-                if not values:
+            build_diff_sections = {}
+            for profile, per_machine_envs in sorted(env.items()):
+                if not per_machine_envs:
                     continue
-                build_env[key] = []
-                build_diff[key] = []
-                for i, value in enumerate(values):
-                    src_key_env = src_env.get(key, [])
+                build_env[profile] = []
+                build_diff[profile] = []
+                build_diff_sections[profile] = []
+                for i, this_env in enumerate(per_machine_envs):
+                    src_key_env = src_env.get(profile, [])
                     if len(src_key_env) > i:
                         src = src_key_env[i]
-                        this_env, this_diff = generate_build_diff(value, src)
+                        _build_diff = generate_build_diff(this_env, src)
+                        this_env, this_diff, diff_section_cnt = _build_diff
                     else:
-                        this_env = value
-                        this_diff = ["+%s PROFILE MISSING IN SRC" % key]
-                    build_env[key].append(this_env)
-                    build_diff[key].append(this_diff)
-            for key, value in src_env.items():
-                if key in env:
+                        this_diff = "+%s PROFILE MISSING IN SRC" % profile
+                        diff_section_cnt = -1
+                    build_env[profile].append(this_env)
+                    build_diff[profile].append(this_diff)
+                    build_diff_sections[profile].append(diff_section_cnt)
+            for profile, per_machine_env in src_env.items():
+                if profile in env:
                     continue
-                if not value:
+                if not per_machine_env:
                     continue
-                build_env[key] = [""]
-                build_diff[key] = ["-MISSING IN THIS BUILD"]
-            return build_env, build_diff
+                build_env[profile] = [""]
+                build_diff[profile] = ["-MISSING IN THIS BUILD"]
+                build_diff_sections[profile].append(-2)
+            return build_env, build_diff, build_diff_sections
 
         def collect_environment(metadata):
             """Transform the multiple environment entries into a single dict"""
@@ -210,24 +217,30 @@ def generate_report(path, results, with_charts=False):
             env, profiles = collect_environment(metadata)
             build['profiles'] = profiles
             if src_env is not None:
-                build_env, build_diff = process_diff_environemnt(env, src_env)
+                _build_diff = process_diff_environemnt(env, src_env)
+                build_env, build_diff, build_diff_sections = _build_diff
                 build["environment"] = build_env
                 build["environment_diff"] = build_diff
+                build["environment_diff_sections"] = build_diff_sections
             else:
-                build["environment"] = {key: values
-                                        for key, values in env.items()
-                                        if values}
-                build["environment_diff"] = {key: [[""]]
-                                             for key, value in env.items()
-                                             if value}
+                build["environment"] = {
+                    profile: per_machine_envs
+                    for profile, per_machine_envs in env.items()
+                    if per_machine_envs}
+                build["environment_diff"] = {
+                    profile: [""] * len(per_machine_envs)
+                    for profile, per_machine_envs in env.items()
+                    if per_machine_envs}
+                build["environment_diff_sections"] = {
+                    profile: [0] * len(per_machine_envs)
+                    for profile, per_machine_envs in env.items()}
             build["environment_short"] = {}
-            for key, values in build["environment_diff"].items():
-                build["environment_short"][key] = [[] for _ in values]
-                for i, sections in enumerate(values):
-                    for value in sections:
-                        known_item = known_items["env %s" % key]
-                        build["environment_short"][key][i].append(
-                            known_item.get_short(value))
+            for profile, per_machine_diffs in build["environment_diff"].items():
+                build["environment_short"][profile] = []
+                for diff in per_machine_diffs:
+                    known_item = known_items["env %s" % profile]
+                    build["environment_short"][profile].append(
+                        known_item.get_short(diff))
             return build
 
         def get_failed_facts(dst_record, results, record_attr="records"):

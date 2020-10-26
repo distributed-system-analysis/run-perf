@@ -10540,7 +10540,7 @@ a {font-family: monospace;}
     </tr>
     {% for profile in profiles %}<tr>
         <td>{{ profile }} env</td>{% for build in builds %}{% set build_idx = loop.index %}
-        <td style='{{ relative_score_color(build) }}'><textarea style="position: absolute; left: -9999px;"  id="env-{{ profile }}-{{ build_idx }}-raw">{{build.environment[profile]}}</textarea>{% for shorts, diffs in build.environment_short[profile]|zip(build.environment_diff[profile]) %}{% for short, diff in shorts|zip(diffs) %}<div class="tooltip" onclick="elementValueToClipboard('env-{{ profile }}-{{ build_idx }}-raw')">{{short}}<span class="tooltiptext"><a href="#">Click to copy the raw python dict</a><pre>{{diff}}</pre></span></div>{% if not loop.last %},{% endif %}{% endfor %}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>{% endfor %}
+        <td style='{{ relative_score_color(build) }}'><textarea style="position: absolute; left: -9999px;"  id="env-{{ profile }}-{{ build_idx }}-raw">{{build.environment[profile]}}</textarea>{% for short, diff, diff_section_cnt in build.environment_short[profile]|zip(build.environment_diff[profile], build.environment_diff_sections[profile]) %}<div class="tooltip" onclick="elementValueToClipboard('env-{{ profile }}-{{ build_idx }}-raw')">{{short}}{{diff_section_cnt}}<span class="tooltiptext"><a href="#">Click to copy the raw python dict</a><pre>{{diff}}</pre></span></div>{% if not loop.last %},{% endif %}{% endfor %}</td>{% endfor %}
     </tr>{% endfor %}
     <tr>
         <td>Tests env</td>{% for build in builds %}
