@@ -108,6 +108,7 @@ def generate_report(path, results, with_charts=False):
             # In diff compare the non "_raw" values only
             diff = []
             missing_src = []
+            diff_section_cnt = 0
             for key, value in environment.items():
                 if key.endswith("_raw"):
                     # Skip raw values comparison
@@ -127,39 +128,48 @@ def generate_report(path, results, with_charts=False):
                             pformat(src[key]).splitlines())
                     inner_diff = _format_raw_diff(raw_diff)
                 else:
+                    diff_section_cnt += 1
                     missing_src.append(key)
                     continue
                 if inner_diff:
+                    diff_section_cnt += 1
                     diff.append("\n%s\n%s\n%s"
                                 % (key, "=" * len(key),
                                    inner_diff))
 
             missing_dst = set(src.keys()).difference(environment.keys())
             if any((missing_src, missing_dst)):
+                diff_section_cnt += len(missing_src)
+                diff_section_cnt += len(missing_dst)
                 diff.append("\nList of missing keys\n=====================")
                 diff.extend("+%s MISSING IN SRC" % _ for _ in missing_src)
                 diff.extend("-%s MISSING IN DST" % _ for _ in missing_dst)
-            return raw_value, "\n".join(diff)
+            return raw_value, "\n".join(diff), diff_section_cnt
 
         def process_diff_environemnt(env, src_env):
             """process the collected environment and produce diff/short"""
             build_env = {}
             build_diff = {}
+            build_diff_sections = {}
             for key, values in sorted(env.items()):
                 if not values:
                     continue
                 build_env[key] = []
                 build_diff[key] = []
+                build_diff_sections[key] = []
                 for i, value in enumerate(values):
                     src_key_env = src_env.get(key, [])
                     if len(src_key_env) > i:
                         src = src_key_env[i]
-                        this_env, this_diff = generate_build_diff(value, src)
+                        _build_diff = generate_build_diff(value, src)
+                        this_env, this_diff, diff_section_cnt = _build_diff
                     else:
                         this_env = value
                         this_diff = "+%s PROFILE MISSING IN SRC" % key
+                        diff_section_cnt = -1
                     build_env[key].append(this_env)
                     build_diff[key].append(this_diff)
+                    build_diff_sections[key].append(diff_section_cnt)
             for key, value in src_env.items():
                 if key in env:
                     continue
@@ -167,7 +177,8 @@ def generate_report(path, results, with_charts=False):
                     continue
                 build_env[key] = [""]
                 build_diff[key] = ["-MISSING IN THIS BUILD"]
-            return build_env, build_diff
+                build_diff_sections[key].append(-2)
+            return build_env, build_diff, build_diff_sections
 
         def collect_environment(metadata):
             """Transform the multiple environment entries into a single dict"""
@@ -207,16 +218,20 @@ def generate_report(path, results, with_charts=False):
             env, profiles = collect_environment(metadata)
             build['profiles'] = profiles
             if src_env is not None:
-                build_env, build_diff = process_diff_environemnt(env, src_env)
+                _build_diff = process_diff_environemnt(env, src_env)
+                build_env, build_diff, build_diff_sections = _build_diff
                 build["environment"] = build_env
                 build["environment_diff"] = build_diff
+                build["environment_diff_sections"] = build_diff_sections
             else:
                 build["environment"] = {key: values
                                         for key, values in env.items()
                                         if values}
-                build["environment_diff"] = {key: [""]
+                build["environment_diff"] = {key: [""] * len(value)
                                              for key, value in env.items()
                                              if value}
+                build["environment_diff_sections"] = {key: [0] * len(value)
+                                                      for key, value in env.items()}
             build["environment_short"] = {}
             for key, values in build["environment_diff"].items():
                 build["environment_short"][key] = []

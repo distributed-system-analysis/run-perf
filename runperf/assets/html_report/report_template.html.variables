@@ -15,6 +15,7 @@ builds: [src, reference1, reference2, ..., dst]     # List of all involved build
         environment: {'world': {'rpm': 'foo-1.0\nbar-2.0', 'kernel': ...}   # raw environment of this build (comes from runperf METADATA)
         environment_diff: {'world': 'SOME\n====\n+line\n-line', ...}    # diff of the environment compare to src build
         environment_short: {'world': 'A', 'profile': 'B', ...}  # Short version of the environment where the same letters share the same raw environment
+        environment_diff_sections: {'world': [1], 'profile': [5], ...}  # How many sections contain non-empty diff (per machine)
         failures: 3     # Number of failures in this build
         group_failures: 0   # Number of group failures in this build
         total: 357      # Overall number of checks
