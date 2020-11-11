@@ -487,6 +487,7 @@ class Host(BaseMachine):
                                 "control")
                 session.cmd("grubby --update-kernel=ALL "
                             "--args=nosmt=force")
+                self.reboot_request = True
 
     def get_addr(self):
         """Return addr as they are static"""
