@@ -136,7 +136,7 @@ node(worker_node) {
         for (i=latestBuild; i > 0; i--) {
             copyArtifacts filter: 'result*/**/*.json,result*/RUNPERF_METADATA', optional: true, fingerprintArtifacts: true, projectName: env.JOB_NAME, selector: specific("$i"), target: "reference_builds/${i}/"
             if (fileExists("reference_builds/${i}")) {
-                reference_builds.add("${i}")
+                reference_builds.add(sh(returnStdout: true, script: "echo reference_builds/${i}/*").trim())
                 if (reference_builds.size() >= no_reference_builds) {
                     break
                 }
@@ -155,15 +155,8 @@ node(worker_node) {
         } else {
             cmp_extra = ''
         }
-        if (reference_builds.size() > 0) {
-            cmp_extra += " --references "
-            for (i in reference_builds.reverse()) {
-                cmp_extra += " ${i}:"
-                cmp_extra += sh(returnStdout: true, script: "echo reference_builds/${i}/*").trim()
-            }
-        }
         // Compare the results and generate html as well as xunit results
-        def status = sh returnStatus: true, script:  "python3 scripts/compare-perf -vvv --tolerance " + cmp_tolerance + " --stddev-tolerance " + cmp_stddev_tolerance + ' --xunit result.xml --html html/index.html ' + cmp_extra + ' -- src_result/* $(find . -maxdepth 1 -type d ! -name "*.tar.*" -name "result*")'
+        def status = sh returnStatus: true, script:  "python3 scripts/compare-perf -vvv --tolerance " + cmp_tolerance + " --stddev-tolerance " + cmp_stddev_tolerance + ' --xunit result.xml --html html/index.html ' + cmp_extra + ' -- src_result/* ' + reference_builds.reverse().join(" ") + ' $(find . -maxdepth 1 -type d ! -name "*.tar.*" -name "result*")'
         if (fileExists('result.xml')) {
             if (status) {
                 // This could mean there were no tests to compare or other failures, interrupt the build

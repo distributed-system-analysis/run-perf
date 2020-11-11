@@ -50,14 +50,14 @@ class RunPerfTest(Selftest):
                 "--tolerance", "5", "--stddev-tolerance", "10",
                 "--model-linear-regression",
                 "selftests/.assets/results/1_base/linear_model.json",
-                "--html", html_path, "--xunit", xunit_path, "-r",
+                "--html", html_path, "--xunit", xunit_path,
+                "--", "selftests/.assets/results/1_base/"
+                "result_20200726_080654",
                 "selftests/.assets/results/1_base/result_20200726_112748",
                 "selftests/.assets/results/2_kernel_update/"
                 "result_20200726_114437",
                 "selftests/.assets/results/3_kernel_and_less_cpus/"
-                "result_20200726_125851",
-                "--", "selftests/.assets/results/1_base/"
-                "result_20200726_080654", "selftests/.assets/results/"
+                "result_20200726_125851", "selftests/.assets/results/"
                 "4_kernel_and_less_cpus_and_different_duration/"
                 "result_20200726_130256"]
         self.assertEqual(self._run(args), 2)

@@ -324,11 +324,12 @@ class ComparePerf:
         """
         parser = ArgumentParser(prog="compare-perf",
                                 description="Tool to compare run-perf results")
-        parser.add_argument("results", help="Path to run-perf results",
-                            nargs=2, type=self._get_name_and_path)
-        parser.add_argument("-r", "--references", help="Reference results "
-                            "used by HTML report.", nargs="*",
-                            type=self._get_name_and_path, default=[])
+        parser.add_argument("results", help="Path to run-perf results; when "
+                            "multiple results are specified the first one "
+                            "is used as the source result, the last one as"
+                            "destination result and the middle ones are "
+                            "only used as a reference.",
+                            nargs="+", type=self._get_name_and_path)
         parser.add_argument("--tolerance", "-t", help="Acceptable tolerance "
                             "(+-%(default)s%%)", default=5, type=float)
         parser.add_argument("--stddev-tolerance", "-s", help="Acceptable "
@@ -357,10 +358,10 @@ class ComparePerf:
                                           args.stddev_tolerance, models,
                                           args.results[0][0],
                                           args.results[0][1])
-        for name, path in args.references:
+        for name, path in args.results[1:-1]:
             results.add_result_by_path(name, path).expand_grouped_results()
-        res = results.add_result_by_path(args.results[1][0],
-                                         args.results[1][1])
+        res = results.add_result_by_path(args.results[-1][0],
+                                         args.results[-1][1])
         if args.xunit:
             with open(args.xunit, 'wb') as xunit_fd:
                 xunit_fd.write(res.get_xunit())
