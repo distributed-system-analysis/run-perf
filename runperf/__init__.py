@@ -408,6 +408,10 @@ class AnalyzePerf:
                             "range defined from -t|--tolerance. Recommended "
                             "tolerance is 8 for 2 results and 4 for 5+ "
                             "results.")
+        parser.add_argument("-s", "--stddev-linear-regression", help="Generate"
+                            " per-test linear regression model mapping "
+                            "avg (+/-)3x stddev as (min/max). Recomended "
+                            "tolerance values are -5; +5.")
         parser.add_argument("-t", "--tolerance", help="Tolerance (-x,+x) used "
                             "by models, by default (%(default)s",
                             default=4, type=float)
@@ -430,11 +434,14 @@ class AnalyzePerf:
                 storage[test][results_name] = score
         csv = None
         linear_regression = None
+        stddev_regression = None
         try:
             if args.csv:
                 csv = open(args.csv, 'w')
             if args.linear_regression:
                 linear_regression = open(args.linear_regression, 'w')
+            if args.stddev_linear_regression:
+                stddev_regression = open(args.stddev_linear_regression, 'w')
             result_names = sorted(result_names)
             if csv:
                 csv.write("test,%s" % ",".join(csv_safe_str(_)
@@ -450,8 +457,13 @@ class AnalyzePerf:
                 model = result.ModelLinearRegression(args.tolerance,
                                                      args.tolerance)
                 json.dump(model.identify(storage), linear_regression, indent=4)
+            if stddev_regression:
+                model = result.ModelStdev(args.tolerance, args.tolerance)
+                json.dump(model.identify(storage), stddev_regression, indent=4)
         finally:
             if csv:
                 csv.close()
             if linear_regression:
                 linear_regression.close()
+            if stddev_regression:
+                stddev_regression.close()

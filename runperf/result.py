@@ -161,6 +161,52 @@ class ModelLinearRegression(Model):
         return self.model
 
 
+class ModelStdev(ModelLinearRegression):
+
+    """
+    Simple linear regression model using 3*stddev as error
+    """
+    ERROR_COEFICIENT = 3
+    UNCERTAINITY = [7, 2.3, 1.7, 1.4, 1.3, 1.3, 1.2, 1.2]
+
+    def identify(self, data):
+        """
+        Identify model based on data
+
+        :param data: dict of {result: [value, value, value]}
+        :note: currently uses self.mean_tolerance for all tolerances
+        """
+        if "__metadata__" not in self.model:
+            self.model["__metadata__"] = {"version": 1}
+        self.model["__metadata__"]["tolerance"] = self.mean_tolerance
+        for test in sorted(data.keys()):
+            values = [float(_) for _ in data.get(test, {}).values()]
+            if len(values) <= len(self.UNCERTAINITY):
+                uncertainity = self.UNCERTAINITY[len(values) - 1]
+            else:
+                uncertainity = 1
+            average = numpy.average(values)
+            max_stddev = self.ERROR_COEFICIENT * numpy.std(values)
+            max_value = (average + max_stddev) * uncertainity
+            min_value = (average - max_stddev) * uncertainity
+            model = self._identify(min_value, max_value)
+            if not model:
+                # Singular matrix, not possible to map
+                LOG.debug("%s: Singular matrix, skipping...", test)
+                continue
+            if test not in self.model:
+                self.model[test] = {}
+            if LOG.isEnabledFor(logging.DEBUG):
+                LOG.debug("%s: MIN %s->%s MAX %s->%s", test,
+                          -self.mean_tolerance,
+                          (min_value - average) / average * 100,
+                          self.mean_tolerance,
+                          (max_value - average) / average * 100)
+            self.model[test]["equation"] = model
+            self.model[test]["raw"] = average
+        return self.model
+
+
 class Result:
     """XUnitResult object"""
 
