@@ -5,3 +5,7 @@ Localhost/fio/0000:./read-4KiB/throughput/iops_sec.mean,183743.169491525,180638.
 Localhost/fio/0000:./read-4KiB/throughput/iops_sec.stddev,0,0,0,0,0,
 Localhost/fio/0000:./read-64KiB/throughput/iops_sec.mean,103308.033898305,99541.8305084746,100432.542372881,98646.6271186441,100485.372881356,
 Localhost/fio/0000:./read-64KiB/throughput/iops_sec.stddev,0,0,0,0,0,
+Localhost2/fio/0000:./read-4KiB/throughput/iops_sec.mean,183743.169491525,-100,-100,-100,-100,
+Localhost2/fio/0000:./read-4KiB/throughput/iops_sec.stddev,0,-100,-100,-100,-100,
+Localhost2/fio/0000:./read-64KiB/throughput/iops_sec.mean,103308.033898305,-100,-100,-100,-100,
+Localhost2/fio/0000:./read-64KiB/throughput/iops_sec.stddev,0,-100,-100,-100,-100,

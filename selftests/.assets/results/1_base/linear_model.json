@@ -86,5 +86,61 @@
             -109.99999999999982
         ],
         "raw": 100482.88135593213
+    },
+    "Localhost2/fio/0000:./read-4KiB/latency/clat.mean": {
+        "equation": [
+            0.000679317059915765,
+            -109.99999999999982
+        ],
+        "raw": 161927.333333333
+    },
+    "Localhost2/fio/0000:./read-4KiB/latency/lat.mean": {
+        "equation": [
+            0.0006614352483453833,
+            -110.0
+        ],
+        "raw": 166305.016666667
+    },
+    "Localhost2/fio/0000:./read-4KiB/latency/slat.mean": {
+        "equation": [
+            0.025818464896667358,
+            -109.99999999999964
+        ],
+        "raw": 4260.51666666667
+    },
+    "Localhost2/fio/0000:./read-4KiB/throughput/iops_sec.mean": {
+        "equation": [
+            0.0005986617097354123,
+            -110.0
+        ],
+        "raw": 183743.169491525
+    },
+    "Localhost2/fio/0000:./read-64KiB/latency/clat.mean": {
+        "equation": [
+            0.0008985432367773731,
+            -109.99999999999982
+        ],
+        "raw": 122420.375
+    },
+    "Localhost2/fio/0000:./read-64KiB/latency/lat.mean": {
+        "equation": [
+            0.0008625283948268183,
+            -110.0
+        ],
+        "raw": 127532.033333333
+    },
+    "Localhost2/fio/0000:./read-64KiB/latency/slat.mean": {
+        "equation": [
+            0.022034594313071525,
+            -110.0
+        ],
+        "raw": 4992.15
+    },
+    "Localhost2/fio/0000:./read-64KiB/throughput/iops_sec.mean": {
+        "equation": [
+            0.0010647768217937675,
+            -110.0
+        ],
+        "raw": 103308.033898305
     }
 }

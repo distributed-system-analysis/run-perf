@@ -406,7 +406,7 @@ class ResultsContainer:
                                   % score, primary, params)
         for missing_test in src_tests:
             res.record_broken(missing_test, "Not present in target results "
-                              "(%s)" % -100, False)
+                              "(%s)" % -100, self.src_results[missing_test][1])
         self.results[name] = res
         return res
 
