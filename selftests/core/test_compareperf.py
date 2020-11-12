@@ -69,9 +69,10 @@ class RunPerfTest(Selftest):
                                "results", "result.xunit")) as exp:
             with open(xunit_path) as act:
                 act_filt = re.sub('timestamp="[^"]+"',
-                                  'timestamp="2020-09-01T11:13:07.912376"',
+                                  'timestamp="FILTERED"',
                                   act.read())
                 self.assertEqual(exp.read(), act_filt)
+
 
     def test(self):
         args = ["compare-perf", "--", "selftests/.assets/results/1_base/"
