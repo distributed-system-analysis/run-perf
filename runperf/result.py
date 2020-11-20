@@ -718,7 +718,8 @@ class RelativeResults:
         """
         Calculate pre-defined grouped results
         """
-        records = [record for record in self.records if record.primary]
+        records = [record for record in self.records
+                   if record.primary and record.status != ERROR]
         # iteration_name_extra only
         self._expand_grouped_result(records, ["iteration_name_extra"])
         # iteration_name_extra and profile
