@@ -336,7 +336,8 @@ class ComparePerf:
                             "standard deviation tolerance (+-%(default)s%%)",
                             default=5, type=float)
         parser.add_argument("--model-linear-regression", "-l", help="Use "
-                            "linear regression model for matching results")
+                            "linear regression model for matching results",
+                            nargs='+', default=[])
         parser.add_argument("--html", help="Create a single-file HTML report "
                             "in the provided path.")
         parser.add_argument("--html-with-charts", action="store_true",
@@ -347,13 +348,12 @@ class ComparePerf:
                             help="Increase the verbosity level")
         args = parser.parse_args()
         setup_logging(args.verbose, "%(levelname)-5s| %(message)s")
-        if args.model_linear_regression:
+        models = []
+        for path in args.model_linear_regression:
             model = result.ModelLinearRegression(args.tolerance,
                                                  args.stddev_tolerance,
-                                                 args.model_linear_regression)
-            models = [model]
-        else:
-            models = []
+                                                 path)
+            models.append(model)
         results = result.ResultsContainer(self.log, args.tolerance,
                                           args.stddev_tolerance, models,
                                           args.results[0][0],
