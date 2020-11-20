@@ -56,8 +56,21 @@ LOG = logging.getLogger(__name__)
 
 class Model:
 
-    def check_result(self, test_name, src, dst, primary=False):
-        """Check whether src-dst distance is within limits"""
+    mean_tolerance = None
+    stddev_tolerance = None
+
+    def check_result(self, test_name, src, dst):
+        """
+        Apply model to a test_name
+
+        :param test_name: Name of the current check
+        :param src: Original source score
+        :param dst: Original destination score
+        :param primary: Whether the check is primary
+        :return: [(check_name, difference, weight, source value), ...]
+                 where source_value is an optional value correcting the source
+                 value
+        """
         raise NotImplementedError
 
 
