@@ -81,20 +81,28 @@ class ModelLinearRegression(Model):
             if "__metadata__" not in self.model:
                 # Old results, "upgrade" it
                 for key in self.model:
-                    self.model[key] = {"raw": 0, "equation": self.model[key]}
+                    self.model[key] = {"raw": None,
+                                       "equation": self.model[key]}
         else:
             self.model = {}
 
-    def check_result(self, test_name, src, dst, primary=False):
+    def check_result(self, test_name, src, dst):
         model = self.model.get(test_name)
         if model is None:
-            return None, None, None
+            return []
         equation = model["equation"]
-        if test_name.endswith("mean"):
-            tolerance = self.mean_tolerance
-        else:
-            tolerance = self.stddev_tolerance
-        return equation[0] * dst + equation[1], tolerance, model["raw"]
+        msrc = model["raw"]
+        out = [("model", equation[0] * dst + equation[1], 1, msrc)]
+        if msrc is not None:
+            if test_name.endswith("mean"):
+                if src == 0:
+                    mrawdiff = 0
+                else:
+                    mrawdiff = (float(dst) - msrc) / abs(msrc) * 100
+            else:
+                mrawdiff = msrc - dst
+            out.append(("mraw", mrawdiff, 0))
+        return out
 
     def _identify(self, low, high):
         """
@@ -247,8 +255,8 @@ class Result:
 
     def __str__(self):
         if self.details:
-            return "%s: %s (%s)" % (STATUS_MAP[self.status], self.name,
-                                    self.details)
+            return "%s: %s %.2f (%s)" % (STATUS_MAP[self.status], self.name,
+                                       self.score, self.details)
         return "%s: %s" % (STATUS_MAP[self.status], self.name)
 
     def get_merged_name(self, merge):
@@ -458,78 +466,81 @@ class RelativeResults:
         return src - dst, self.stddev_tolerance
 
     def record_result(self, test_name, src, dst, primary=False, grouped=False,
-                      raw_difference=None, raw_tolerance=None, params=None):
+                      difference=None, tolerance=None, params=None):
         """
         Process result and insert it into database
         """
 
-        class MsgResult:
+        class WeightedResult:
 
-            def __init__(self, src, dst):
-                self.src = src
+            def __init__(self, dst, tolerance):
+                self.srcs = []
                 self.dst = dst
+                self.tolerance = tolerance
                 self.good = []
                 self.small = []
                 self.big = []
+                self.agg_diffs = 0
+                self.agg_weights = 0
 
-            def add(self, name, difference, tolerance):
+            def add(self, model_idx, name, difference, weight, src=None):
+                self.agg_diffs += difference * weight
+                self.agg_weights += weight
+                msg = "%s%s %.2F%%" % (name, model_idx, difference)
+                if src is not None:
+                    self.srcs.append(src)
                 if abs(difference) > tolerance:
                     if difference > 0:
-                        self.big.append("%s %.2f%%>%s%%" % (name, difference,
-                                                            tolerance))
-                        return FAIL_GAIN
-                    self.small.append("%s %.2f%%<-%s%%"
-                                      % (name, difference, tolerance))
-                    return FAIL_LOSS
-                self.good.append("%s %.2f%%~~%s%%" % (name, difference,
-                                                      tolerance))
-                if abs(difference) > tolerance / 2:
-                    return MINOR_GAIN if difference > 0 else MINOR_LOSS
-                return PASS
+                        self.big.append(msg)
+                    else:
+                        self.small.append(msg)
+                else:
+                    self.good.append(msg)
 
-            def report(self, status):
-                if status >= PASS:
+            def report(self):
+                diff = self.agg_diffs / self.agg_weights
+                if abs(diff) <= self.tolerance:
                     report = ["good", "big", "small"]
-                elif status == FAIL_GAIN:
-                    report = ["big", "good", "small"]
-                elif status == FAIL_LOSS:
-                    report = ["small", "good", "big"]
+                    minor_tolerance = self.tolerance / 2
+                    if diff > minor_tolerance:
+                        status = MINOR_GAIN
+                    elif diff < minor_tolerance:
+                        status = MINOR_LOSS
+                    else:
+                        status = PASS
+                else:
+                    if diff > 0:
+                        report = ["big", "good", "small"]
+                        status = FAIL_GAIN
+                    else:
+                        report = ["small", "good", "big"]
+                        status = FAIL_LOSS
                 out = []
                 for section in report:
                     values = getattr(self, section)
                     if values:
                         out.append("%s %s" % (section.upper(),
                                               ", ".join(values)))
-                out.append("(%s; %s)" % (self.src, self.dst))
-                return " ".join(out)
+                srcs = "/".join("%.2f" % _ for _ in self.srcs)
+                out.append("(%s; %s)" % (srcs, self.dst))
+                out.append("+-%s%% tolerance" % self.tolerance)
+                return Result(status, diff, test_name, self.srcs[-1],
+                              self.dst, " ".join(out), primary, params)
 
-        if not raw_difference:
-            _ = self._calculate_test_difference(test_name, src, dst)
-            raw_difference, raw_tolerance = _
-        for model in self.models:
-            difference, tolerance, model_src = model.check_result(test_name,
-                                                                  src, dst)
-            if difference is not None:
-                # recalculate raw_difference
-                _ = self._calculate_test_difference(test_name, model_src, dst)
-                model_raw_difference, model_raw_tolerance = _
-                # Replace src with model src
-                src = model_src
-                break
-        else:
-            difference = None
-        msg = MsgResult(src, dst)
-        if difference is None:  # Model not available
-            status = msg.add("raw", raw_difference, raw_tolerance)
-            difference = raw_difference
-        else:  # Report model,mraw and raw
-            status = msg.add("model", difference, tolerance)
-            msg.add("mraw", model_raw_difference, model_raw_tolerance)
-            msg.add("raw", raw_difference, raw_tolerance)
-        self.record(Result(status, difference, test_name, src, dst,
-                           details=msg.report(status), primary=primary,
-                           params=params),
-                    grouped=grouped)
+        if difference is None:
+            difference, tolerance = self._calculate_test_difference(test_name,
+                                                                    src, dst)
+
+        msg = WeightedResult(dst, tolerance)
+        # Only use raw_weight when no model value is available
+        raw_weight = 0
+        for i, model in enumerate(self.models):
+            for result in model.check_result(test_name, src, dst):
+                msg.add(i, *result)
+        if msg.agg_weights == 0:    # Raw is the only value available
+            raw_weight = 1
+        msg.add("", "raw", difference, raw_weight, src)
+        self.record(msg.report(), grouped=grouped)
 
     def get_xunit(self):
         """
