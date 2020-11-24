@@ -466,14 +466,6 @@ include results of only some of the tests, for example focussing only on
 results executed under TunedLibvirt profile, or using tcp_stream uperf
 test.
 
-CSV
-===
-
-CSV output is useful for other analysis for example using libreoffice. It
-creates several files using the prefix specified via ``--csv-prefix``.
-Historically it was used to generate charts in Jenkins but was superseded
-by javascript based charts.
-
 
 ============
 Analyze-perf
@@ -491,11 +483,17 @@ values into collumns.
 Linear regression model
 =======================
 
-The ``--linear-regression`` goes through individual
+Can be generated with ``--stddev-linear-regression`` and
+``--linear-regresion`` arguments and they both map the jittery values of
+the analyzed builds to the ``--tolerance``. The difference is that the
+`Stddev linear regression` model uses 3x the standard deviation of the
+samples and usually is less prone to outliers, while the
+``Linear regression`` model uses min/max values of the builds so it
+requires carefully chosen model builds as any outlier might spoil the
+model.
+
+The way it works is that it goes through the individual
 ``$PROFILE/$TEST/$SERIAL_ID/`` values and calculates coefficients of linear
 equation to normalize the values to range given by ``--tolerance``. It can
-result in lenient or stricter messures applied to individual results based
+result in lenient or stricter measures applied to individual results based
 on the usual spread of results.
-
-The model can be then applied to `compare-perf`_ using the
-``--model-linear-regression`` argument.
