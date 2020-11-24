@@ -58,6 +58,7 @@ class Model:
 
     mean_tolerance = None
     stddev_tolerance = None
+    processing_dst_results = False
 
     def check_result(self, test_name, src, dst):
         """
@@ -368,17 +369,53 @@ def iter_results(path, skip_incorrect=False):
             yield from _handle_iteration(src_result['iteration_data'])
 
 
+class AveragesModel:
+
+    """
+    Model that calculates averages of all builds
+    """
+    # Uncertainty to decrease weight in case we don't have enough values
+    UNCERTAINITY = [7, 2.3, 1.7, 1.4, 1.3, 1.3, 1.2, 1.2]
+    # Coefficient to catch multi-builds small regressions
+    COEFFICIENT = 2
+
+    def __init__(self, weight):
+        self.averages = collections.defaultdict(lambda: [0, 0])
+        self.weight = weight
+        self.last = False
+
+    def check_result(self, name, score):
+        """
+        Appends value per name and when this is the last build it returns
+        the average along with weight using the `Model` format.
+        """
+        self.averages[name][0] += score
+        self.averages[name][1] += 1
+        if not self.last:
+            return []
+        if name in self.averages:
+            entry = self.averages[name]
+            score = entry[0] / entry[1] * self.COEFFICIENT
+            if entry[1] < 8:
+                weight = self.weight / self.UNCERTAINITY[entry[1]]
+            else:
+                weight = self.weight
+            return [("avg", score, weight)]
+        return []
+
+
 class ResultsContainer:
 
     """
     Container to store multiple RelativeResults and provide various stats
     """
 
-    def __init__(self, log, tolerance, stddev_tolerance, models, src_name,
-                 src_path):
+    def __init__(self, log, tolerance, stddev_tolerance, averages, models,
+                 src_name, src_path):
         self.log = log
         self.tolerance = tolerance
         self.stddev_tolerance = stddev_tolerance
+        self.averages = AveragesModel(averages)
         self.models = models
         self.results = collections.OrderedDict()
         self.src_name = src_name
@@ -409,13 +446,15 @@ class ResultsContainer:
                     metadata[split_line[0]] = split_line[1]
         return metadata
 
-    def add_result_by_path(self, name, path):
+    def add_result_by_path(self, name, path, last=False):
         """
         Insert test result according to path hierarchy
         """
+        if last:
+            self.averages.last = True
         metadata = self._parse_metadata(name, path)
         res = RelativeResults(self.log, self.tolerance, self.stddev_tolerance,
-                              self.models, metadata)
+                              self.models, metadata, self.averages)
         src_tests = list(self.src_results.keys())
         for test, score, primary, params in iter_results(path, True):
             if test in src_tests:
@@ -439,7 +478,7 @@ class RelativeResults:
     """
 
     def __init__(self, log, mean_tolerance, stddev_tolerance, models,
-                 metadata):
+                 metadata, averages):
         self.log = log
         self.mean_tolerance = mean_tolerance
         self.stddev_tolerance = stddev_tolerance
@@ -447,6 +486,7 @@ class RelativeResults:
         self.grouped_records = []
         self.models = models
         self.metadata = metadata
+        self.averages = averages
 
     def record(self, result, grouped=False):
         """Insert result into database"""
@@ -458,6 +498,7 @@ class RelativeResults:
             self.grouped_records.append(result)
         else:
             self.records.append(result)
+        return result
 
     def record_broken(self, test_name, details=None, primary=True, params=None):
         """Insert broken/corrupted result"""
@@ -510,8 +551,11 @@ class RelativeResults:
                 else:
                     self.good.append(msg)
 
+            def score(self):
+                return self.agg_diffs / self.agg_weights
+
             def report(self):
-                diff = self.agg_diffs / self.agg_weights
+                diff = self.score()
                 if abs(diff) <= self.tolerance:
                     report = ["good", "big", "small"]
                     minor_tolerance = self.tolerance / 2
@@ -553,7 +597,10 @@ class RelativeResults:
         if msg.agg_weights == 0:    # Raw is the only value available
             raw_weight = 1
         msg.add("", "raw", difference, raw_weight, src)
-        self.record(msg.report(), grouped=grouped)
+        # Append and/or check the averages
+        for result in self.averages.check_result(test_name, msg.score()):
+            msg.add("", *result)
+        return self.record(msg.report(), grouped=grouped)
 
     def get_xunit(self):
         """

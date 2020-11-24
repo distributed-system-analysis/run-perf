@@ -335,6 +335,12 @@ class ComparePerf:
         parser.add_argument("--stddev-tolerance", "-s", help="Acceptable "
                             "standard deviation tolerance (+-%(default)s%%)",
                             default=5, type=float)
+        parser.add_argument("--model-builds-average", help="Calculate "
+                            "average value of all reference builds and "
+                            "compare it to the source value. Specify the "
+                            "weight of this model. Note the weight might be "
+                            "adjusted based on the number of builds "
+                            "(when no builds < 8)", nargs=1, default=1)
         parser.add_argument("--model-linear-regression", "-l", help="Use "
                             "linear regression model for matching results",
                             nargs='+', default=[])
@@ -355,13 +361,15 @@ class ComparePerf:
                                                  path)
             models.append(model)
         results = result.ResultsContainer(self.log, args.tolerance,
-                                          args.stddev_tolerance, models,
+                                          args.stddev_tolerance,
+                                          args.model_builds_average,
+                                          models,
                                           args.results[0][0],
                                           args.results[0][1])
         for name, path in args.results[1:-1]:
             results.add_result_by_path(name, path).expand_grouped_results()
         res = results.add_result_by_path(args.results[-1][0],
-                                         args.results[-1][1])
+                                         args.results[-1][1], last=True)
         if args.xunit:
             with open(args.xunit, 'wb') as xunit_fd:
                 xunit_fd.write(res.get_xunit())

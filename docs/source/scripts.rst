@@ -416,17 +416,22 @@ Table of failures
 It's a table of all primary results, can be dynamically filtered and by
 default shows only tests that failed in any of the builds. You can use the
 buttons on top to change the filters in order to better understand the
-conditions. The values are relative percentage gain/loss from the model/source
-build value and on hover you get some extra details. When linear model is in
-use you get:
+conditions.
 
- * model value - percentage difference using the model
- * mraw value - raw difference from average source value from the builds
-   included in model
- * raw value - raw difference from the source job
+The values in the table represent the gain/loss. The number is a weight
+average of all applied models and on hover you can get more details.
+Based on the used models you can get one or multiple:
 
-and then 2 number in brackets, that are the source model raw value and this
-build raw value.
+* ``raw`` - raw difference from the source job
+* ``avg`` - average value of this and all reference builds
+* ``model*`` - percentage difference using the model (provided by linear
+  regression model)
+* ``mraw*`` - raw difference from average source value from the builds
+  included in model (provided by linear regression model)
+
+followed by multiple number in brackets. First value are slash (``/``)
+separated source values collected from models and after semicolon (``;``)
+this build's raw value.
 
 In case the test parameters are different from the source job a `🔧` character.
 On hover it displays the diff of src and this test params. On click (on the
