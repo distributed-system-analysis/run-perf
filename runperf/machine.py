@@ -351,7 +351,7 @@ class Controller:
             self.for_each_host(self.hosts, 'provision', (provisioner,))
 
         # Run per-host setup
-        self.for_each_host(self.hosts, "setup")
+        self.for_each_host_retry(2, self.hosts, "setup")
 
         # Allow to customize host
         if self._host_setup_script:
@@ -485,9 +485,9 @@ class Host(BaseMachine):
                 if smt_control != "forceoff":
                     session.cmd("echo 'off' > /sys/devices/system/cpu/smt/"
                                 "control")
+                    self.reboot_request = True
                 session.cmd("grubby --update-kernel=ALL "
                             "--args=nosmt=force")
-                self.reboot_request = True
 
     def get_addr(self):
         """Return addr as they are static"""
