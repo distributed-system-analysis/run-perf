@@ -32,7 +32,7 @@ stage('Analyze') {
             for (build in builds[1..-2]) {
                 copyArtifacts filter: 'result*/**/*.json,result*/RUNPERF_METADATA', optional: true, fingerprintArtifacts: true, projectName: src_job, selector: specific(build), target: "reference_builds/${build}/"
                 if (fileExists("reference_builds/${build}")) {
-                    reference_builds.add("${build}")
+                    reference_builds.add(sh(returnStdout: true, script: "echo reference_builds/${build}/*").trim())
                 } else {
                     echo "Skipping reference build ${build}, failed to copy artifacts."
                 }
@@ -53,18 +53,11 @@ stage('Analyze') {
         } else {
             cmp_extra = ''
         }
-        if (reference_builds.size() > 0) {
-            cmp_extra += " --references "
-            for (i in reference_builds) {
-                cmp_extra += " ${i}:"
-                cmp_extra += sh(returnStdout: true, script: "echo reference_builds/${i}/*").trim()
-            }
-        }
         def status = 0
         lock (worker_node) {
             // Avoid modifying worker_node's environment while executing compareperf
             sh 'python3 setup.py develop --user'
-            status = sh returnStatus: true, script:  "python3 scripts/compare-perf -vvv --tolerance " + cmp_tolerance + " --stddev-tolerance " + cmp_stddev_tolerance + ' --xunit result.xml --html html/index.html ' + cmp_extra + ' -- src_result/* $(find . -maxdepth 1 -type d ! -name "*.tar.*" -name "result*")'
+            status = sh returnStatus: true, script:  "python3 scripts/compare-perf -vvv --tolerance " + cmp_tolerance + " --stddev-tolerance " + cmp_stddev_tolerance + ' --xunit result.xml --html html/index.html ' + cmp_extra + ' -- src_result/* ' + reference_builds.reverse().join(" ") + ' $(find . -maxdepth 1 -type d ! -name "*.tar.*" -name "result*")'
         }
         if (fileExists('result.xml')) {
             if (status) {

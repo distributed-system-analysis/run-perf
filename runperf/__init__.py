@@ -324,18 +324,26 @@ class ComparePerf:
         """
         parser = ArgumentParser(prog="compare-perf",
                                 description="Tool to compare run-perf results")
-        parser.add_argument("results", help="Path to run-perf results",
-                            nargs=2, type=self._get_name_and_path)
-        parser.add_argument("-r", "--references", help="Reference results "
-                            "used by HTML report.", nargs="*",
-                            type=self._get_name_and_path, default=[])
+        parser.add_argument("results", help="Path to run-perf results; when "
+                            "multiple results are specified the first one "
+                            "is used as the source result, the last one as"
+                            "destination result and the middle ones are "
+                            "only used as a reference.",
+                            nargs="+", type=self._get_name_and_path)
         parser.add_argument("--tolerance", "-t", help="Acceptable tolerance "
                             "(+-%(default)s%%)", default=5, type=float)
         parser.add_argument("--stddev-tolerance", "-s", help="Acceptable "
                             "standard deviation tolerance (+-%(default)s%%)",
                             default=5, type=float)
+        parser.add_argument("--model-builds-average", help="Calculate "
+                            "average value of all reference builds and "
+                            "compare it to the source value. Specify the "
+                            "weight of this model. Note the weight might be "
+                            "adjusted based on the number of builds "
+                            "(when no builds < 8)", nargs=1, default=1)
         parser.add_argument("--model-linear-regression", "-l", help="Use "
-                            "linear regression model for matching results")
+                            "linear regression model for matching results",
+                            nargs='+', default=[])
         parser.add_argument("--html", help="Create a single-file HTML report "
                             "in the provided path.")
         parser.add_argument("--html-with-charts", action="store_true",
@@ -346,21 +354,22 @@ class ComparePerf:
                             help="Increase the verbosity level")
         args = parser.parse_args()
         setup_logging(args.verbose, "%(levelname)-5s| %(message)s")
-        if args.model_linear_regression:
+        models = []
+        for path in args.model_linear_regression:
             model = result.ModelLinearRegression(args.tolerance,
                                                  args.stddev_tolerance,
-                                                 args.model_linear_regression)
-            models = [model]
-        else:
-            models = []
+                                                 path)
+            models.append(model)
         results = result.ResultsContainer(self.log, args.tolerance,
-                                          args.stddev_tolerance, models,
+                                          args.stddev_tolerance,
+                                          args.model_builds_average,
+                                          models,
                                           args.results[0][0],
                                           args.results[0][1])
-        for name, path in args.references:
+        for name, path in args.results[1:-1]:
             results.add_result_by_path(name, path).expand_grouped_results()
-        res = results.add_result_by_path(args.results[1][0],
-                                         args.results[1][1])
+        res = results.add_result_by_path(args.results[-1][0],
+                                         args.results[-1][1], last=True)
         if args.xunit:
             with open(args.xunit, 'wb') as xunit_fd:
                 xunit_fd.write(res.get_xunit())
@@ -407,6 +416,10 @@ class AnalyzePerf:
                             "range defined from -t|--tolerance. Recommended "
                             "tolerance is 8 for 2 results and 4 for 5+ "
                             "results.")
+        parser.add_argument("-s", "--stddev-linear-regression", help="Generate"
+                            " per-test linear regression model mapping "
+                            "avg (+/-)3x stddev as (min/max). Recomended "
+                            "tolerance values are -5; +5.")
         parser.add_argument("-t", "--tolerance", help="Tolerance (-x,+x) used "
                             "by models, by default (%(default)s",
                             default=4, type=float)
@@ -429,11 +442,14 @@ class AnalyzePerf:
                 storage[test][results_name] = score
         csv = None
         linear_regression = None
+        stddev_regression = None
         try:
             if args.csv:
                 csv = open(args.csv, 'w')
             if args.linear_regression:
                 linear_regression = open(args.linear_regression, 'w')
+            if args.stddev_linear_regression:
+                stddev_regression = open(args.stddev_linear_regression, 'w')
             result_names = sorted(result_names)
             if csv:
                 csv.write("test,%s" % ",".join(csv_safe_str(_)
@@ -449,8 +465,13 @@ class AnalyzePerf:
                 model = result.ModelLinearRegression(args.tolerance,
                                                      args.tolerance)
                 json.dump(model.identify(storage), linear_regression, indent=4)
+            if stddev_regression:
+                model = result.ModelStdev(args.tolerance, args.tolerance)
+                json.dump(model.identify(storage), stddev_regression, indent=4)
         finally:
             if csv:
                 csv.close()
             if linear_regression:
                 linear_regression.close()
+            if stddev_regression:
+                stddev_regression.close()

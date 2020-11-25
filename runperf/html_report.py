@@ -176,7 +176,7 @@ def generate_report(path, results, with_charts=False):
                     continue
                 build_env[profile] = [""]
                 build_diff[profile] = ["-MISSING IN THIS BUILD"]
-                build_diff_sections[profile].append(-2)
+                build_diff_sections[profile] = [-2]
             return build_env, build_diff, build_diff_sections
 
         def collect_environment(metadata):
@@ -665,9 +665,9 @@ def generate_report(path, results, with_charts=False):
 
     values = {}
     values["src"], values["builds"], values["dst"] = generate_builds(results)
-    profiles = list(set(profile
-                        for build in values["builds"]
-                        for profile in build["profiles"]))
+    profiles = sorted(list(set(profile
+                               for build in values["builds"]
+                               for profile in build["profiles"])))
     values["profiles"] = ["World"] + profiles
     if with_charts:
         values["charts"] = generate_charts(results)

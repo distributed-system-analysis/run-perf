@@ -416,17 +416,22 @@ Table of failures
 It's a table of all primary results, can be dynamically filtered and by
 default shows only tests that failed in any of the builds. You can use the
 buttons on top to change the filters in order to better understand the
-conditions. The values are relative percentage gain/loss from the model/source
-build value and on hover you get some extra details. When linear model is in
-use you get:
+conditions.
 
- * model value - percentage difference using the model
- * mraw value - raw difference from average source value from the builds
-   included in model
- * raw value - raw difference from the source job
+The values in the table represent the gain/loss. The number is a weight
+average of all applied models and on hover you can get more details.
+Based on the used models you can get one or multiple:
 
-and then 2 number in brackets, that are the source model raw value and this
-build raw value.
+* ``raw`` - raw difference from the source job
+* ``avg`` - average value of this and all reference builds
+* ``model*`` - percentage difference using the model (provided by linear
+  regression model)
+* ``mraw*`` - raw difference from average source value from the builds
+  included in model (provided by linear regression model)
+
+followed by multiple number in brackets. First value are slash (``/``)
+separated source values collected from models and after semicolon (``;``)
+this build's raw value.
 
 In case the test parameters are different from the source job a `🔧` character.
 On hover it displays the diff of src and this test params. On click (on the
@@ -461,14 +466,6 @@ include results of only some of the tests, for example focussing only on
 results executed under TunedLibvirt profile, or using tcp_stream uperf
 test.
 
-CSV
-===
-
-CSV output is useful for other analysis for example using libreoffice. It
-creates several files using the prefix specified via ``--csv-prefix``.
-Historically it was used to generate charts in Jenkins but was superseded
-by javascript based charts.
-
 
 ============
 Analyze-perf
@@ -486,11 +483,17 @@ values into collumns.
 Linear regression model
 =======================
 
-The ``--linear-regression`` goes through individual
+Can be generated with ``--stddev-linear-regression`` and
+``--linear-regresion`` arguments and they both map the jittery values of
+the analyzed builds to the ``--tolerance``. The difference is that the
+`Stddev linear regression` model uses 3x the standard deviation of the
+samples and usually is less prone to outliers, while the
+``Linear regression`` model uses min/max values of the builds so it
+requires carefully chosen model builds as any outlier might spoil the
+model.
+
+The way it works is that it goes through the individual
 ``$PROFILE/$TEST/$SERIAL_ID/`` values and calculates coefficients of linear
 equation to normalize the values to range given by ``--tolerance``. It can
-result in lenient or stricter messures applied to individual results based
+result in lenient or stricter measures applied to individual results based
 on the usual spread of results.
-
-The model can be then applied to `compare-perf`_ using the
-``--model-linear-regression`` argument.

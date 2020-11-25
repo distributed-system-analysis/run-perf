@@ -46,7 +46,11 @@ pypi: develop
 	@echo "to upload this release"
 
 html_result: develop
-	python3 scripts/compare-perf --html-with-charts -vvv --tolerance 5 --stddev-tolerance 10 --model-linear-regression selftests/.assets/results/1_base/linear_model.json --html docs/source/_static/html_result.html -r selftests/.assets/results/1_base/result_20200726_112748 selftests/.assets/results/2_kernel_update/result_20200726_114437 selftests/.assets/results/3_kernel_and_less_cpus/result_20200726_125851 -- selftests/.assets/results/1_base/result_20200726_080654 selftests/.assets/results/4_kernel_and_less_cpus_and_different_duration/result_20200726_130256 || true
+	python3 scripts/compare-perf --html-with-charts -vvv --tolerance 5 --stddev-tolerance 10 --model-linear-regression selftests/.assets/results/1_base/linear_model.json --html docs/source/_static/html_result.html --xunit selftests/.assets/results/result.xunit -- selftests/.assets/results/1_base/result_20200726_080654 selftests/.assets/results/1_base/result_20200726_112748 selftests/.assets/results/2_kernel_update/result_20200726_114437 selftests/.assets/results/3_kernel_and_less_cpus/result_20200726_125851 selftests/.assets/results/4_kernel_and_less_cpus_and_different_duration/result_20200726_130256 || true
+	sed -i -E 's/timestamp="[^"]+"/timestamp="FILTERED"/' selftests/.assets/results/result.xunit
+
+json_model: develop
+	python3 scripts/analyze-perf -l selftests/.assets/results/1_base/linear_model.json -c selftests/.assets/results/data.csv -- selftests/.assets/results/1_base/result_20200726_080654 selftests/.assets/results/1_base/result_20200726_091827 selftests/.assets/results/1_base/result_20200726_092842 selftests/.assets/results/1_base/result_20200726_093220 selftests/.assets/results/1_base/result_20200726_093657 || true
 
 install:
 	$(PYTHON) -m pip install .
