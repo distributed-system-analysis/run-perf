@@ -146,7 +146,7 @@ def generate_report(path, results, with_charts=False):
                 diff.extend("-%s MISSING IN DST" % _ for _ in missing_dst)
             return raw_value, "\n".join(diff), diff_section_cnt
 
-        def process_diff_environemnt(env, src_env):
+        def process_diff_environemnt(env, dst_env):
             """process the collected environment and produce diff/short"""
             build_env = {}
             build_diff = {}
@@ -158,7 +158,7 @@ def generate_report(path, results, with_charts=False):
                 build_diff[profile] = []
                 build_diff_sections[profile] = []
                 for i, this_env in enumerate(per_machine_envs):
-                    src_key_env = src_env.get(profile, [])
+                    src_key_env = dst_env.get(profile, [])
                     if len(src_key_env) > i:
                         src = src_key_env[i]
                         _build_diff = generate_build_diff(this_env, src)
@@ -169,7 +169,7 @@ def generate_report(path, results, with_charts=False):
                     build_env[profile].append(this_env)
                     build_diff[profile].append(this_diff)
                     build_diff_sections[profile].append(diff_section_cnt)
-            for profile, per_machine_env in src_env.items():
+            for profile, per_machine_env in dst_env.items():
                 if profile in env:
                     continue
                 if not per_machine_env:
@@ -194,7 +194,7 @@ def generate_report(path, results, with_charts=False):
                     profiles.append(profile)
             return env, profiles
 
-        def process_metadata(metadata, known_items, src_env=None):
+        def process_metadata(metadata, known_items, dst_env):
             """Generate extra entries used in html_results out of metadata"""
             build = {}
             for key in ["build", "machine", "machine_url", "url", "distro",
@@ -216,24 +216,11 @@ def generate_report(path, results, with_charts=False):
                                           .get_short("runperf_cmd"))
             env, profiles = collect_environment(metadata)
             build['profiles'] = profiles
-            if src_env is not None:
-                _build_diff = process_diff_environemnt(env, src_env)
-                build_env, build_diff, build_diff_sections = _build_diff
-                build["environment"] = build_env
-                build["environment_diff"] = build_diff
-                build["environment_diff_sections"] = build_diff_sections
-            else:
-                build["environment"] = {
-                    profile: per_machine_envs
-                    for profile, per_machine_envs in env.items()
-                    if per_machine_envs}
-                build["environment_diff"] = {
-                    profile: [""] * len(per_machine_envs)
-                    for profile, per_machine_envs in env.items()
-                    if per_machine_envs}
-                build["environment_diff_sections"] = {
-                    profile: [0] * len(per_machine_envs)
-                    for profile, per_machine_envs in env.items()}
+            _build_diff = process_diff_environemnt(env, dst_env)
+            build_env, build_diff, build_diff_sections = _build_diff
+            build["environment"] = build_env
+            build["environment_diff"] = build_diff
+            build["environment_diff_sections"] = build_diff_sections
             build["environment_short"] = {}
             for profile, per_machine_diffs in build["environment_diff"].items():
                 build["environment_short"][profile] = []
@@ -272,24 +259,17 @@ def generate_report(path, results, with_charts=False):
             return {key: "\n".join(sorted(anonymize_test_params(value.splitlines())))
                     for key, value in params.items()}
 
+        dst_environment = collect_environment(next(reversed(results)).metadata)[0]
+        dst_env = {profile: per_machine_envs
+                   for profile, per_machine_envs in dst_environment.items()
+                   if per_machine_envs}
+
         builds = []
         known_items = collections.defaultdict(KnownItems)
-        # SRC
-        src = process_metadata(results.src_metadata, known_items)
-        src["score"] = 0
-        src["test_params_anonymized"] = {
-            key: anonymize_test_params_dict(value[2])
-            for key, value in results.src_results.items()
-            if value[1] is True}
-        src["test_params"] = {key: value[2]
-                              for key, value in results.src_results.items()
-                              if value[1] is True}
-        src_env = src["environment"]
-        builds.append(src)
         # BUILDS
         build = res = None
-        for res in results:
-            build = process_metadata(res.metadata, known_items, src_env)
+        for res in reversed(results):
+            build = process_metadata(res.metadata, known_items, dst_env)
             failures = grouped_failures = non_primary_failures = 0
             for record in res.records:
                 if record.status < 0:
@@ -310,11 +290,13 @@ def generate_report(path, results, with_charts=False):
             builds.append(build)
         if build is None:
             raise ValueError("No results in %s" % results)
+
         # DST
-        dst = build
+        dst = builds[0]
+        dst_res = next(reversed(results))
         list_of_failures = dst["list_of_failures"] = []
         list_of_stddev_failures = []
-        for record in res.records:
+        for record in dst_res.records:
             if record.status < 0 and record.primary:
                 failure = {"summary": "%s -> %s" % (record.name,
                                                     record.details),
@@ -326,7 +308,7 @@ def generate_report(path, results, with_charts=False):
         list_of_failures.extend(list_of_stddev_failures)
         list_of_group_results = dst["list_of_group_failures"] = []
         list_of_group_stddev_results = []
-        for record in res.grouped_records:
+        for record in dst_res.grouped_records:
             if record.status < 0:
                 failure = {"summary": "%s -> %s" % (record.name,
                                                     record.details),
@@ -337,6 +319,19 @@ def generate_report(path, results, with_charts=False):
                 else:
                     list_of_group_stddev_results.append(failure)
         list_of_group_results.extend(list_of_group_stddev_results)
+
+        # SRC
+        src = process_metadata(results.src_metadata, known_items, dst_env)
+        src["score"] = 0
+        src["test_params_anonymized"] = {
+            key: anonymize_test_params_dict(value[2])
+            for key, value in results.src_results.items()
+            if value[1] is True}
+        src["test_params"] = {key: value[2]
+                              for key, value in results.src_results.items()
+                              if value[1] is True}
+        builds.append(src)
+
         # Calculate relative position according to score
         offset = -1
         previous = 0
@@ -348,7 +343,7 @@ def generate_report(path, results, with_charts=False):
             else:
                 previous = builds[i]["score"]
             builds[i]["relative_score"] = position - offset
-        return src, builds, dst
+        return src, builds[::-1], dst
 
     def generate_charts(results):
         """Generate charts"""

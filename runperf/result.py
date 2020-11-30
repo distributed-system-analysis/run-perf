@@ -429,6 +429,9 @@ class ResultsContainer:
     def __len__(self):
         return len(self.results)
 
+    def __reversed__(self):
+        return reversed(self.results.values())
+
     @staticmethod
     def _parse_metadata(name, path):
         metadata_path = os.path.join(path, "RUNPERF_METADATA")
