@@ -497,3 +497,21 @@ The way it works is that it goes through the individual
 equation to normalize the values to range given by ``--tolerance``. It can
 result in lenient or stricter measures applied to individual results based
 on the usual spread of results.
+
+
+=========
+Diff-perf
+=========
+
+Is simlar to compare-perf but instead of checking for errors it looks to
+the individual values and counts which result got the closest value.
+Primary usage would be a bisection where you have a good result,
+bad result and you are trying to find-out whether a single result is
+closer to the good one or a bad one, but it allows to compare to any
+amount of results.
+
+A helper for bisection can be found in ``contrib/bisect.sh`` and
+a specific example for upstream qemu bisection in
+``contrib/upstream_qemu_bisect.sh``. You can also check-out
+the :ref:`jenkins` chapter for a jenkins pipeline
+using it.

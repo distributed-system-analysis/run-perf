@@ -855,3 +855,59 @@ class RelativeResults:
         else:
             self.log.info("All %s checks were in limits", len(self.records))
         return 0
+
+
+def closest_result(src_path, dst_paths):
+    """
+    Compare results and find the one that has more results closer to the src
+    one
+
+    :param src_path: Path to the src result
+    :param dst_paths: List of paths to results we are comparing to
+    """
+    def process_score(storage, selection):
+        """
+        Find the highest number in a $storage looking only on items specified
+        in the $selection variable.
+        """
+        score = max(storage[i] for i in selection)
+        if storage.count(score) == 1:
+            return storage.index(score)
+        return [i for i, value in enumerate(storage) if value == score]
+
+    def _distance(i, score):
+        return abs(this[i] - score)
+
+    src = list(iter_results(src_path, True))
+    storage = collections.defaultdict(dict)
+    for idx, path in enumerate(dst_paths):
+        for test, score, _, _ in iter_results(path, True):
+            storage[test][idx] = score
+    no_results = len(dst_paths)
+    pmean = [0] * no_results
+    smean = pmean.copy()
+    pstddev = pmean.copy()
+    sstddev = pmean.copy()
+    # primary
+    for test, score, primary, _ in src:
+        if test not in storage:
+            continue
+        this = storage[test]
+        idx = min(this, key=lambda x: _distance(x, score))
+        if not primary:
+            if not test.endswith("stddev"):
+                smean[idx] += 1
+            else:
+                sstddev[idx] += 1
+        else:
+            if not test.endswith("stddev"):
+                pmean[idx] += 1
+            else:
+                pstddev[idx] += 1
+    selection = range(no_results)
+    for values in (pmean, smean, pstddev, sstddev):
+        ret = process_score(values, selection)
+        if isinstance(ret, int):
+            return ret
+        selection = ret
+    return selection[0]
