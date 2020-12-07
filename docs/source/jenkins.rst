@@ -1,3 +1,5 @@
+.. _jenkins:
+
 ===========================
 Jenkins integration example
 ===========================
@@ -27,6 +29,9 @@ machines and the ``rp-prune-artifacts`` to automatically remove big
 tarballs with full results and only keep the json results that are
 small and suffice for compare-perf usecases.
 
+The latest addition is an upstream qemu bisect pipeline called
+``rp-example-upstream-bisect``.
+
 All of these can be easily defined via `Jenkins Job Builder <https://docs.openstack.org/infra/jenkins-job-builder/>`_:
 
 .. literalinclude:: jenkins/jobs.yml
@@ -47,6 +52,10 @@ And the ``identify.groovy`` to allow creating linear models:
 .. literalinclude:: jenkins/identify.groovy
    :language: groovy
 
-Last but not least let's have a look at the ``prune_artifacts.py``:
+The cleanup job ``prune_artifacts.py``:
 
 .. literalinclude:: jenkins/prune_artifacts.py
+
+And a bisect job ``upstream_bisect.groovy``:
+
+.. literalinclude:: jenkins/upstream_bisect.groovy

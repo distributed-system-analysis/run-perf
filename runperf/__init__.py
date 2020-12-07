@@ -384,6 +384,50 @@ class ComparePerf:
         return res.finish()
 
 
+class DiffPerf:
+
+    """
+    Compares multipl run-perf and reports the index of the closest one.
+    """
+
+    _RE_FAILED_ITERATION_NAME = re.compile(r'.*-fail(\d+)$')
+
+    def __init__(self):
+        self.log = logging.getLogger("compare")
+
+    @staticmethod
+    def _abs_path(arg):
+        """
+        Parse [name:]path definition
+        """
+        if os.path.exists(arg):
+            return arg
+        raise ValueError("Path %s does not exists" % arg)
+
+    def __call__(self):
+        """
+        Runs the comparison
+        """
+        parser = ArgumentParser(prog="diff-perf",
+                                description="Compares multiple results and "
+                                "reports the closest results to the src one. "
+                                "The exit number corresponds to the index "
+                                "of the result for indexes up to 253. The "
+                                "return number 254 means any higher index "
+                                "and 255 other failure.")
+        parser.add_argument("results", help="Path to run-perf results; first "
+                            "one is the src result we are comparing the other "
+                            "results to", nargs="+", type=self._abs_path)
+        parser.add_argument("--verbose", "-v", action="count", default=0,
+                            help="Increase the verbosity level")
+        args = parser.parse_args()
+        setup_logging(args.verbose, "%(levelname)-5s| %(message)s")
+        if len(args.results) < 3:
+            raise RuntimeError("Please use more than one result to compare "
+                               "to (3 positional args and more).")
+        return result.closest_result(args.results[0], args.results[1:])
+
+
 class AnalyzePerf:
     """
     Class to allow result analysis/model creation
