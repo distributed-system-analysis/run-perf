@@ -22,26 +22,85 @@ RUNPERF_DIR=$(pwd)
 ./contrib/bisect.sh clean
 pushd "$QEMU_DIR"
 CHECK_SCRIPT="$(mktemp runperf-bisect-XXXXXX)"
+# Generate script which will create a modified run-perf host-script to
+# compile and deploy qemu using the current bisect commit
 cat > "$CHECK_SCRIPT" << EOF
 #!/bin/bash
-CHECK=\$1
-# $@ - run-perf command to be executed
+# Script that generates the host script with params and modifies the
+# run-perf command to include it.
+QEMU_DIR="$QEMU_DIR"
+RUNPERF_DIR="$RUNPERF_DIR"
+EOF
+cat >> "$CHECK_SCRIPT" << \EOF
+CHECK=$1
 shift
+
+# Get current bisect commit
 pushd "$QEMU_DIR"
-NAME="\$(git rev-parse HEAD | cut -c-6)"
-git submodule update --init
-./configure --target-list="$(uname -m)"-softmmu --disable-werror --enable-kvm --enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp --enable-spice --enable-usb-redir --with-pkgversion="\$(git rev-parse HEAD)" || exit -1
-make -j $(getconf _NPROCESSORS_ONLN) || exit -1
-make install || exit -1
-chcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)" || exit -1
-\\cp -f build/config.status /usr/local/share/qemu/ || exit -1
+UPSTREAM_QEMU_COMMIT=$(git rev-parse HEAD)
 popd
+
+# Modify the run-perf command to include our generated host-script
 pushd "$RUNPERF_DIR"
-./contrib/bisect.sh "\$CHECK" "\$NAME" "\$@"
-RET=\$?
-echo "\$CHECK READ:"; read
+CMD=()
+setup_script_treated=0
+original_setup_script=""
+modified_setup_script="$(mktemp runperf-bisect-modified-setup-script-XXXXXX)"
+while [ "$1" ]; do
+    if [ "$1" == "--host-setup-script" ]; then
+        original_setup_script="$2"
+        shift; shift
+        CMD+=("--host-setup-script" "$modified_setup_script" "$@")
+        setup_script_treated=1
+        break
+    elif [ "$1" == "--" ]; then
+        CMD+=("--host-setup-script" "$modified_setup_script" "$@")
+        setup_script_treated=1
+        break
+    fi
+    CMD+=("$1")
+    shift
+done
+if [ "$setup_script_treated" -eq 0 ]; then
+    CMD+=("--host-setup-script" "$modified_setup_script")
+fi
+
+# Generate the host-script with qemu deployment
+if [ "$original_setup_script" ]; then
+    cat "$original_setup_script" > "$modified_setup_script"
+else
+    echo "#!/bin/bash" > "$modified_setup_script"
+fi
+cat >> "$modified_setup_script" << INNEREOF
+
+##########################################
+# Beginning of the modified setup script #
+##########################################
+UPSTREAM_QEMU_COMMIT="$UPSTREAM_QEMU_COMMIT"
+INNEREOF
+cat >> "$modified_setup_script" << \INNEREOF
+
+# Use '$profile:{"qemu_bin": "/usr/local/bin/qemu-system-$arch"}' to enforce this qemu usage
+dnf install --skip-broken -y python3-devel zlib-devel gtk3-devel glib2-static spice-server-devel usbredir-devel make gcc libseccomp-devel numactl-devel libaio-devel git ninja-build
+pushd "/root"
+[ -e "qemu" ] || { mkdir qemu; cd qemu; git init; git remote add origin https://github.com/qemu/qemu; cd ..; }
 popd
-exit \$RET
+pushd "/root/qemu"
+git fetch --depth=1 origin "$UPSTREAM_QEMU_COMMIT"
+git submodule update --init
+VERSION=$(git rev-parse HEAD)
+#./configure --target-list="$(uname -m)"-softmmu
+./configure --target-list="$(uname -m)"-softmmu --disable-werror --enable-kvm --enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp --enable-spice --enable-usb-redir --with-pkgversion="$VERSION"
+make -j $(getconf _NPROCESSORS_ONLN)
+make install
+chcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"
+cp -f build/config.status /usr/local/share/qemu/
+popd
+INNEREOF
+./contrib/bisect.sh "$CHECK" "$NAME" "${CMD[@]}"
+RET=$?
+popd
+exit $RET
 EOF
 chmod +x "$CHECK_SCRIPT"
 
