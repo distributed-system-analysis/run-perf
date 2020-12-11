@@ -27,7 +27,7 @@ function usage {
     echo "$0 check RUNPERF_COMMAND"
     echo "# Repeat how many times needed, returns 0 when closer to GOOD results, 1 when closer to BAD results and 255 on failure; can be wrapped inside 'git bisect run'"
     echo "$0 report [COMPAREPERF_ARGS]"
-    echo "# This step is optional, bisection should be alecho READ; ready over. The report will be in ${DIFFDIR}/report.html"
+    echo "# This step is optional, bisection should be already over. The report will be in ${DIFFDIR}/report.html"
     echo "$0 clean"
     exit -1
 }
