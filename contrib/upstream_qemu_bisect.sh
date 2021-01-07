@@ -87,6 +87,7 @@ pushd "/root"
 popd
 pushd "/root/qemu"
 git fetch --depth=1 origin "$UPSTREAM_QEMU_COMMIT"
+git checkout "$UPSTREAM_QEMU_COMMIT"
 git submodule update --init
 VERSION=$(git rev-parse HEAD)
 #./configure --target-list="$(uname -m)"-softmmu
