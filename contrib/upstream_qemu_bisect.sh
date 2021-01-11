@@ -13,7 +13,7 @@ function usage {
 
 [ "$#" -lt 4 ] && usage
 
-QEMU_DIR=$1
+QEMU_DIR=$(realpath "$1")
 GOOD=$2
 BAD=$3
 shift; shift; shift
