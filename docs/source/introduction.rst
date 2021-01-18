@@ -18,7 +18,7 @@ Run-perf is available from ``pip`` so one can install it by executing::
 
 or to install directly the latest version from git::
 
-    python3 -m pip install https://github.com/distributed-system-analysis/run-perf.git
+    python3 -m pip install git+https://github.com/distributed-system-analysis/run-perf.git
 
 For development purposes please check-out the :any:`clone-and-deploy` section.
 
