@@ -13,13 +13,16 @@ function usage {
 
 [ "$#" -lt 4 ] && usage
 
+COMPAREPERF="${COMPAREPERF:-compare-perf}"
+
 QEMU_DIR=$(realpath "$1")
 GOOD=$2
 BAD=$3
 shift; shift; shift
 RUNPERF_DIR=$(pwd)
+SCRIPT_DIR=$(realpath $(dirname "$0"))
 
-./contrib/bisect.sh clean
+"$SCRIPT_DIR"/bisect.sh clean
 pushd "$QEMU_DIR"
 CHECK_SCRIPT="$(mktemp runperf-bisect-XXXXXX)"
 # Generate script which will create a modified run-perf host-script to
@@ -30,6 +33,7 @@ cat > "$CHECK_SCRIPT" << EOF
 # run-perf command to include it.
 QEMU_DIR="$QEMU_DIR"
 RUNPERF_DIR="$RUNPERF_DIR"
+BISECT="$SCRIPT_DIR/bisect.sh"
 EOF
 cat >> "$CHECK_SCRIPT" << \EOF
 CHECK=$1
@@ -77,6 +81,7 @@ cat >> "$modified_setup_script" << INNEREOF
 # Beginning of the modified setup script #
 ##########################################
 UPSTREAM_QEMU_COMMIT="$UPSTREAM_QEMU_COMMIT"
+BISECT="$BISECT"
 INNEREOF
 cat >> "$modified_setup_script" << \INNEREOF
 
@@ -98,7 +103,7 @@ chcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"
 cp -f build/config.status /usr/local/share/qemu/
 popd
 INNEREOF
-./contrib/bisect.sh "$CHECK" "$NAME" "${CMD[@]}"
+"$BISECT" "$CHECK" "$NAME" "${CMD[@]}"
 RET=$?
 popd
 exit $RET
@@ -119,7 +124,7 @@ rm "$CHECK_SCRIPT"
 popd
 echo
 echo "---< HTML REPORT >---"
-./contrib/bisect.sh report python3 ./scripts/compare-perf
+"$SCRIPT_DIR"/bisect.sh report python3 $COMPAREPERF
 echo
 echo "---< BISECT LOG >---"
 echo "$BISECT_LOG"
