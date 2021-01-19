@@ -41,6 +41,9 @@ it runs all tests under all profiles.
 
 Now let's focus on the available elements:
 
+
+.. _runperf-hosts:
+
 Hosts
 =====
 
