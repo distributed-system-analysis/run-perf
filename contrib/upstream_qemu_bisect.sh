@@ -13,6 +13,8 @@ function usage {
 
 [ "$#" -lt 4 ] && usage
 
+COMPAREPERF="${COMPAREPERF:-compare-perf}"
+
 QEMU_DIR=$(realpath "$1")
 GOOD=$2
 BAD=$3
@@ -122,7 +124,7 @@ rm "$CHECK_SCRIPT"
 popd
 echo
 echo "---< HTML REPORT >---"
-"$SCRIPT_DIR"/bisect.sh report python3 ./scripts/compare-perf
+"$SCRIPT_DIR"/bisect.sh report python3 $COMPAREPERF
 echo
 echo "---< BISECT LOG >---"
 echo "$BISECT_LOG"
