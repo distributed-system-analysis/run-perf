@@ -124,7 +124,7 @@ rm "$CHECK_SCRIPT"
 popd
 echo
 echo "---< HTML REPORT >---"
-"$SCRIPT_DIR"/bisect.sh report python3 $COMPAREPERF
+"$SCRIPT_DIR"/bisect.sh report $COMPAREPERF
 echo
 echo "---< BISECT LOG >---"
 echo "$BISECT_LOG"
