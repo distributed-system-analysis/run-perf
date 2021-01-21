@@ -63,6 +63,7 @@ if __name__ == '__main__':
           version=_get_git_version(),
           description='Helper to execute perf-beaker-tasks locally or in VM',
           long_description=get_long_description(),
+          long_description_content_type="text/markdown",
           author='Lukas Doktor',
           author_email='ldoktor@redhat.com',
           url='https://github.com/distributed-system-analysis/run-perf',
