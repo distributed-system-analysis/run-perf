@@ -38,7 +38,7 @@ clean:
 docs: develop
 	make -C docs html
 
-pypi: develop
+pypi: clean develop
 	RUNPERF_RELEASE=yes $(PYTHON) setup.py sdist bdist_wheel
 	@echo
 	@echo
