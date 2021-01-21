@@ -42,7 +42,7 @@ pypi: clean develop
 	RUNPERF_RELEASE=yes $(PYTHON) setup.py sdist bdist_wheel
 	@echo
 	@echo
-	@echo "Use 'RUNPERF_RELEASE=yes python3 -m twine upload dist/*'"
+	@echo "Use 'python3 -m twine upload dist/*'"
 	@echo "to upload this release"
 
 html_result: develop
