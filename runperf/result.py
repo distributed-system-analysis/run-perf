@@ -21,14 +21,16 @@ import datetime
 import glob
 import json
 import logging
+import math
 import os
 import re
 import string
-from xml.dom.minidom import Document    # nosec
+from xml.dom.minidom import Document  # nosec
 
 import numpy
 
 from . import utils
+
 
 # Test statuses
 PASS = 0
@@ -884,28 +886,43 @@ def closest_result(src_path, dst_paths):
         for test, score, _, _ in iter_results(path, True):
             storage[test][idx] = score
     no_results = len(dst_paths)
-    pmean = [0] * no_results
-    smean = pmean.copy()
-    pstddev = pmean.copy()
-    sstddev = pmean.copy()
+    # Results by category
+    # 0 = primary mean
+    # 1 = secondary mean
+    # 2 = primary stddev
+    # 3 = secondary stddev
+    results = [[0] * no_results for _ in range(4)]
     # primary
     for test, score, primary, _ in src:
         if test not in storage:
             continue
         this = storage[test]
-        idx = min(this, key=lambda x: _distance(x, score))
+        # Distances are in absolute values
+        distances = [_distance(x, score) for x in this]
+        one_third_of_max_distance = max(distances) / 3
+        # Skip results where all distances are 0 (as it's 100% match for all)
+        if not one_third_of_max_distance:
+            continue
+        # Normalize distance so they are within 0-3. That way we'd be able
+        # to calculate normal distribution via e^(-1/2*x^2)
+        norm_distances = [_ / one_third_of_max_distance for _ in distances]
+        # Pick the right cathegory to add the scores to
         if not primary:
             if not test.endswith("stddev"):
-                smean[idx] += 1
+                this_cathegory = results[1]
             else:
-                sstddev[idx] += 1
+                this_cathegory = results[3]
         else:
             if not test.endswith("stddev"):
-                pmean[idx] += 1
+                this_cathegory = results[0]
             else:
-                pstddev[idx] += 1
+                this_cathegory = results[2]
+        # Calculate the norm distance per each element using simplified
+        # norm because we already normalized the distances to the range of 0-3
+        for idx, distance in enumerate(norm_distances):
+            this_cathegory[idx] += math.exp(-1/2 * distance ** 2)
     selection = range(no_results)
-    for values in (pmean, smean, pstddev, sstddev):
+    for values in results:
         ret = process_score(values, selection)
         if isinstance(ret, int):
             return ret
