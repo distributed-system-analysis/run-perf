@@ -58,6 +58,8 @@ LOG = logging.getLogger(__name__)
 
 class Model:
 
+    """Model base-class"""
+
     mean_tolerance = None
     stddev_tolerance = None
     processing_dst_results = False
@@ -73,6 +75,14 @@ class Model:
         :return: [(check_name, difference, weight, source value), ...]
                  where source_value is an optional value correcting the source
                  value
+        """
+        raise NotImplementedError
+
+    def identify(self, data):
+        """
+        Set/train the model based on provided data
+
+        :param data: dict of {result: [value, value, value]}
         """
         raise NotImplementedError
 
@@ -272,7 +282,7 @@ class Result:
     def __str__(self):
         if self.details:
             return "%s: %s %.2f (%s)" % (STATUS_MAP[self.status], self.name,
-                                       self.score, self.details)
+                                         self.score, self.details)
         return "%s: %s" % (STATUS_MAP[self.status], self.name)
 
     def get_merged_name(self, merge):
@@ -532,6 +542,8 @@ class RelativeResults:
 
         class WeightedResult:
 
+            """Generated class to calculate all-model's results with weights"""
+
             def __init__(self, dst, tolerance):
                 self.srcs = []
                 self.dst = dst
@@ -543,6 +555,7 @@ class RelativeResults:
                 self.agg_weights = 0
 
             def add(self, model_idx, name, difference, weight, src=None):
+                """Add individual result"""
                 self.agg_diffs += difference * weight
                 self.agg_weights += weight
                 msg = "%s%s %.2F%%" % (name, model_idx, difference)
@@ -557,9 +570,11 @@ class RelativeResults:
                     self.good.append(msg)
 
             def score(self):
+                """Calculate the current weighted score"""
                 return self.agg_diffs / self.agg_weights
 
             def report(self):
+                """Process all results and generate the Result object"""
                 diff = self.score()
                 if abs(diff) <= self.tolerance:
                     report = ["good", "big", "small"]
