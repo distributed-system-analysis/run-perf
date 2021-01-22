@@ -877,52 +877,60 @@ def closest_result(src_path, dst_paths):
             return storage.index(score)
         return [i for i, value in enumerate(storage) if value == score]
 
-    def _distance(i, score):
-        return abs(this[i] - score)
+    def _process_results(dst_paths):
+        storage = collections.defaultdict(dict)
+        for idx, path in enumerate(dst_paths):
+            for test, score, _, _ in iter_results(path, True):
+                storage[test][idx] = score
+        return storage
+
+    def _calculate_stats(src, storage):
+        def _distance(i, score):
+            return abs(this[i] - score)
+
+        stats = [[0] * no_results for _ in range(4)]
+        for test, score, primary, _ in src:
+            if test not in storage:
+                continue
+            this = storage[test]
+            # Distances are in absolute values
+            distances = [_distance(x, score) for x in this]
+            one_third_of_max_distance = max(distances) / 3
+            # Skip results where all distances are 0 (100% match for all)
+            if not one_third_of_max_distance:
+                continue
+            # Normalize distance so they are within 0-3. That way we'd be able
+            # to calculate normal distribution via e^(-1/2*x^2)
+            norm_distances = [_ / one_third_of_max_distance for _ in distances]
+            # Pick the right cathegory to add the scores to
+            if not primary:
+                if not test.endswith("stddev"):
+                    this_cathegory = stats[1]
+                else:
+                    this_cathegory = stats[3]
+            else:
+                if not test.endswith("stddev"):
+                    this_cathegory = stats[0]
+                else:
+                    this_cathegory = stats[2]
+            # Calculate the norm distance per each element using simplified
+            # norm because we already normalized the distances to the range
+            # of 0-3
+            for idx, distance in enumerate(norm_distances):
+                this_cathegory[idx] += math.exp(-1/2 * distance ** 2)
+        return stats
 
     src = list(iter_results(src_path, True))
-    storage = collections.defaultdict(dict)
-    for idx, path in enumerate(dst_paths):
-        for test, score, _, _ in iter_results(path, True):
-            storage[test][idx] = score
+    storage = _process_results(dst_paths)
     no_results = len(dst_paths)
     # Results by category
     # 0 = primary mean
     # 1 = secondary mean
     # 2 = primary stddev
     # 3 = secondary stddev
-    results = [[0] * no_results for _ in range(4)]
-    # primary
-    for test, score, primary, _ in src:
-        if test not in storage:
-            continue
-        this = storage[test]
-        # Distances are in absolute values
-        distances = [_distance(x, score) for x in this]
-        one_third_of_max_distance = max(distances) / 3
-        # Skip results where all distances are 0 (as it's 100% match for all)
-        if not one_third_of_max_distance:
-            continue
-        # Normalize distance so they are within 0-3. That way we'd be able
-        # to calculate normal distribution via e^(-1/2*x^2)
-        norm_distances = [_ / one_third_of_max_distance for _ in distances]
-        # Pick the right cathegory to add the scores to
-        if not primary:
-            if not test.endswith("stddev"):
-                this_cathegory = results[1]
-            else:
-                this_cathegory = results[3]
-        else:
-            if not test.endswith("stddev"):
-                this_cathegory = results[0]
-            else:
-                this_cathegory = results[2]
-        # Calculate the norm distance per each element using simplified
-        # norm because we already normalized the distances to the range of 0-3
-        for idx, distance in enumerate(norm_distances):
-            this_cathegory[idx] += math.exp(-1/2 * distance ** 2)
+    stats = _calculate_stats(src, storage)
     selection = range(no_results)
-    for values in results:
+    for values in stats:
         ret = process_score(values, selection)
         if isinstance(ret, int):
             return ret
