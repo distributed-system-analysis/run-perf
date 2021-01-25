@@ -99,9 +99,9 @@ for AAA in $(seq 1 3); do
 done
 VERSION=$(git rev-parse HEAD)
 #./configure --target-list="$(uname -m)"-softmmu
-./configure --target-list="$(uname -m)"-softmmu --disable-werror --enable-kvm --enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp --enable-spice --enable-usb-redir --with-pkgversion="$VERSION"
-make -j $(getconf _NPROCESSORS_ONLN)
-make install
+./configure --target-list="$(uname -m)"-softmmu --disable-werror --enable-kvm --enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp --enable-spice --enable-usb-redir --with-pkgversion="$VERSION" || { echo "Qemu ./confiugre FAILed"; exit -1; }
+make -j $(getconf _NPROCESSORS_ONLN) || { echo "Qemu make FAILed"; exit -1; }
+make install || { echo "Qemu make install FAILed"; exit -1; }
 chcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"
 cp -f build/config.status /usr/local/share/qemu/
 popd
