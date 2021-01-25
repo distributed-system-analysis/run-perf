@@ -93,7 +93,10 @@ popd
 pushd "/root/qemu"
 git fetch --depth=1 origin "$UPSTREAM_QEMU_COMMIT"
 git checkout "$UPSTREAM_QEMU_COMMIT"
-git submodule update --init
+# This might occassionally fail due to network issues
+for AAA in $(seq 1 3); do
+    git submodule update --init && break
+done
 VERSION=$(git rev-parse HEAD)
 #./configure --target-list="$(uname -m)"-softmmu
 ./configure --target-list="$(uname -m)"-softmmu --disable-werror --enable-kvm --enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp --enable-spice --enable-usb-redir --with-pkgversion="$VERSION"
