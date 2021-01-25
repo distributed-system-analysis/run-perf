@@ -75,7 +75,7 @@ case $1 in
         [ "$name_set" -eq 0 ] && CMD+=("--metadata" "build=$name")
         [ "$output_set" -eq 0 ] && CMD+=("--output" "${DIFFDIR}/current-result")
         echo "${CMD[@]}"
-        "${CMD[@]}" || { echo " execution failed!"; exit -1; }
+        "${CMD[@]}" || { echo " execution failed, skipping this commit!"; exit 125; }
         [ -e "${DIFFDIR}/current-result" ] || { echo "no results generated"; exit -1; }
         if [ "$good_or_bad" ]; then
             # Good or bad -> just move the result
