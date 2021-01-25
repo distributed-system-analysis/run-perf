@@ -86,12 +86,17 @@ case $1 in
             while [ -e "${DIFFDIR}/${idx}b" -o -e "${DIFFDIR}/${idx}g" ]; do
                 idx=$((idx+1))
             done
-            if ${DIFFPERF} -- "${DIFFDIR}/current-result" "${DIFFDIR}/good" "${DIFFDIR}/bad"; then
+            ${DIFFPERF} -- "${DIFFDIR}/current-result" "${DIFFDIR}/good" "${DIFFDIR}/bad"
+            RET="$?"
+            if [ "$RET" -eq 0 ]; then
                 mv "${DIFFDIR}/current-result" "${DIFFDIR}/${idx}g"
                 exit 0
-            else
+            elif [ "$RET" -eq 1 ]; then
                 mv "${DIFFDIR}/current-result" "${DIFFDIR}/${idx}b"
                 exit 1
+            else
+                # Skip the current commit
+                exit 125
             fi
         fi
         ;;
