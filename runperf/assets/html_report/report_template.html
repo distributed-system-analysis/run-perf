@@ -10316,7 +10316,7 @@ function tableOfFailuresFilter() {
 		if (display != "none") {
 			var names = table_of_failures_hide_name_segments.values()
 			for (var name = ""; name = names.next().value;) {
-				if (items[i].querySelectorAll('td')[0].innerText.includes(name)) {
+				if (items[i].querySelectorAll('td')[0].className.includes(name)) {
 					display = "none";
 					break;
 				}
@@ -10382,7 +10382,7 @@ function tableOfGroupFailuresFilter() {
 		if (display != "none") {
 			var names = table_of_group_failures_hide_name_segments.values()
 			for (var name = ""; name = names.next().value;) {
-				if (items[i].querySelectorAll('td')[0].innerText.includes(name)) {
+				if (items[i].querySelectorAll('td')[0].className.includes(name)) {
 					display = "none";
 					break;
 				}
