@@ -55,6 +55,15 @@ _RE_FAILED_ITERATION_NAME = re.compile(r'.*-fail(\d+)$')
 
 LOG = logging.getLogger(__name__)
 
+def get_uncertainty(no_samples):
+    """Return uncertainty coefficient based on the number of no_samples"""
+    coefficients = [7, 2.3, 1.7, 1.4, 1.3, 1.3, 1.2, 1.2]
+    if no_samples <= 0:
+        raise ValueError("Number of samples must be > 0 (%s)" % no_samples)
+    if no_samples <= 8:
+        return coefficients[no_samples - 1]
+    return 1
+
 
 class Model:
 
@@ -201,7 +210,6 @@ class ModelStdev(ModelLinearRegression):
     Simple linear regression model using 3*stddev as error
     """
     ERROR_COEFICIENT = 3
-    UNCERTAINITY = [7, 2.3, 1.7, 1.4, 1.3, 1.3, 1.2, 1.2]
 
     def identify(self, data):
         """
@@ -215,14 +223,11 @@ class ModelStdev(ModelLinearRegression):
         self.model["__metadata__"]["tolerance"] = self.mean_tolerance
         for test in sorted(data.keys()):
             values = [float(_) for _ in data.get(test, {}).values()]
-            if len(values) <= len(self.UNCERTAINITY):
-                uncertainity = self.UNCERTAINITY[len(values) - 1]
-            else:
-                uncertainity = 1
+            uncertainty = get_uncertainty(len(values))
             average = numpy.average(values)
             max_stddev = self.ERROR_COEFICIENT * numpy.std(values)
-            max_value = (average + max_stddev) * uncertainity
-            min_value = (average - max_stddev) * uncertainity
+            max_value = (average + max_stddev) * uncertainty
+            min_value = (average - max_stddev) * uncertainty
             model = self._identify(min_value, max_value)
             if not model:
                 # Singular matrix, not possible to map
@@ -386,8 +391,6 @@ class AveragesModel:
     """
     Model that calculates averages of all builds
     """
-    # Uncertainty to decrease weight in case we don't have enough values
-    UNCERTAINITY = [7, 2.3, 1.7, 1.4, 1.3, 1.3, 1.2, 1.2]
     # Coefficient to catch multi-builds small regressions
     COEFFICIENT = 2
 
@@ -409,7 +412,7 @@ class AveragesModel:
             entry = self.averages[name]
             score = entry[0] / entry[1] * self.COEFFICIENT
             if entry[1] < 8:
-                weight = self.weight / self.UNCERTAINITY[entry[1]]
+                weight = self.weight / get_uncertainty(entry[1])
             else:
                 weight = self.weight
             return [("avg", score, weight)]
