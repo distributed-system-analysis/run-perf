@@ -33,10 +33,10 @@
     },
     "Localhost/fio/0000:./read-4KiB/latency/clat.mean": {
         "equation": [
-            0.0006369108019594199,
-            -105.76427878143377
+            0.0006700189950385082,
+            -109.99999999999982
         ],
-        "raw": 165807.2683333334
+        "raw": 164174.45
     },
     "Localhost/fio/0000:./read-4KiB/latency/lat.mean": {
         "equation": [

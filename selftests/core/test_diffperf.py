@@ -55,3 +55,26 @@ class RunPerfTest(Selftest):
                          "result_20200726_093657")]
         args.extend(res)
         self.assertEqual(self._run(args), 2)
+
+    def test_broken_stddevs(self):
+        """
+        Ensure missing tests are processed correctly
+
+        first bad result contains bumped 10% stddev to force stddev-diff-perf
+        branch; second bad result lacks one test that uses stddev-diff-perf.
+        Make sure we are not crashing.
+        """
+        args = ["diff-perf", "--"]
+        res = [os.path.join("selftests/.assets/results/", _)
+               for _ in ("1_base/result_20200726_080654",
+                         "9_bad/result_20200726_091827",
+                         "9_bad/result_20200726_114437")]
+        args.extend(res)
+        self.assertEqual(self._run(args), 0)
+
+    def test_all_alike(self):
+        """Check when all results are alike we return the first one"""
+        args = (["diff-perf", "--"] +
+                ["selftests/.assets/results/1_base/result_20200726_080654"]
+                * 3)
+        self.assertEqual(self._run(args), 0)
