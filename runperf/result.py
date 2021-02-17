@@ -904,7 +904,9 @@ def closest_result(src_path, dst_paths):
         in the $selection variable.
         """
         score = max(storage[i] for i in selection)
-        if storage.count(score) == 1:
+        count = storage.count(score)
+        LOG.debug("Score: %s (matching %s result(s))", score, count)
+        if count == 1:
             return storage.index(score)
         return [i for i, value in enumerate(storage) if value == score]
 
