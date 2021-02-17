@@ -13,7 +13,7 @@
 # Copyright: Red Hat Inc. 2020
 # Author: Lukas Doktor <ldoktor@redhat.com>
 """
-Tests for the main runperf app
+Tests for the diff-perf app
 """
 
 import os
