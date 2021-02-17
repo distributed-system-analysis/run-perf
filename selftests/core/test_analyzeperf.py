@@ -43,8 +43,10 @@ class RunPerfTest(Selftest):
 
     def test_full(self):
         path_model = os.path.join(self.tmpdir, "model.json")
+        path_model_stddev = os.path.join(self.tmpdir, "model_stddev.json")
         path_csv = os.path.join(self.tmpdir, "data.csv")
-        args = ["analyze-perf", "-l", path_model, "-c", path_csv, "--"]
+        args = ["analyze-perf", "-l", path_model, "-s", path_model_stddev,
+                "-c", path_csv, "--"]
         res = [os.path.join("selftests/.assets/results/1_base/", _)
                for _ in ("result_20200726_080654", "result_20200726_091827",
                          "result_20200726_092842", "result_20200726_093220",
@@ -54,6 +56,11 @@ class RunPerfTest(Selftest):
         with open(os.path.join(self.base_dir, "selftests", ".assets",
                                "results", "1_base",
                                "linear_model.json")) as exp:
+            with open(path_model) as act:
+                self.assertEqual(exp.read(), act.read())
+        with open(os.path.join(self.base_dir, "selftests", ".assets",
+                               "results", "1_base",
+                               "stddev_model.json")) as exp:
             with open(path_model) as act:
                 self.assertEqual(exp.read(), act.read())
         with open(os.path.join(self.base_dir, "selftests", ".assets",

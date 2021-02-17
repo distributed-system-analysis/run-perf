@@ -55,6 +55,15 @@ _RE_FAILED_ITERATION_NAME = re.compile(r'.*-fail(\d+)$')
 
 LOG = logging.getLogger(__name__)
 
+def get_uncertainty(no_samples):
+    """Return uncertainty coefficient based on the number of no_samples"""
+    coefficients = [7, 2.3, 1.7, 1.4, 1.3, 1.3, 1.2, 1.2]
+    if no_samples <= 0:
+        raise ValueError("Number of samples must be > 0 (%s)" % no_samples)
+    if no_samples <= 8:
+        return coefficients[no_samples - 1]
+    return 1
+
 
 class Model:
 
@@ -201,7 +210,6 @@ class ModelStdev(ModelLinearRegression):
     Simple linear regression model using 3*stddev as error
     """
     ERROR_COEFICIENT = 3
-    UNCERTAINITY = [7, 2.3, 1.7, 1.4, 1.3, 1.3, 1.2, 1.2]
 
     def identify(self, data):
         """
@@ -215,14 +223,11 @@ class ModelStdev(ModelLinearRegression):
         self.model["__metadata__"]["tolerance"] = self.mean_tolerance
         for test in sorted(data.keys()):
             values = [float(_) for _ in data.get(test, {}).values()]
-            if len(values) <= len(self.UNCERTAINITY):
-                uncertainity = self.UNCERTAINITY[len(values) - 1]
-            else:
-                uncertainity = 1
+            uncertainty = get_uncertainty(len(values))
             average = numpy.average(values)
             max_stddev = self.ERROR_COEFICIENT * numpy.std(values)
-            max_value = (average + max_stddev) * uncertainity
-            min_value = (average - max_stddev) * uncertainity
+            max_value = (average + max_stddev) * uncertainty
+            min_value = (average - max_stddev) * uncertainty
             model = self._identify(min_value, max_value)
             if not model:
                 # Singular matrix, not possible to map
@@ -386,8 +391,6 @@ class AveragesModel:
     """
     Model that calculates averages of all builds
     """
-    # Uncertainty to decrease weight in case we don't have enough values
-    UNCERTAINITY = [7, 2.3, 1.7, 1.4, 1.3, 1.3, 1.2, 1.2]
     # Coefficient to catch multi-builds small regressions
     COEFFICIENT = 2
 
@@ -409,7 +412,7 @@ class AveragesModel:
             entry = self.averages[name]
             score = entry[0] / entry[1] * self.COEFFICIENT
             if entry[1] < 8:
-                weight = self.weight / self.UNCERTAINITY[entry[1]]
+                weight = self.weight / get_uncertainty(entry[1])
             else:
                 weight = self.weight
             return [("avg", score, weight)]
@@ -882,60 +885,138 @@ def closest_result(src_path, dst_paths):
     :param src_path: Path to the src result
     :param dst_paths: List of paths to results we are comparing to
     """
+    def norm_normpdf(x, mean, sd):
+        """
+        Normalized normal probability density function
+
+        This calculates the normal pdf and then multiplies it by standard
+        deviation to always scale it as it the std was 1 (useful to compare
+        results with different stds together as if they were alike)
+        """
+        var = float(sd)**2
+        denom = (2*math.pi*var)**.5
+        num = math.exp(-(float(x)-float(mean))**2/(2*var))
+        return num/denom * sd
+
     def process_score(storage, selection):
         """
         Find the highest number in a $storage looking only on items specified
         in the $selection variable.
         """
         score = max(storage[i] for i in selection)
-        if storage.count(score) == 1:
+        count = storage.count(score)
+        LOG.debug("Score: %s (matching %s result(s))", score, count)
+        if count == 1:
             return storage.index(score)
         return [i for i, value in enumerate(storage) if value == score]
 
     def _process_results(dst_paths):
-        storage = collections.defaultdict(dict)
+        storage = collections.defaultdict(
+            lambda: [[None, None] for _ in range(len(dst_paths))])
         for idx, path in enumerate(dst_paths):
             for test, score, _, _ in iter_results(path, True):
-                storage[test][idx] = score
+                if test.endswith("stddev"):
+                    # Skip stddev = 0 as that is basically no stddev
+                    if score == 0:
+                        continue
+                    name = test[:-7]
+                    storage[name][idx][1] = score
+                else:
+                    name = test.rsplit('.', 1)[0]
+                    storage[name][idx][0] = score
         return storage
 
     def _calculate_stats(src, storage):
         def _distance(i, score):
-            return abs(this[i] - score)
+            this_score = this[i][0]
+            if this_score is None:
+                return None
+            return abs(this_score - score)
 
+        # stats is a list of per-cathegory similarities
+        # [0] => score distance calculated from pdf based on sample stddev
+        #        using primary results
+        # [1] => like [0] on secondary results
+        # [2] => score distance calculated from pdf based on scaled stddev
+        #        calculated only on results without stddev using primary
+        #        results
+        # [3] => like [2] but from secondary results
         stats = [[0] * no_results for _ in range(4)]
-        for test, score, primary, _ in src:
+        for test, value in src.items():
+            score, primary, stddev = value
             if test not in storage:
                 continue
             this = storage[test]
             # Distances are in absolute values
-            distances = [_distance(x, score) for x in this]
-            one_third_of_max_distance = max(distances) / 3
-            # Skip results where all distances are 0 (100% match for all)
-            if not one_third_of_max_distance:
-                continue
-            # Normalize distance so they are within 0-3. That way we'd be able
-            # to calculate normal distribution via e^(-1/2*x^2)
-            norm_distances = [_ / one_third_of_max_distance for _ in distances]
-            # Pick the right cathegory to add the scores to
-            if not primary:
-                if not test.endswith("stddev"):
+            if stddev or any(True for _ in this if _[1] is not None):
+                # We know the stddev of all samples of this test. To deal with
+                # uncertainty calculate the average stddev and corect it using
+                # the usual uncertainty ratio based on the number of samples
+                # and to be more lenient towards the usual build-to-build
+                # (provisioning) jittery let's add an extra coefficient of 2.
+                # As this happens for each sample the difference should be
+                # minimal while allowing some score to the slightly jittery
+                # results.
+                stddevs = [_[1] for _ in this if _[1] is not None]
+                if stddev:
+                    stddevs.append(stddev)
+                norm_stddev = (numpy.average(stddevs) *
+                               get_uncertainty(len(stddevs)) * 2)
+                norm_score = [0 if _[0] is None else norm_normpdf(_[0], score, norm_stddev)
+                              for _ in this]
+                if not primary:
                     this_cathegory = stats[1]
                 else:
-                    this_cathegory = stats[3]
-            else:
-                if not test.endswith("stddev"):
                     this_cathegory = stats[0]
+            else:
+                distances = [_distance(x, score) for x in range(len(this))]
+                # Treat missing results by using 2x max distance
+                _bad_distance = max(_ for _ in distances
+                                    if _ is not None) * 2
+                distances = [_bad_distance if _ is None else _
+                             for _ in distances]
+                one_third_of_max_distance = max(distances) / 3
+                # Skip results where all distances are 0 (100% match for all)
+                if not one_third_of_max_distance:
+                    continue
+                # Normalize distance so they are within 0-3. That way we'd be able
+                # to calculate normal distribution via e^(-1/2*x^2)
+                norm_distances = [_ / one_third_of_max_distance for _ in distances]
+                # Calculate the norm distance per each element using simplified
+                # norm because we already normalized the distances to the range
+                # of 0-3
+                norm_score = [math.exp(-1/2 * distance ** 2)
+                              for distance in norm_distances]
+                if not primary:
+                    this_cathegory = stats[3]
                 else:
                     this_cathegory = stats[2]
             # Calculate the norm distance per each element using simplified
             # norm because we already normalized the distances to the range
             # of 0-3
-            for idx, distance in enumerate(norm_distances):
-                this_cathegory[idx] += math.exp(-1/2 * distance ** 2)
+            for idx, result_score in enumerate(norm_score):
+                this_cathegory[idx] += result_score
         return stats
 
-    src = list(iter_results(src_path, True))
+    def _process_src(src_path):
+        src = {}
+        for test, score, primary, _ in iter_results(src_path, True):
+            if test.endswith("stddev"):
+                name = test[:-7]
+                if name not in src:
+                    src[name] = [None, primary, score]
+                else:
+                    src[name][2] = score
+            else:
+                name = test.rsplit('.', 1)[0]
+                if name not in src:
+                    src[name] = [score, primary, None]
+                else:
+                    src[name][0] = score
+                    src[name][1] |= primary
+        return src
+
+    src = _process_src(src_path)
     storage = _process_results(dst_paths)
     no_results = len(dst_paths)
     # Results by category

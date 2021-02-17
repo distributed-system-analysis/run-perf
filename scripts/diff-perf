@@ -14,6 +14,7 @@
 # Author: Lukas Doktor <ldoktor@redhat.com>
 
 import sys
+import traceback
 
 from runperf import DiffPerf
 
@@ -22,7 +23,7 @@ if __name__ == '__main__':
     try:
         ret = DiffPerf()()
     except Exception as details:
-        print(details)
+        traceback.print_exc()
         sys.exit(255)
     if ret > 253:
         ret = 254
