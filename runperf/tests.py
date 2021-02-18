@@ -91,7 +91,7 @@ class BaseTest:
                               for worker in workers}
         meta['workers'] = str_workers
         if session.cmd_status("[ -e '%s' ]" % path) == 0:
-            session.cmd("cp -f '%s' '%s.backup'" % (path, path))
+            session.cmd("cp '%s' '%s.backup'" % (path, path))
             results = json.loads(session.cmd_output("cat '%s'" % path,
                                                     timeout=600,
                                                     print_func='mute'))

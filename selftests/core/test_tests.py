@@ -72,7 +72,7 @@ class PBenchTest(Selftest):
                 test.cleanup()
 
         calls = [exp_cmdline, "[ -e '%s/result.json' ]" % result_path,
-                 "cp -f '%s/result.json' '%s/result.json.backup'"
+                 "cp '%s/result.json' '%s/result.json.backup'"
                  % (result_path, result_path)]
         if "pbench_server_publish" in metadata:
             calls.append('pbench-copy-results --user asdf --prefix fdsa')
