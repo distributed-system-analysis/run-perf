@@ -1,0 +1,410 @@
+##############################################################################
+# Default configuration
+##############################################################################
+- defaults:
+    name: "global"
+    mailto: ""
+    wrappers:
+        - ansicolor
+        - timestamps
+        - workspace-cleanup
+    build-discarder:
+        days-to-keep: 365
+        artifact-num-to-keep: 60
+    # Default runperf params
+    param-distro: ''
+    param-guest-distro: ''
+    param-tests: "'fio:{{\"targets\": \"/fio\"}}' 'uperf:{{\"protocols\": \"tcp\"}}' 'uperf:{{\"protocols\": \"udp\", \"test-types\": \"rr\"}}'"
+    param-profiles: "Localhost DefaultLibvirt TunedLibvirt"
+    param-src-build: '1'
+    param-cmp-tolerance: 5
+    param-cmp-stddev-tolerance: 10
+    param-cmp-model-job: ''
+    param-cmp-model-build: ''
+    param-no-reference-builds: 14
+    param-fio-nbd-setup: false
+    param-upstream-qemu-commit: ''
+    trigger-on: "H 17 * * *"
+    disabled: false
+
+
+##############################################################################
+# Definition for the run-perf execution job
+##############################################################################
+- job-template:
+    name: "{name}"
+    triggers:
+        - timed: "{trigger-on}"
+    project-type: pipeline
+    parameters:
+        - string:
+            name: DISTRO
+            description: 'Distribution to be installed/is installed (Fedora-31), when empty latest el8 nightly build is obtained from bkr'
+            default: "{param-distro}"
+        - string:
+            name: GUEST_DISTRO
+            description: 'Distribution to be installed on guest, when empty "distro" is used'
+            default: "{param-guest-distro}"
+        - string:
+            name: MACHINE
+            description: 'Machine to be provisioned and tested'
+            default: "{param-machine}"
+        - string:
+            name: ARCH
+            description: 'Target machine architecture'
+            default: "{param-arch}"
+        - string:
+            name: TESTS
+            description: 'Space separated list of tests to be executed (WARNING: fio-nbd test requires the FIO_NBD_SETUP checkbox enabled!)'
+            default: "{param-tests}"
+        - string:
+            name: PROFILES
+            description: 'Space separated list of profiles to be applied'
+            default: "{param-profiles}"
+        - string:
+            name: SRC_BUILD
+            description: 'Base build to compare with'
+            default: "{param-src-build}"
+        - string:
+            name: CMP_MODEL_JOB
+            description: 'Job to copy linear "model.json" from'
+            default: "{param-cmp-model-job}"
+        - string:
+            name: CMP_MODEL_BUILD
+            description: 'Build to copy linear "model.json" from (-1 means lastSuccessful)'
+            default: "{param-cmp-model-build}"
+        - string:
+            name: CMP_TOLERANCE
+            description: Tolerance for mean values
+            default: "{param-cmp-tolerance}"
+        - string:
+            name: CMP_STDDEV_TOLERANCE
+            description: Tolerance for standard deviation values
+            default: "{param-cmp-stddev-tolerance}"
+        - string:
+            name: HOST_KERNEL_ARGS
+            description: Add custom kernel arguments on host
+            default: ""
+        - string:
+            name: HOST_BKR_LINKS
+            description: 'Space separated list of urls to be grepped for "http.*$arch\\.rpm" and "http.*noarch\\.rpm", filtered by HOST_BKR_LINKS_FILTER and then set to be installed on host/workers with "--allowerase". Intended usage is to use koji/beaker link like: https://koji.fedoraproject.org/koji/buildinfo?buildID=1534744'
+            default: ""
+        - string:
+            name: HOST_BKR_LINKS_FILTER
+            description: 'Filter to be split and applied via "grep -v -e EXPR1 -e EXPR2 ..."'
+            default: "debug"
+        - string:
+            name: GUEST_KERNEL_ARGS
+            description: Add custom kernel argsuments on workers/guests
+            default: ""
+        - string:
+            name: GUEST_BKR_LINKS
+            description: 'Space separated list of urls to be grepped for "http.*$arch\\.rpm" and "http.*noarch\\.rpm", filtered by GUEST_BKR_LINKS_FILTER and then set to be installed on host/workers with "--allowerase". Intended usage is to use koji/beaker link like: https://koji.fedoraproject.org/koji/buildinfo?buildID=1534744'
+            default: ""
+        - string:
+            name: GUEST_BKR_LINKS_FILTER
+            description: 'Filter to be split and applied via "grep -v -e EXPR1 -e EXPR2 ..."'
+            default: "debug"
+        - bool:
+            name: PBENCH_PUBLISH
+            description: 'Push the pbench results to company pbench server'
+            default: "{param-pbench-publish}"
+        - bool:
+            name: FIO_NBD_SETUP
+            description: 'Compile and install fio with nbd ioengine enabled before test execution'
+            default: "{param-fio-nbd-setup}"
+        - string:
+            name: UPSTREAM_QEMU_COMMIT
+            description: 'Compile and install qemu using provided commit/tag from the upstream git. Use it by using $PROFILE:{{"qemu_bin": "/usr/local/bin/qemu-system-$ARCH"}} when specifying profiles.'
+            default: "{param-upstream-qemu-commit}"
+        - string:
+            name: DESCRIPTION_PREFIX
+            description: Description prefix (describe the difference from default)
+            default: ""
+        - string:
+            name: NO_REFERENCE_BUILDS
+            description: "Number of reference builds for comparison"
+            default: "{param-no-reference-builds}"
+    sandbox: true
+    pipeline-scm:
+        scm:
+            - git:
+                url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
+                branches:
+                    - master
+        script-path: "runperf.groovy"
+        lightweight-checkout: true
+
+
+##############################################################################
+# Definition for the upstream qemu bisect job
+##############################################################################
+- job-template:
+    name: "{name}-bisect-qemu"
+    project-type: pipeline
+    parameters:
+        - string:
+            name: DISTRO
+            description: 'Distribution to be installed/is installed (Fedora-31), when empty latest el8 nightly build is obtained from bkr'
+            default: "{param-distro}"
+        - string:
+            name: GUEST_DISTRO
+            description: 'Distribution to be installed on guest, when empty "distro" is used'
+            default: "{param-guest-distro}"
+        - string:
+            name: MACHINE
+            description: 'Machine to be provisioned and tested'
+            default: "{param-machine}"
+        - string:
+            name: ARCH
+            description: 'Target machine architecture'
+            default: "{param-arch}"
+        - string:
+            name: TESTS
+            description: 'Space separated list of tests to be executed (WARNING: fio-nbd test requires the FIO_NBD_SETUP checkbox enabled!)'
+            default: "{param-tests}"
+        - string:
+            name: PROFILES
+            description: 'Space separated list of profiles to be applied'
+            default: "{param-profiles}"
+        - string:
+            name: SRC_BUILD
+            description: 'Base build to compare with'
+            default: "{param-src-build}"
+        - string:
+            name: CMP_MODEL_JOB
+            description: 'Job to copy linear "model.json" from'
+            default: "{param-cmp-model-job}"
+        - string:
+            name: CMP_MODEL_BUILD
+            description: 'Build to copy linear "model.json" from (-1 means lastSuccessful)'
+            default: "{param-cmp-model-build}"
+        - string:
+            name: CMP_TOLERANCE
+            description: Tolerance for mean values
+            default: "{param-cmp-tolerance}"
+        - string:
+            name: CMP_STDDEV_TOLERANCE
+            description: Tolerance for standard deviation values
+            default: "{param-cmp-stddev-tolerance}"
+        - string:
+            name: HOST_KERNEL_ARGS
+            description: Add custom kernel arguments on host
+            default: ""
+        - string:
+            name: HOST_BKR_LINKS
+            description: 'Space separated list of urls to be grepped for "http.*$arch\\.rpm" and "http.*noarch\\.rpm", filtered by HOST_BKR_LINKS_FILTER and then set to be installed on host/workers with "--allowerase". Intended usage is to use koji/beaker link like: https://koji.fedoraproject.org/koji/buildinfo?buildID=1534744'
+            default: ""
+        - string:
+            name: HOST_BKR_LINKS_FILTER
+            description: 'Filter to be split and applied via "grep -v -e EXPR1 -e EXPR2 ..."'
+            default: "debug"
+        - string:
+            name: GUEST_KERNEL_ARGS
+            description: Add custom kernel argsuments on workers/guests
+            default: ""
+        - string:
+            name: GUEST_BKR_LINKS
+            description: 'Space separated list of urls to be grepped for "http.*$arch\\.rpm" and "http.*noarch\\.rpm", filtered by GUEST_BKR_LINKS_FILTER and then set to be installed on host/workers with "--allowerase". Intended usage is to use koji/beaker link like: https://koji.fedoraproject.org/koji/buildinfo?buildID=1534744'
+            default: ""
+        - string:
+            name: GUEST_BKR_LINKS_FILTER
+            description: 'Filter to be split and applied via "grep -v -e EXPR1 -e EXPR2 ..."'
+            default: "debug"
+        - bool:
+            name: PBENCH_PUBLISH
+            description: 'Push the pbench results to company pbench server'
+            default: "{param-pbench-publish}"
+        - bool:
+            name: FIO_NBD_SETUP
+            description: 'Compile and install fio with nbd ioengine enabled before test execution'
+            default: "{param-fio-nbd-setup}"
+        - string:
+            name: UPSTREAM_QEMU_GOOD
+            description: 'SHA of the last good (older) upstream qemu.'
+            default: "{param-upstream-qemu-commit}"
+        - string:
+            name: UPSTREAM_QEMU_BAD
+            description: 'SHA of the last good (newer) upstream qemu.'
+            default: "{param-upstream-qemu-commit}"
+        - string:
+            name: DESCRIPTION_PREFIX
+            description: Description prefix (describe the difference from default)
+            default: ""
+    sandbox: true
+    pipeline-scm:
+        scm:
+            - git:
+                url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
+                branches:
+                    - master
+        script-path: "upstream_bisect.groovy"
+        lightweight-checkout: true
+
+
+##############################################################################
+# Definition of the analyze-perf job
+##############################################################################
+- job-template:
+    name: "rp-analysis-{user}"
+    project-type: pipeline
+    concurrent: false
+    description: |
+        This job allows to cherry-pick results from runperf job and redo the analysis. It is
+        not thread-safe, therefor it is advised to copy this job with user-suffix and run
+        the analysis in series storing the graphs manually before submitting next comparison.
+    parameters:
+        - string:
+            name: SRC_JOB
+            default: "{param-src-job}"
+            desciption: Source jenkins job
+        - string:
+            name: BUILDS
+            default: ""
+            description: "List of space separated build numbers to be analyzed, first build is used as source build (not included in graphs)"
+        - string:
+            name: DESCRIPTION
+            default: ""
+            description: Description of this analysis
+        - string:
+            name: CMP_MODEL_JOB
+            description: 'Job to copy linear "model.json" from'
+            default: "{param-cmp-model-job}"
+        - string:
+            name: CMP_MODEL_BUILD
+            description: 'Build to copy linear "model.json" from (-1 means lastSuccessful)'
+            default: "{param-cmp-model-build}"
+        - string:
+            name: CMP_TOLERANCE
+            description: Tolerance for mean values
+            default: "{param-cmp-tolerance}"
+        - string:
+            name: CMP_STDDEV_TOLERANCE
+            description: Tolerance for standard deviation values
+            default: "{param-cmp-stddev-tolerance}"
+    sandbox: true
+    pipeline-scm:
+        scm:
+            - git:
+                url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
+                branches:
+                    - master
+        script-path: "compareperf.groovy"
+        lightweight-checkout: true
+
+
+##############################################################################
+# Definition of the analyze-perf job
+##############################################################################
+- job-template:
+    name: "{name}-identify"
+    project-type: pipeline
+    description: |
+        This job uses analyze-perf script to create model that can be used to better
+        evaluate run-perf results.
+    parameters:
+        - string:
+            name: SRC_JOB
+            default: "{name}"
+            desciption: Source jenkins job
+        - string:
+            name: BUILDS
+            default: ""
+            description: "List of space separated build numbers to be used"
+        - string:
+            name: DESCRIPTION
+            default: ""
+            description: Free-form description
+        - string:
+            name: EXTRA_ARGS
+            default: ""
+            description: Additional analyze-perf arguments, for example -t to override default tolerance
+    sandbox: true
+    pipeline-scm:
+        scm:
+            - git:
+                url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
+                branches:
+                    - master
+        script-path: "identify.groovy"
+        lightweight-checkout: true
+
+
+##############################################################################
+# Definition of the prune artifacts job
+##############################################################################
+- job-template:
+    name: "rp-prune-artifacts"
+    node: master
+    description: |
+        Remove the big tar.xz files from oldish results not tagged
+        as keep-forewer.
+    parameters:
+        - string:
+            name: JOB
+            default: ""
+            description: Name of the job to be pruned
+        - string:
+            name: AGE
+            default: "{param-age}"
+            description: How old results should be pruned
+    builders:
+        - python:
+            !include-raw-escape ../scripts/prune_artifacts.py
+
+###############################################################################
+## Project to define jobs for automated regression jobs on example.org machine
+###############################################################################
+#- project:
+#    name: rp-example
+#    param-machine: "example.org"
+#    param-arch: "x86_64"
+#    param-src-build: 1
+#    param-cmp-model-job: "{name}-identify"
+#    param-cmp-model-build: -1
+#    param-pbench-publish: true
+#    jobs:
+#        - "{name}"
+#        - "{name}-identify"
+#
+#
+###############################################################################
+## Project to define manual jobs for example.org machine
+###############################################################################
+#- project:
+#    name: rp-example-manual
+#    param-machine: "example.org"
+#    param-arch: "x86_64"
+#    param-distro: "YOUR STABLE RELEASE"
+#    param-src-build: 1
+#    param-cmp-model-job: "rp-example-manual-identify"
+#    param-cmp-model-build: 1
+#    param-pbench-publish: false
+#    trigger-on: ""
+#    jobs:
+#        - "{name}"
+#        - "{name}-identify"
+#
+#
+###############################################################################
+## Project to allow users to run custom queries out of existing results
+###############################################################################
+#- project:
+#    name: rp-analysis
+#    user:
+#        - virt
+#    param-src-job: "rp-example-manual"
+#    param-cmp-model-job: "rp-example-manual-identify"
+#    param-cmp-model-build: 1
+#    jobs:
+#        - "rp-analysis-{user}"
+#
+###############################################################################
+## Prune artifacts after 14 days, hopefully we would notice and mark/move
+## them when full details are needed.
+###############################################################################
+#- project:
+#    name: rp-prune-artifacts
+#    param-age: 14
+#    jobs:
+#        - "rp-prune-artifacts"
