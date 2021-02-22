@@ -343,6 +343,11 @@ def iter_results(path, skip_incorrect=False):
                 primary_metrics.append(primary_metric)
             test_params[i] = "\n".join("%s:%s" % item
                                        for item in benchmark.items())
+        for i, benchmark in enumerate(data['parameters'].get('user',
+                                                             [])):
+            if "profile" in benchmark:
+                test_params["user%s" % i] = ("profile: %s"
+                                             % benchmark["profile"])
         for workflow in ('throughput', 'latency'):
             workflow_items = data.get(workflow, {}).items()
             for workflow_type, results in workflow_items:
