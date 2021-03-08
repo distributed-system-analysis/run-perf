@@ -34,7 +34,7 @@ The latest addition is an upstream qemu bisect pipeline called
 
 All of these can be easily defined via `Jenkins Job Builder <https://docs.openstack.org/infra/jenkins-job-builder/>`_:
 
-.. literalinclude:: jenkins/jobs.yml
+.. literalinclude:: jenkins/jobs.yaml
 
 Now let's have a look at the ``runperf.groovy`` pipeline:
 

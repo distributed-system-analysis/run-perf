@@ -29,7 +29,7 @@ stage('Analyze') {
         lock (worker_node) {
             // Avoid modifying worker_node's environment while executing compareperf
             sh 'python3 setup.py develop --user'
-            status = sh returnStatus: true, script:  "python3 scripts/analyze-perf -vvv -l model.json " + extra_args + " -- results/*"
+            status = sh returnStatus: true, script:  "python3 scripts/analyze-perf -vvv --stddev-linear-regression model.json " + extra_args + " -- results/*"
         }
         if (fileExists('model.json')) {
             // This could mean there were no tests to compare or other failures, interrupt the build
