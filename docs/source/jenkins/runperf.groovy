@@ -173,11 +173,10 @@ node(worker_node) {
     stage('Compare') {
         // Get up to no_reference_builds json results to use as a reference
         reference_builds = []
-        latestBuild = Jenkins.instance.getItem(env.JOB_NAME).lastCompletedBuild.number
-        for (i=latestBuild; i > 0; i--) {
-            copyArtifacts filter: 'result*/**/*.json,result*/RUNPERF_METADATA', optional: true, fingerprintArtifacts: true, projectName: env.JOB_NAME, selector: specific("$i"), target: "reference_builds/${i}/"
-            if (fileExists("reference_builds/${i}")) {
-                reference_builds.add("${i}:" + sh(returnStdout: true, script: "echo reference_builds/${i}/*").trim())
+        for (build in get_good_build_numbers(env.JOB_NAME)) {
+            copyArtifacts filter: 'result*/**/*.json,result*/RUNPERF_METADATA', optional: true, fingerprintArtifacts: true, projectName: env.JOB_NAME, selector: specific("${build}"), target: "reference_builds/${build}/"
+            if (fileExists("reference_builds/${build}")) {
+                reference_builds.add("${build}:" + sh(returnStdout: true, script: "echo reference_builds/${build}/*").trim())
                 if (reference_builds.size() >= no_reference_builds) {
                     break
                 }
@@ -227,4 +226,23 @@ node(worker_node) {
                quietPeriod: 0,
                wait: false)
     }
+}
+
+
+@NonCPS
+def get_good_build_numbers(job_name) {
+    // Build is non-serializable object, we have to use NonCPS
+    // on the other hand we can not use copyArtifacts inside NonCPS
+    // therefore we have to only query for all descriptions and
+    // then iterate throught them, because we don't know how many
+    // builds we are going to need (copyArtifacts can fail)
+    builds = []
+    for (build in Jenkins.instance.getJob(env.JOB_NAME).builds) {
+        if (build?.description?.startsWith("BAD")) {
+            println("skip ${build.description} ${build.number}")
+        } else {
+            builds.add(build.number)
+        }
+    }
+    return builds
 }
