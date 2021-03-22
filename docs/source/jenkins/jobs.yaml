@@ -205,7 +205,7 @@
             default: "{param-upstream-qemu-commit}"
         - string:
             name: UPSTREAM_QEMU_BAD
-            description: 'SHA of the last good (newer) upstream qemu.'
+            description: 'SHA of the last bad (newer) upstream qemu.'
             default: "{param-upstream-qemu-commit}"
         - string:
             name: DESCRIPTION_PREFIX
