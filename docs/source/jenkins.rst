@@ -59,3 +59,7 @@ The cleanup job ``prune_artifacts.py``:
 And a bisect job ``upstream_bisect.groovy``:
 
 .. literalinclude:: jenkins/upstream_bisect.groovy
+
+And a range job to trigger multiple runperf jobs:
+
+.. literalinclude:: jenkins/multi_runperf.groovy

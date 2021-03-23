@@ -205,7 +205,7 @@
             default: "{param-upstream-qemu-commit}"
         - string:
             name: UPSTREAM_QEMU_BAD
-            description: 'SHA of the last good (newer) upstream qemu.'
+            description: 'SHA of the last bad (newer) upstream qemu.'
             default: "{param-upstream-qemu-commit}"
         - string:
             name: DESCRIPTION_PREFIX
@@ -219,6 +219,113 @@
                 branches:
                     - master
         script-path: "upstream_bisect.groovy"
+        lightweight-checkout: true
+
+
+##############################################################################
+# Definition for a multi-run-perf execution job
+##############################################################################
+- job-template:
+    name: "{name}-multi"
+    project-type: pipeline
+    parameters:
+        - string:
+            name: JOB_NAME
+            description: 'Name of the run-perf job to be used for triggering the tests.\nWarning: there might be concurrency issues in case one attempts to concurrently schedule jobs!'
+            default: "{param-job}"
+        - string:
+            name: MACHINE
+            description: 'Machine to be provisioned and tested'
+            default: "{param-machine}"
+        - string:
+            name: ARCH
+            description: 'Target machine architecture'
+            default: "{param-arch}"
+        - string:
+            name: TESTS
+            description: 'Space separated list of tests to be executed (WARNING: fio-nbd test requires the FIO_NBD_SETUP checkbox enabled!)'
+            default: "{param-tests}"
+        - string:
+            name: PROFILES
+            description: 'Space separated list of profiles to be applied'
+            default: "{param-profiles}"
+        - string:
+            name: CMP_MODEL_JOB
+            description: 'Job to copy linear "model.json" from'
+            default: "{param-cmp-model-job}"
+        - string:
+            name: CMP_MODEL_BUILD
+            description: 'Build to copy linear "model.json" from (-1 means lastSuccessful)'
+            default: "{param-cmp-model-build}"
+        - string:
+            name: CMP_TOLERANCE
+            description: Tolerance for mean values
+            default: "{param-cmp-tolerance}"
+        - string:
+            name: CMP_STDDEV_TOLERANCE
+            description: Tolerance for standard deviation values
+            default: "{param-cmp-stddev-tolerance}"
+        - bool:
+            name: FIO_NBD_SETUP
+            description: 'Compile and install fio with nbd ioengine enabled before test execution'
+            default: "{param-fio-nbd-setup}"
+        - string:
+            name: DESCRIPTION_PREFIX
+            description: Description prefix (describe the difference from default)
+            default: ""
+        - bool:
+            name: PBENCH_PUBLISH
+            description: 'Push the pbench results to company pbench server'
+            default: "{param-pbench-publish}"
+
+        - string:
+            name: NO_ITERATIONS
+            description: 'How many times to run each iteration'
+            default: ''
+        - string:
+            name: DISTROS
+            description: '`;` separated list of distributions to be installed/is installed (Fedora-31), when empty latest el8 nightly build is obtained from bkr, when `..` is used it uses bkr to fill all available versions in between the specified versions'
+            default: "{param-distro}"
+        - string:
+            name: GUEST_DISTROS
+            description: '`;` separated list of distribution to be installed on guest, when empty "distro" is used, when `..` is used it uses bkr to fill all available versions in between the specified versions'
+            default: "{param-guest-distro}"
+        - string:
+            name: HOST_KERNEL_ARGSS
+            description: '`;` separated list of Add custom kernel arguments on host'
+            default: ""
+        - string:
+            name: HOST_BKR_LINKSS
+            description: '`;` separated list of space separated lists of urls to be grepped for "http.*$arch\\.rpm" and "http.*noarch\\.rpm", filtered by HOST_BKR_LINKS_FILTER and then set to be installed on host/workers with "--allowerase". Intended usage is to use koji/beaker link like: https://koji.fedoraproject.org/koji/buildinfo?buildID=1534744'
+            default: ""
+        - string:
+            name: HOST_BKR_LINKS_FILTER
+            description: 'Filter to be split and applied via "grep -v -e EXPR1 -e EXPR2 ..."'
+            default: "debug"
+        - string:
+            name: GUEST_KERNEL_ARGSS
+            description: '`;` separated list of custom kernel argsuments on workers/guests'
+            default: ""
+        - string:
+            name: GUEST_BKR_LINKSS
+            description: '`;` separated list of space separated lists of urls to be grepped for "http.*$arch\\.rpm" and "http.*noarch\\.rpm", filtered by GUEST_BKR_LINKS_FILTER and then set to be installed on host/workers with "--allowerase". Intended usage is to use koji/beaker link like: https://koji.fedoraproject.org/koji/buildinfo?buildID=1534744'
+            default: ""
+        - string:
+            name: GUEST_BKR_LINKS_FILTER
+            description: 'Filter to be split and applied via "grep -v -e EXPR1 -e EXPR2 ..."'
+            default: "debug"
+        - string:
+            name: UPSTREAM_QEMU_COMMITS
+            description: '`;` separated list of qemu commit/tags to be deployed from the upstream git. Use it by using $PROFILE:{{"qemu_bin": "/usr/local/bin/qemu-system-$ARCH"}} when specifying profiles.'
+            default: "{param-upstream-qemu-commit}"
+    sandbox: true
+    pipeline-scm:
+        scm:
+            - git:
+                url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
+                branches:
+                    - master
+        script-path: "multi_runperf.groovy"
         lightweight-checkout: true
 
 
@@ -360,10 +467,14 @@
 #    param-cmp-model-job: "rp-example-manual-identify"
 #    param-cmp-model-build: 1
 #    param-pbench-publish: false
+#    param-job: "{name}"
 #    trigger-on: ""
 #    jobs:
 #        - "{name}"
 #        - "{name}-identify"
+#        - "{name}-multi":
+#            param-cmp-model-job: ''
+#            param-cmp-model-build: ''
 #
 #
 ###############################################################################
