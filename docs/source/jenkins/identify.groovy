@@ -2,20 +2,23 @@
 // Following `params` have to be defined in job (eg. via jenkins-job-builder)
 
 // Source jenkins job
-def src_job = params.SRC_JOB
+src_job = params.SRC_JOB
 // List of space separated build numbers to be analyzed, first build is used
 // as source build (not included in graphs)
-def builds = params.BUILDS.split().toList()
+builds = params.BUILDS.split().toList()
 // Description of this analysis
-def description = params.DESCRIPTION
+description = params.DESCRIPTION
 // Extra AnalyzePerf arguments
-def extra_args = params.EXTRA_ARGS
+extra_args = params.EXTRA_ARGS
 
 // Extra variables
 // Provisioner machine
-def worker_node = 'runperf-slave1'
+worker_node = 'runperf-slave1'
 // runperf git branch
-def git_branch = 'master'
+git_branch = 'master'
+// misc variables
+model_file = 'model.json'
+space_chr = ' '
 
 stage('Analyze') {
     node (worker_node) {
@@ -23,25 +26,32 @@ stage('Analyze') {
         sh '\\rm -Rf results* model.json'
         // Get all the specified builds
         for (build in builds) {
-            copyArtifacts filter: 'result*/**/*.json', optional: false, fingerprintArtifacts: true, projectName: src_job, selector: specific(build), target: 'results/'
+            copyArtifacts(filter: 'result*/**/*.json', optional: false, fingerprintArtifacts: true,
+                          projectName: src_job, selector: specific(build), target: 'results/')
         }
-        def status = 0
+        status = 0
         lock (worker_node) {
             // Avoid modifying worker_node's environment while executing compareperf
             sh 'python3 setup.py develop --user'
-            status = sh returnStatus: true, script:  "python3 scripts/analyze-perf -vvv --stddev-linear-regression model.json " + extra_args + " -- results/*"
+            status = sh(returnStatus: true,
+                        script: ('python3 scripts/analyze-perf -vvv --stddev-linear-regression ' +
+                                 model_json + space_chr + extra_args + ' -- results/*'))
         }
-        if (fileExists('model.json')) {
+        if (fileExists(model_file)) {
             // This could mean there were no tests to compare or other failures, interrupt the build
             if (status) {
                 echo "Non-zero exit status: ${status}"
             }
         } else {
             currentBuild.result = 'FAILED'
-            error "Missing model.json, exit code: ${status}"
+            error "Missing ${model_file}, exit code: ${status}"
         }
-        currentBuild.description = builds.join(' ')
-        archiveArtifacts allowEmptyArchive: true, artifacts: 'model.json'
+        if (description) {
+            currentBuild.description = description + space_chr + builds.join(space_chr)
+        } else {
+            currentBuild.description = builds.join(space_chr)
+        }
+        archiveArtifacts allowEmptyArchive: true, artifacts: model_file
         sh '\\rm -Rf results*'
     }
 }
