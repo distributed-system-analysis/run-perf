@@ -2,162 +2,187 @@
 // Following `params` have to be defined in job (eg. via jenkins-job-builder)
 
 // Machine to be provisioned and tested
-def machine = params.MACHINE
+machine = params.MACHINE
 // target machine's architecture
-def arch = params.ARCH
+arch = params.ARCH
 // Distribution to be installed/is installed (Fedora-32)
 // when empty it will pick the latest available nightly el8
-def distro = params.DISTRO
+distro = params.DISTRO
 // Distribution to be installed on guest, when empty "distro" is used
-def guest_distro = params.GUEST_DISTRO
+guestDistro = params.GUEST_DISTRO
 // Space separated list of tests to be executed
-def tests = params.TESTS
+tests = params.TESTS
 // Space separated list of profiles to be applied
-def profiles = params.PROFILES
+profiles = params.PROFILES
 // Base build to compare with
-def src_build = params.SRC_BUILD
+srcBuild = params.SRC_BUILD
 // Compareperf tollerances
-def cmp_model_job = params.CMP_MODEL_JOB
-def cmp_model_build = params.CMP_MODEL_BUILD
-def cmp_tolerance = params.CMP_TOLERANCE
-def cmp_stddev_tolerance = params.CMP_STDDEV_TOLERANCE
+cmpModelJob = params.CMP_MODEL_JOB
+cmpModelBuild = params.CMP_MODEL_BUILD
+cmpTolerance = params.CMP_TOLERANCE
+cmpStddevTolerance = params.CMP_STDDEV_TOLERANCE
 // Add custom kernel arguments on host
-host_kernel_args = params.HOST_KERNEL_ARGS
+hostKernelArgs = params.HOST_KERNEL_ARGS
 // Install rpms from (beaker) urls
-host_bkr_links = params.HOST_BKR_LINKS
-// filters for host_bkr_links
-host_bkr_links_filter = params.HOST_BKR_LINKS_FILTER
+hostBkrLinks = params.HOST_BKR_LINKS
+// filters for hostBkrLinks
+hostBkrLinksFilter = params.HOST_BKR_LINKS_FILTER
 // Add custom kernel argsuments on workers/guests
-guest_kernel_args = params.GUEST_KERNEL_ARGS
+guestKernelArgs = params.GUEST_KERNEL_ARGS
 // Install rpms from (beaker) urls
-guest_bkr_links = GUEST_BKR_LINKS
-// filters for guest_bkr_links
-guest_bkr_links_filter = params.GUEST_BKR_LINKS_FILTER
+guestBkrLinks = GUEST_BKR_LINKS
+// filters for guestBkrLinks
+guestBkrLinksFilter = params.GUEST_BKR_LINKS_FILTER
 // Add steps to fetch, compile and install the upstream fio with nbd ioengine compiled in
-def fio_nbd_setup = params.FIO_NBD_SETUP
+fioNbdSetup = params.FIO_NBD_SETUP
 // Add steps to checkout, compile and install the upstream qemu from git
-def upstream_qemu_commit = params.UPSTREAM_QEMU_COMMIT
+upstreamQemuCommit = params.UPSTREAM_QEMU_COMMIT
 // Description prefix (describe the difference from default)
-def description_prefix = params.DESCRIPTION_PREFIX
+descriptionPrefix = params.DESCRIPTION_PREFIX
 // Number of reference builds
-def no_reference_builds = params.NO_REFERENCE_BUILDS.toInteger()
+noReferenceBuilds = params.NO_REFERENCE_BUILDS.toInteger()
 // Pbench-publish related options
-def pbench_publish = params.PBENCH_PUBLISH
+pbenchPublish = params.PBENCH_PUBLISH
 
 // Extra variables
 // Provisioner machine
-def worker_node = 'runperf-slave1'
+workerNode = 'runperf-slave1'
 // runperf git branch
-def git_branch = 'master'
+gitBranch = 'master'
 // extra runperf arguments
-def extra_args = ""
+extraArgs = ''
+// misc variables
+resultXml = 'result.xml'
+htmlPath = 'html'
+htmlFile = 'index.html'
+htmlIndex = "${htmlPath}/${htmlFile}"
+modelJson = 'model.json'
+thisPath = '.'
+runperfResultsFilter = 'result*/**/*.json,result*/RUNPERF_METADATA'
+makeInstallCmd = '\nmake -j $(getconf _NPROCESSORS_ONLN)\nmake install'
+pythonDeployCmd = 'python3 setup.py develop --user'
 
-node(worker_node) {
+String getBkrInstallCmd(String hostBkrLinks, String hostBkrLinksFilter, String arch) {
+    return ('\nfor url in ' + hostBkrLinks + '; do dnf install -y --allowerasing ' +
+            '$(curl -k \$url | grep -o -e "http[^\\"]*' + arch + '\\.rpm" -e ' +
+            '"http[^\\"]*noarch\\.rpm" | grep -v $(for expr in ' + hostBkrLinksFilter + '; do ' +
+            'echo -n " -e $expr"; done)); done')
+}
+
+node(workerNode) {
     stage('Preprocess') {
         // User-defined distro or use bkr to get latest RHEL-8.0*
         if (distro) {
             echo "Using distro ${distro} from params"
         } else {
-            distro = sh(returnStdout: true, script: 'echo -n $(bkr distro-trees-list --arch x86_64 --name="%8.0%.n.%" --family RedHatEnterpriseLinux8 --limit 1 --labcontroller $ENTER_LAB_CONTROLLER_URL | grep Name: | cut -d":" -f2 | xargs | cut -d" " -f1)')
+            distro = sh(returnStdout: true,
+                        script: ('echo -n $(bkr distro-trees-list --arch x86_64 --name="%8.0%.n.%" '
+                                 '--family RedHatEnterpriseLinux8 --limit 1 --labcontroller '
+                                 '$ENTER_LAB_CONTROLLER_URL | grep Name: | cut -d":" -f2 | xargs | '
+                                 'cut -d" " -f1)'))
             echo "Using latest distro ${distro} from bkr"
         }
-        if (! guest_distro) {
-            guest_distro == distro
+        if (! guestDistro) {
+            guestDistro == distro
         }
-        if (guest_distro == distro) {
+        if (guestDistro == distro) {
             echo "Using the same guest distro ${distro}"
         } else {
-            echo "Using different guest distro: ${guest_distro} from host: ${distro}"
+            echo "Using different guest distro: ${guestDistro} from host: ${distro}"
         }
-
     }
 
     stage('Measure') {
-        git branch: git_branch, url: 'https://github.com/distributed-system-analysis/run-perf.git'
+        git branch: gitBranch, url: 'https://github.com/distributed-system-analysis/run-perf.git'
         // This way we add downstream plugins and other configuration
-        dir("downstream_config") {
-            git branch: 'master', url: 'git://PATH_TO_YOUR_REPO_WITH_PIPELINES/runperf_config.git'
-            sh 'python3 setup.py develop --user'
+        dir('downstream_config') {
+            git branch: gitBranch, url: 'git://PATH_TO_YOUR_REPO_WITH_PIPELINES/runperf_config.git'
+            sh pythonDeployCmd
         }
         // Remove files that might have been left behind
-        sh '\\rm -Rf result* src_result* reference_builds html'
-        sh "mkdir html"
-        sh 'python3 setup.py develop --user'
-        def host_script = ''
-        def guest_script = ''
-        def metadata = ''
+        sh "\\rm -Rf result* src_result* reference_builds ${htmlPath}"
+        sh "mkdir ${htmlPath}"
+        sh pythonDeployCmd
+        hostScript = ''
+        guestScript = ''
+        metadata = ''
         // Use grubby to update default args on host
-        if (host_kernel_args) {
-            host_script += "\ngrubby --args '${host_kernel_args}' --update-kernel=\$(grubby --default-kernel)"
+        if (hostKernelArgs) {
+            hostScript += "\ngrubby --args '${hostKernelArgs}' --update-kernel=\$(grubby --default-kernel)"
         }
         // Ugly way of installing all arch's rpms from a site, allowing a filter
         // this is usually used on koji/brew to allow updating certain packages
         // warning: It does not work when the url rpm is older.
-        if (host_bkr_links) {
-            host_script += "\nfor url in ${host_bkr_links}; do dnf install -y --allowerasing \$(curl -k \$url | grep -o -e \"http[^\\\"]*${arch}\\.rpm\" -e \"http[^\\\"]*noarch\\.rpm\" | grep -v \$(for expr in ${host_bkr_links_filter}; do echo -n \" -e \$expr\"; done)); done"
+        if (hostBkrLinks) {
+            hostScript += getBkrInstallCmd(hostBkrLinks, hostBkrLinksFilter, arch)
         }
         // The same on guest
-        if (guest_kernel_args) {
-            guest_script += "\ngrubby --args '${guest_kernel_args}' --update-kernel=\$(grubby --default-kernel)"
+        if (guestKernelArgs) {
+            guestScript += "\ngrubby --args '${guestKernelArgs}' --update-kernel=\$(grubby --default-kernel)"
         }
         // The same on guest
-        if (guest_bkr_links) {
-            guest_script += "\nfor url in ${guest_bkr_links}; do dnf install -y --allowerasing \$(curl -k \$url | grep -o -e \"http[^\\\"]*${arch}\\.rpm\" -e \"http[^\\\"]*noarch\\.rpm\" | grep -v \$(for expr in ${guest_bkr_links_filter}; do echo -n \" -e \$expr\"; done)); done"
+        if (guestBkrLinks) {
+            getBkrInstallCmd(guestBkrLinks, guestBkrLinksFilter, arch)
         }
         // Install deps and compile custom fio with nbd ioengine
-        if (fio_nbd_setup) {
-            host_script += '\n\n# FIO_NBD_SETUP'
-            host_script += "\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img libaio-devel"
-            host_script += "\ncd /tmp"
-            host_script += "\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz"
-            host_script += "\ncd fio-fio-3.19"
-            host_script += "\n./configure --enable-libnbd"
-            host_script += "\nmake -j 8"
-            host_script += "\nmake install"
-            guest_script += '\n\n# FIO_NBD_SETUP'
-            guest_script += "\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img libaio-devel"
-            guest_script += "\ncd /tmp"
-            guest_script += "\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz"
-            guest_script += "\ncd fio-fio-3.19"
-            guest_script += "\n./configure --enable-libnbd"
-            guest_script += "\nmake -j 8"
-            guest_script += "\nmake install"
+        if (fioNbdSetup) {
+            nbdSetupScript = ('\n\n# FIO_NBD_SETUP' +
+                              '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img ' +
+                              'libaio-devel' +
+                              '\ncd /tmp' +
+                              '\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz' +
+                              '\ncd fio-fio-3.19' +
+                              '\n./configure --enable-libnbd' +
+                              makeInstallCmd)
+            hostScript += nbdSetupScript
+            guestScript += nbdSetupScript
         }
         // Build custom qemu
-        if (upstream_qemu_commit) {
-            host_script += '\n\n# UPSTREAM_QEMU_SETUP'
-            host_script += '\nOLD_PWD="$PWD"'
-            host_script += '\ndnf install --skip-broken -y python3-devel zlib-devel gtk3-devel glib2-static spice-server-devel usbredir-devel make gcc libseccomp-devel numactl-devel libaio-devel git ninja-build'
-            host_script += '\ncd /root'
-            host_script += '\n[ -e "qemu" ] || { mkdir qemu; cd qemu; git init; git remote add origin https://github.com/qemu/qemu; cd ..; }'
-            host_script += '\ncd qemu'
-            host_script += "\ngit fetch --depth=1 origin ${upstream_qemu_commit}"
-            host_script += "\ngit checkout -f ${upstream_qemu_commit}"
-            host_script += '\ngit submodule update --init'
-            host_script += '\nVERSION=$(git rev-parse HEAD)'
-            host_script += '\ngit diff --quiet || VERSION+="-dirty"'
-            host_script += '\n./configure --target-list="$(uname -m)"-softmmu --disable-werror --enable-kvm --enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp --enable-spice --enable-usb-redir --with-pkgversion="$VERSION"'
-            host_script += '\nmake -j $(getconf _NPROCESSORS_ONLN)'
-            host_script += '\nmake install'
-            host_script += '\nchcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"'
-            host_script += '\n\\cp -f build/config.status /usr/local/share/qemu/'
-            host_script += '\ncd $OLD_PWD'
+        if (upstreamQemuCommit) {
+            hostScript += '\n\n# UPSTREAM_QEMU_SETUP'
+            hostScript += '\nOLD_PWD="$PWD"'
+            hostScript += '\ndnf install --skip-broken -y python3-devel zlib-devel gtk3-devel glib2-static '
+            hostScript += 'spice-server-devel usbredir-devel make gcc libseccomp-devel numactl-devel '
+            hostScript += 'libaio-devel git ninja-build'
+            hostScript += '\ncd /root'
+            hostScript += '\n[ -e "qemu" ] || { mkdir qemu; cd qemu; git init; git remote add origin '
+            hostScript += 'https://github.com/qemu/qemu; cd ..; }'
+            hostScript += '\ncd qemu'
+            hostScript += "\ngit fetch --depth=1 origin ${upstreamQemuCommit}"
+            hostScript += "\ngit checkout -f ${upstreamQemuCommit}"
+            hostScript += '\ngit submodule update --init'
+            hostScript += '\nVERSION=$(git rev-parse HEAD)'
+            hostScript += '\ngit diff --quiet || VERSION+="-dirty"'
+            hostScript += '\n./configure --target-list="$(uname -m)"-softmmu --disable-werror --enable-kvm '
+            hostScript += '--enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp '
+            hostScript += '--enable-spice --enable-usb-redir --with-pkgversion="$VERSION"'
+            hostScript += makeInstallCmd
+            hostScript += '\nchcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"'
+            hostScript += '\n\\cp -f build/config.status /usr/local/share/qemu/'
+            hostScript += '\ncd $OLD_PWD'
         }
-        if (host_script) {
-            writeFile file: 'host_script', text: host_script
-            extra_args += " --host-setup-script host_script --host-setup-script-reboot"
+        if (hostScript) {
+            writeFile file: 'host_script', text: hostScript
+            extraArgs += ' --host-setup-script host_script --host-setup-script-reboot'
         }
-        if (guest_script) {
-            writeFile file: 'worker_script', text: guest_script
-            extra_args += " --worker-setup-script worker_script"
+        if (guestScript) {
+            writeFile file: 'worker_script', text: guestScript
+            extraArgs += ' --worker-setup-script worker_script'
         }
-        if (pbench_publish) {
-            metadata += " pbench_server_publish=yes"
+        if (pbenchPublish) {
+            metadata += ' pbench_server_publish=yes'
         }
         // Using jenkins locking to prevent multiple access to a single machine
         lock(machine) {
             sh '$KINIT'
-            sh "python3 scripts/run-perf ${extra_args} -vvv --hosts ${machine} --distro ${distro} --provisioner Beaker --default-password YOUR_DEFAULT_PASSWORD --profiles ${profiles} --paths ./downstream_config --metadata 'build=${currentBuild.number}${description_prefix}' 'url=${currentBuild.absoluteUrl}' 'project=YOUR_PROJECT_ID ${currentBuild.projectName}' 'pbench_server=YOUR_PBENCH_SERVER_URL' 'machine_url_base=https://YOUR_BEAKER_URL/view/%(machine)s' ${metadata} -- ${tests}"
+            sh("python3 scripts/run-perf ${extraArgs} -vvv --hosts ${machine} --distro ${distro} " +
+               "--provisioner Beaker --default-password YOUR_DEFAULT_PASSWORD --profiles ${profiles} " +
+               '--paths ./downstream_config --metadata ' +
+               "'build=${currentBuild.number}${descriptionPrefix}' " +
+               "'url=${currentBuild.absoluteUrl}' 'project=YOUR_PROJECT_ID ${currentBuild.projectName}' " +
+               "'pbench_server=YOUR_PBENCH_SERVER_URL' " +
+               "'machine_url_base=https://YOUR_BEAKER_URL/view/%(machine)s' " +
+               "${metadata} -- ${tests}")
             sh "echo >> \$(echo -n result*)/RUNPERF_METADATA"       // Add new-line after runperf output
         }
     }
@@ -166,79 +191,90 @@ node(worker_node) {
         // Archive only "result_*" as we don't want to archive "resultsNoArchive"
         sh returnStatus: true, script: 'tar cf - result_* | xz -T2 -7e - > "$(echo result_*)".tar.xz'
         archiveArtifacts allowEmptyArchive: true, artifacts: 'result_*.tar.xz'
-        archiveArtifacts allowEmptyArchive: true, artifacts: 'result*/*/*/*/*.json'
-        archiveArtifacts allowEmptyArchive: true, artifacts: 'result*/RUNPERF_METADATA'
+        archiveArtifacts allowEmptyArchive: true, artifacts: runperfResultsFilter
     }
 
     stage('Compare') {
-        // Get up to no_reference_builds json results to use as a reference
-        reference_builds = []
-        for (build in get_good_build_numbers(env.JOB_NAME)) {
-            copyArtifacts filter: 'result*/**/*.json,result*/RUNPERF_METADATA', optional: true, fingerprintArtifacts: true, projectName: env.JOB_NAME, selector: specific("${build}"), target: "reference_builds/${build}/"
+        // Get up to noReferenceBuilds json results to use as a reference
+        referenceBuilds = []
+        for (build in getGoodBuildNumbers(env.JOB_NAME)) {
+            copyArtifacts(filter: runperfResultsFilter, optional: true,
+                          fingerprintArtifacts: true, projectName: env.JOB_NAME, selector: specific("${build}"),
+                          target: "reference_builds/${build}/")
             if (fileExists("reference_builds/${build}")) {
-                reference_builds.add("${build}:" + sh(returnStdout: true, script: "echo reference_builds/${build}/*").trim())
-                if (reference_builds.size() >= no_reference_builds) {
+                referenceBuilds.add("${build}:" + sh(returnStdout: true,
+                                     script: "echo reference_builds/${build}/*").trim())
+                if (referenceBuilds.size() >= noReferenceBuilds) {
                     break
                 }
             }
         }
         // Get src build's json results to compare against
-        copyArtifacts filter: 'result*/**/*.json,result*/RUNPERF_METADATA', optional: true, fingerprintArtifacts: true, projectName: env.JOB_NAME, selector: specific(src_build), target: 'src_result/'
+        copyArtifacts(filter: runperfResultsFilter, optional: true,
+                      fingerprintArtifacts: true, projectName: env.JOB_NAME, selector: specific(srcBuild),
+                      target: 'src_result/')
         // If model build set get the model from it's job
-        if (cmp_model_build) {
-            if (cmp_model_build == '-1') {
-                copyArtifacts filter: 'model.json', optional: false, fingerprintArtifacts: true, projectName: cmp_model_job, selector: lastSuccessful(), target: '.'
+        if (cmpModelBuild) {
+            if (cmpModelBuild == '-1') {
+                copyArtifacts(filter: modelJson, optional: false, fingerprintArtifacts: true,
+                              projectName: cmpModelJob, selector: lastSuccessful(), target: thisPath)
             } else {
-                copyArtifacts filter: 'model.json', optional: false, fingerprintArtifacts: true, projectName: cmp_model_job, selector: specific(cmp_model_build), target: '.'
+                copyArtifacts(filter: modelJson, optional: false, fingerprintArtifacts: true,
+                              projectName: cmpModelJob, selector: specific(cmpModelBuild), target: thisPath)
             }
-            cmp_extra = "--model-linear-regression model.json"
+            cmpExtra = '--model-linear-regression ' + modelJson
         } else {
-            cmp_extra = ''
+            cmpExtra = ''
         }
         // Compare the results and generate html as well as xunit results
-        def status = sh returnStatus: true, script:  "python3 scripts/compare-perf -vvv --tolerance " + cmp_tolerance + " --stddev-tolerance " + cmp_stddev_tolerance + ' --xunit result.xml --html html/index.html ' + cmp_extra + ' -- src_result/* ' + reference_builds.reverse().join(" ") + ' $(find . -maxdepth 1 -type d ! -name "*.tar.*" -name "result*")'
-        if (fileExists('result.xml')) {
+        status = sh(returnStatus: true,
+                    script: ('python3 scripts/compare-perf -vvv --tolerance ' + cmpTolerance +
+                             ' --stddev-tolerance ' + cmpStddevTolerance +
+                             " --xunit ${resultXml} --html ${htmlIndex} " + cmpExtra + ' -- src_result/* '
+                             + referenceBuilds.reverse().join(' ') +
+                             ' $(find . -maxdepth 1 -type d ! -name "*.tar.*" -name "result*")'))
+        if (fileExists(resultXml)) {
             if (status) {
                 // This could mean there were no tests to compare or other failures, interrupt the build
                 echo "Non-zero exit status: ${status}"
             }
         } else {
             currentBuild.result = 'FAILED'
-            error "Missing result.xml, exit code: ${status}"
+            error "Missing ${resultXml}, exit code: ${status}"
         }
     }
 
     stage('Postprocess̈́') {
         // Build description
-        currentBuild.description = "${description_prefix}${src_build} ${currentBuild.number} ${distro}"
+        currentBuild.description = "${descriptionPrefix}${srcBuild} ${currentBuild.number} ${distro}"
         // Store and publish html results
-        archiveArtifacts allowEmptyArchive: true, artifacts: 'html/index.html'
-        if (fileExists('html')) {
-            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true, reportDir: 'html', reportFiles: 'index.html', reportName: 'HTML Report', reportTitles: ''])
+        archiveArtifacts allowEmptyArchive: true, artifacts: htmlIndex
+        if (fileExists(htmlPath)) {
+            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true, reportDir: htmlPath,
+                         reportFiles: htmlFile, reportName: 'HTML Report', reportTitles: ''])
         }
         // Junit results
-        junit allowEmptyResults: true, testResults: 'result.xml'
+        junit allowEmptyResults: true, testResults: resultXml
         // Remove the unnecessary big files
         sh '\\rm -Rf result* src_result* reference_builds'
         // Run cleanup on older artifacts
-        build (job: "rp-prune-artifacts",
+        build (job: 'rp-prune-artifacts',
                parameters: [string(name: 'JOB', value: env.JOB_NAME)],
                quietPeriod: 0,
                wait: false)
     }
 }
 
-
 @NonCPS
-def get_good_build_numbers(job_name) {
+List getGoodBuildNumbers(String jobName) {
     // Build is non-serializable object, we have to use NonCPS
     // on the other hand we can not use copyArtifacts inside NonCPS
     // therefore we have to only query for all descriptions and
     // then iterate throught them, because we don't know how many
     // builds we are going to need (copyArtifacts can fail)
     builds = []
-    for (build in Jenkins.instance.getJob(env.JOB_NAME).builds) {
-        if (build?.description?.startsWith("BAD")) {
+    for (build in Jenkins.instance.getJob(jobName).builds) {
+        if (build?.description?.startsWith('BAD')) {
             println("skip ${build.description} ${build.number}")
         } else {
             builds.add(build.number)
