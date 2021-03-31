@@ -102,7 +102,7 @@ class GetDistroInfo(Selftest):
                              "rd.lvm.lv=fedora/root rd.lvm.lv=fedora/swap "
                              "resume=/dev/mapper/fedora-swap ro "
                              "root=/dev/mapper/fedora-root",
-                             'mitigations': VULNERABILITIES,
+               'mitigations': VULNERABILITIES,
                'rpm': 'mc-4.8.24-4.fc32.x86_64\n'}
         kernel, cmdline = exp['kernel_raw'].rsplit('\n', 1)
         cmd = [kernel, cmdline, exp['mitigations'], exp['rpm']]
