@@ -98,8 +98,14 @@ def _parse_args():
                         "separated by `:` (eg. 'fio:{\"type\":\"read\"}'",
                         nargs='+', type=item_with_params)
     parser.add_argument("--profiles", help="Which profiles to use to execute "
-                        "the tests (some might require reboot)", nargs='+',
-                        default=[('default', {})], type=item_with_params)
+                        "the tests (some might require reboot); one can "
+                        "optionally specify extra params using json format "
+                        "separated by `:` (eg. DefaultLibvirt:"
+                        "{\"RUNPERF_TESTS\": \"fio\"}) to tweak the set of "
+                        "tests executed under this profile or other cusom "
+                        "profile attributes (like qemu path location, ...)",
+                        nargs='+', default=[('default', {})],
+                        type=item_with_params)
     parser.add_argument("--distro", help="Set the host distro name, eg. "
                         "RHEL-8.0-20180904.n.0", default="Unknown")
     parser.add_argument("--guest-distro", help="Guest distro (default is the "
@@ -215,6 +221,28 @@ def create_metadata(output_dir, args):
             output.write("\nmachine_url:%s" % args.hosts[0][1])
 
 
+def profile_test_defs(profile_args, default_set):
+    """
+    Process profile args and return suitable test set
+
+    :param profile_args: profile arguments
+    :param default_set: default set of test definitions
+    :return: list of test definitions
+    """
+    if 'RUNPERF_TESTS' not in profile_args:
+        return default_set
+    testset = profile_args.get('RUNPERF_TESTS')
+    defs = []
+    for test in testset:
+        if test == '$@':
+            defs.extend(default_set)
+        elif isinstance(test, list):
+            defs.append(tests.get(test[0], test[1]))
+        else:
+            defs.append(tests.get(test, {}))
+    return defs
+
+
 def main():
     """
     A tool to execute the same tasks on pre-defined scenarios/
@@ -239,15 +267,16 @@ def main():
     try:
         # Initialize all hosts
         hosts = Controller(args, log)
-        test_defs = list(tests.get(test, extra) for test, extra in args.tests)
+        _test_defs = list(tests.get(test, extra) for test, extra in args.tests)
         # provision, fetch assets, ...
         hosts.setup()
         for profile, profile_args in args.profiles:
+            # Check whether this profile changes test set
+            test_defs = profile_test_defs(profile_args, _test_defs)
             # Applies profile and set `hosts.workers` to contain list of IP
             # addrs to be used in tests. In case manual reboot is required
             # return non-zero.
             workers = hosts.apply_profile(profile, profile_args)
-
             # Run all tests under current profile
             for test, extra in test_defs:
                 for _ in range(args.retry_tests):

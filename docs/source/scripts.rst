@@ -17,7 +17,9 @@ insteresting ones:
   the target machine(s) before any testing happens. One example is the
   :mod:`runperf.provisioners.Beaker` which allows to provision the system
   via (already installed) `bkr` command.
-* ``--profiles`` - profiles/scenarios under which it should execute all tests
+* ``--profiles`` - profiles/scenarios under which it should execute all tests.
+  Some profiles can be tweaked by adding json-like params after a `:` (eg.
+  ``'Localhost:{"RUNPERF_TESTS": ["fio"]}'`` to override set of tests).
 * POSITIONAL ARGUMENTS - tests to be executed; one can optionally specify
   extra params using json format separated by `:` (eg.
   ``'fio:{"type":"read"}'``).
@@ -73,7 +75,20 @@ There are some optional arguments like:
 Profiles
 ========
 
-Are implemented under :mod:`runperf.profiles`.
+Are implemented under :mod:`runperf.profiles` and they can accept
+additional parameters. See each profile API documentation for details.
+
+There is one shared extra parameter available for all profiles,
+the `RUNPERF_TESTS`, which allows to override/extend the set of tests
+that will be executed on this profile. Similarly to ``--tests`` one
+can specify one or multiple tests, extra arguments are passed as
+list of 2 items as ``[test_name, extra_params_dict]``. Special ``$@``
+test name can be specified to inject all tests specified by ``--tests``.
+For example ``--tests Test1 Test2 --profiles First
+Second:{"RUNPERF_TESTS": ["Extra1", "$@", ["Extra2", {"key": "value"}]]}``
+results in running ``Test1`` and ``Test2`` on profile ``First`` and
+``Extra1``, ``Test1``, ``Test2`` and ``Extra2`` only on profile ``Second``
+using ``key: value`` arguments to the test ``Extra2``.
 
 Localhost
 ---------
