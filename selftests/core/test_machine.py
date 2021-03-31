@@ -110,10 +110,25 @@ class GetDistroInfo(Selftest):
         self.check(cmd, cmd_status, exp)
 
     def test_order(self):
+        # Check ordering works well including filtering
         self.check(["1.2.3", "c a=1.2.3 b", ""], 1,
                    {'general': 'Name:My Machine\nDistro:My Distro',
                     'kernel': '1.2.3\na=FILTERED b c',
                     'kernel_raw': '1.2.3\nc a=1.2.3 b',
+                    'mitigations': ''})
+        # kernel must be equal for the following 2 commands even though the
+        # last item with \n is different
+        self.check(["1.2.3\nuname -v\nuname -m\n", "a=b c=d\n",
+                    ""], 1,
+                   {'general': 'Name:My Machine\nDistro:My Distro',
+                    'kernel': '1.2.3\nuname -v\nuname -m\n\na=b c=d',
+                    'kernel_raw': '1.2.3\nuname -v\nuname -m\n\na=b c=d\n',
+                    'mitigations': ''})
+        self.check(["1.2.3\nuname -v\nuname -m\n", "c=d a=b\n",
+                    ""], 1,
+                   {'general': 'Name:My Machine\nDistro:My Distro',
+                    'kernel': '1.2.3\nuname -v\nuname -m\n\na=b c=d',
+                    'kernel_raw': '1.2.3\nuname -v\nuname -m\n\nc=d a=b\n',
                     'mitigations': ''})
 
     def test_no_output(self):
