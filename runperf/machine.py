@@ -84,7 +84,10 @@ def get_distro_info(machine):
         out["kernel_raw"] = kernel + '\n' + kernel_cmd
         kernel_cmd = kernel_cmd.replace(kernel_ver, "FILTERED")
         # Sort the kernel_cmdline parts as the order does not matter
-        out["kernel"] = kernel + '\n' + " ".join(sorted(kernel_cmd.split(' ')))
+        out["kernel"] = (kernel + '\n' +
+                         " ".join(sorted(_.strip()
+                                         for _ in kernel_cmd.split(' ')
+                                         if _.strip())))
         out["mitigations"] = session.cmd("grep --color=never . "
                                          "/sys/devices/system/cpu/"
                                          "vulnerabilities/*",
