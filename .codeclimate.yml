@@ -7,6 +7,9 @@ checks:
   return-statements:
     config:
       threshold: 10
+  method-complexity:
+    config:
+      threshold: 6
 plugins:
   bandit:
     enabled: true

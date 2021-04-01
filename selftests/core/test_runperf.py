@@ -21,7 +21,7 @@ import json
 import os
 from unittest import mock
 
-from runperf import main
+from runperf import main, tests
 import runperf
 from runperf.version import get_version
 
@@ -132,3 +132,38 @@ class RunPerfTest(Selftest):
             metadata = metadata_fd.read()
         self.assertIn("\nrunperf_cmd:--default-password MASKED MASKED\n",
                       metadata)
+
+    def test_profile_test_defs(self):
+        process = runperf.profile_test_defs
+        simple = [tests.get("DummyTest", {})]
+        with_params = [tests.get("DummyTest", {"foo": "bar"})]
+        # no override
+        self.assertEqual(with_params, process({}, with_params))
+        self.assertEqual(simple, process({"some": "args"}, simple))
+        # overrides
+        self.assertEqual(simple, process({"RUNPERF_TESTS": ["DummyTest"]}, []))
+        self.assertEqual(with_params,
+                         process({"RUNPERF_TESTS":
+                                  [["DummyTest", {"foo": "bar"}]]}, []))
+        self.assertEqual(simple, process({"RUNPERF_TESTS": ["DummyTest"]},
+                                         with_params))
+        # appends
+        self.assertEqual(with_params + simple,
+                         process({"RUNPERF_TESTS": ["$@", "DummyTest"]},
+                                 with_params))
+        # prepends
+        self.assertEqual(simple + with_params,
+                         process({"RUNPERF_TESTS": ["DummyTest", "$@"]},
+                                 with_params))
+        # multiple
+        self.assertEqual((simple + with_params) * 4,
+                         process({"RUNPERF_TESTS": ["$@"] * 4},
+                                 simple + with_params))
+        # complex
+        self.assertEqual(simple + simple + with_params +
+                         [tests.get("DummyTest", {"other": "baz"})] + simple +
+                         simple,
+                         process({"RUNPERF_TESTS":
+                                  ["$@", ["DummyTest", {"foo": "bar"}],
+                                   ["DummyTest", {"other": "baz"}], "$@"]},
+                                 simple + simple))
