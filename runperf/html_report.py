@@ -213,7 +213,7 @@ def generate_report(path, results, with_charts=False):
             build["distro_short"] = (known_items["distro"]
                                      .get_short(build["distro"]))
             build["runperf_cmd_short"] = (known_items["commands"]
-                                          .get_short("runperf_cmd"))
+                                          .get_short(build["runperf_cmd"]))
             env, profiles = collect_environment(metadata)
             build['profiles'] = profiles
             _build_diff = process_diff_environemnt(env, dst_env)
