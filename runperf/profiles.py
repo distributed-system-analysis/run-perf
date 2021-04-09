@@ -483,6 +483,37 @@ class DefaultLibvirt(BaseProfile):
         return False
 
 
+class DefaultLibvirtMulti(DefaultLibvirt):
+    """
+    Runs multiple DefaultLibvirt VMS to fill guest_cpus.
+
+    By default it uses 2 CPUs per VM but can be tweaked using
+    `force_guest_cpus` extra parameter.
+    """
+
+    name = "DefaultLibvirtMulti"
+
+    def __init__(self, host, rp_paths, extra):
+        cpus = extra.get("force_guest_cpus")
+        if cpus:
+            cpus = int(cpus)
+        else:
+            cpus = 0
+        if not extra.get("force_no_vms"):
+            # no_vms not specified by user
+            if not cpus:
+                # neither guest_cpus, use 2
+                cpus = 2
+            extra["force_no_vms"] = int(host.params['guest_cpus'] / cpus)
+        elif not cpus:
+            # no_vms specified by user but guest_cpus were not, evaluate it
+            cpus = int(host.params['guest_cpus'] /
+                       int(extra["force_no_vms"]))
+            extra["force_no_vms"] = int(host.params['guest_cpus'] / cpus)
+        extra["force_guest_cpus"] = cpus
+        DefaultLibvirt.__init__(self, host, rp_paths, extra)
+
+
 class Overcommit1p5(DefaultLibvirt):
     """
     CPU host overcommit profile to use 1.5 host cpus using multiple guests
