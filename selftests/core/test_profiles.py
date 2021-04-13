@@ -21,11 +21,12 @@ Tests for the profiles handling
 import argparse
 import os
 import shutil
+import unittest
 from unittest import mock
 
 from runperf import profiles
 from runperf.machine import Host, ShellSession
-from runperf.profiles import Localhost, DefaultLibvirt
+from runperf.profiles import Localhost, DefaultLibvirt, DefaultLibvirtMulti
 
 from . import Selftest
 
@@ -226,3 +227,54 @@ class RunPerfTest(Selftest):
                         "rc_local", "persistent_setup_finished",
                         "persistent_setup_expected"):
                 self.assertIn(cmd, str(session.mock_calls))
+
+class DefaultLibvirtTest(Selftest):
+    """Check DefaultLibvirt specific handlings"""
+    class FakeGuest:
+        """machine.LibvirtGuest"""
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+        def start(self):
+            pass
+        def __str__(self):
+            return "%s\n%s" % (self.args, self.kwargs)
+        def __repr__(self):
+            return "%s: %s" % (self.__class__.__name__, str(self))
+        def __eq__(self, other):
+            return self.args == other.args and self.kwargs == other.kwargs
+
+    def check(self, params, extra, vms, cpus, mem, klass=DefaultLibvirt):
+        """
+        Initialize the profile, deploy vms and check they are as expected
+        """
+        host = mock.Mock(shared_pub_key="SSH_PUB_KEY", guest_distro="DISTRO",
+                         params=params)
+        profile = klass(host, "", extra)
+        with mock.patch("runperf.machine.LibvirtGuest", self.FakeGuest):
+            profile._start_vms()
+        self.assertEqual(profile.vms,
+                         [self.FakeGuest(host, klass.name + str(i), 'DISTRO',
+                                         None, cpus, mem, ['redhat'],
+                                         extra) for i in range(vms)])
+
+    def test_default_libvirt_extra(self):
+        params = {"guest_cpus": 16, "guest_mem_m": 32768}
+        self.check(params, {}, 1, 16, 32768)
+        self.check(params, {"force_no_vms": 10}, 10, 16, 3276)
+
+    def test_default_libvirt_multi_extra(self):
+        params = {"guest_cpus": 16, "guest_mem_m": 32768}
+        self.check(params, {}, 8, 2, 4096, DefaultLibvirtMulti)
+        self.check(params, {"force_guest_cpus": 3}, 5, 3, 6553,
+                   DefaultLibvirtMulti)
+        self.check(params, {"force_guest_cpus": 3, "force_no_vms": 2}, 2, 3,
+                   16384, DefaultLibvirtMulti)
+        self.check(params, {"force_no_vms": 3}, 3, 5,
+                   10922, DefaultLibvirtMulti)
+        self.check(params, {"force_no_vms": 3, "force_guest_mem": 10}, 3, 5,
+                   10, DefaultLibvirtMulti)
+
+
+if __name__ == '__main__':
+    unittest.main()

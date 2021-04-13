@@ -25,6 +25,7 @@ import aexpect
 import yaml
 
 from . import exceptions, profiles, utils
+from .utils import MutableShellSession as ShellSession
 
 
 LOG = logging.getLogger(__name__)
@@ -33,39 +34,6 @@ HOSTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'hosts'))
 # : Minimal set of required keys for host definition
 HOST_KEYS = {'hugepage_kb', 'numa_nodes', 'host_cpus',
              'guest_cpus', 'guest_mem_m', 'arch'}
-
-
-class ShellSession(aexpect.ShellSession):
-    """
-    Mute-able aexpect.ShellSession
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__output_func = self.output_func
-        for name in dir(self):
-            if name.startswith('cmd'):
-                func = getattr(self, name)
-                if callable(func):
-                    setattr(self, name, self._muted(func))
-
-    def _muted(self, cmd):
-
-        def inner(*args, **kwargs):
-            if kwargs.get('print_func') == 'mute':
-                kwargs['print_func'] = None
-                logger = logging.getLogger()
-                lvl = logger.getEffectiveLevel()
-                try:
-                    self.set_output_func(None)
-                    logger.setLevel(logging.INFO)
-                    return cmd(*args, **kwargs)
-                finally:
-                    logger.setLevel(lvl)
-                    self.set_output_func(self.__output_func)
-            return cmd(*args, **kwargs)
-
-        return inner
 
 
 # TODO: Move this to `runperf.machine.distro_info` namespace
@@ -692,7 +660,7 @@ class LibvirtGuest(BaseMachine):
         if not self.distro:
             raise ValueError("No distro specified %s" % self.distro)
         lower = self.distro.lower()
-        oss = session.cmd("osinfo-query os -f short-id")
+        oss = session.cmd("osinfo-query os -f short-id", print_func="mute")
         if lower in oss:
             return lower
         if lower.startswith('rhel'):

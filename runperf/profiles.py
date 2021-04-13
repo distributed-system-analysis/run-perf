@@ -346,24 +346,29 @@ class DefaultLibvirt(BaseProfile):
     name = "DefaultLibvirt"
     img_base = "/var/lib/libvirt/images"
     deps = "libvirt libguestfs-tools-c virt-install"
-    default_password = "redhat"
-    no_vms = 1
 
     def __init__(self, host, rp_paths, extra):
         super().__init__(host, rp_paths, extra)
         self.host = host
-        self.distro = self.host.guest_distro
         self.vms = []
-        self.image = None
         self.shared_pub_key = self.host.shared_pub_key
         self._custom_qemu = self.extra.get("qemu_bin", "")
+        self._guest = {"no_vms": 1,
+                       "guest_cpus": self.host.params["guest_cpus"],
+                       "default_password": "redhat",
+                       "distro": self.host.guest_distro,
+                       "image": None}
+        for param in ("guest_cpus", "guest_mem", "no_vms"):
+            value = self.extra.get("force_" + param)
+            if value:
+                self._guest[param] = value
 
     def _apply(self, setup_script):
         if self.vms:
             raise RuntimeError("VM already defined while applying profile. "
                                "This should never happen!")
         self._prerequisities(self.session)
-        self.image = self._get_image(self.session, setup_script)
+        self._guest["image"] = self._get_image(self.session, setup_script)
         ret = self._start_vms()
         self._set("applied_profile", self.name)
         return ret
@@ -401,8 +406,8 @@ class DefaultLibvirt(BaseProfile):
         entry_point = 'runperf.utils.cloud_image_providers'
         for entry in utils.sorted_entry_points(entry_point):
             klass = entry.load()
-            if klass.is_for(self.distro, self.host.params['arch']):
-                plugin = klass(self.distro, self.host.params['arch'],
+            if klass.is_for(self._guest["distro"], self.host.params['arch']):
+                plugin = klass(self._guest["distro"], self.host.params['arch'],
                                self.shared_pub_key, self.img_base, session,
                                setup_script)
                 out = plugin.is_up_to_date()
@@ -410,32 +415,34 @@ class DefaultLibvirt(BaseProfile):
                     self.log.debug("Reusing existing image")
                     return plugin.image
                 self.log.debug("Fetching %s image using %s because %s",
-                               self.distro, str(plugin), out)
+                               self._guest["distro"], str(plugin), out)
                 for path in plugin.paths:
                     self._path_to_be_removed(path)
-                out = plugin.prepare(self.default_password)
+                out = plugin.prepare(self._guest["default_password"])
                 if out:
-                    self.log.warning("Failed to prepare %s: %s", self.distro,
-                                     out)
+                    self.log.warning("Failed to prepare %s: %s",
+                                     self._guest["distro"], out)
                     continue
-                self.log.debug("Image %s ready", self.distro)
+                self.log.debug("Image %s ready", self._guest["distro"])
                 return plugin.image
         providers = ", ".join(str(_)
                               for _ in pkg_entry_points(entry_point))
         raise RuntimeError("Fail to fetch %s using %s providers"
-                           % (self.distro, providers))
+                           % (self._guest["distro"], providers))
 
     def _start_vms(self):
         from . import machine
-        guest_mem_m = int(self.host.params['guest_mem_m'] / self.no_vms)
-        for i in range(self.no_vms):
+        if not self._guest.get('guest_mem'):
+            self._guest['guest_mem'] = int(self.host.params['guest_mem_m'] /
+                                           self._guest['no_vms'])
+        for i in range(self._guest['no_vms']):
             vm = machine.LibvirtGuest(self.host,
                                       "%s%s" % (self.__class__.__name__, i),
-                                      self.distro,
-                                      self.image,
-                                      self.host.params['guest_cpus'],
-                                      guest_mem_m,
-                                      [self.default_password],
+                                      self._guest["distro"],
+                                      self._guest["image"],
+                                      self._guest['guest_cpus'],
+                                      self._guest['guest_mem'],
+                                      [self._guest["default_password"]],
                                       self.extra)
             self.vms.append(vm)
             vm.start()
@@ -476,6 +483,37 @@ class DefaultLibvirt(BaseProfile):
         return False
 
 
+class DefaultLibvirtMulti(DefaultLibvirt):
+    """
+    Runs multiple DefaultLibvirt VMS to fill guest_cpus.
+
+    By default it uses 2 CPUs per VM but can be tweaked using
+    `force_guest_cpus` extra parameter.
+    """
+
+    name = "DefaultLibvirtMulti"
+
+    def __init__(self, host, rp_paths, extra):
+        cpus = extra.get("force_guest_cpus")
+        if cpus:
+            cpus = int(cpus)
+        else:
+            cpus = 0
+        if not extra.get("force_no_vms"):
+            # no_vms not specified by user
+            if not cpus:
+                # neither guest_cpus, use 2
+                cpus = 2
+            extra["force_no_vms"] = int(host.params['guest_cpus'] / cpus)
+        elif not cpus:
+            # no_vms specified by user but guest_cpus were not, evaluate it
+            cpus = int(host.params['guest_cpus'] /
+                       int(extra["force_no_vms"]))
+            extra["force_no_vms"] = int(host.params['guest_cpus'] / cpus)
+        extra["force_guest_cpus"] = cpus
+        DefaultLibvirt.__init__(self, host, rp_paths, extra)
+
+
 class Overcommit1p5(DefaultLibvirt):
     """
     CPU host overcommit profile to use 1.5 host cpus using multiple guests
@@ -484,9 +522,9 @@ class Overcommit1p5(DefaultLibvirt):
     name = "Overcommit1_5"
 
     def __init__(self, host, rp_paths, extra):
+        extra["force_no_vms"] = int(host.params['host_cpus'] /
+                                    host.params['guest_cpus'] * 1.5)
         super().__init__(host, rp_paths, extra)
-        self.no_vms = int(self.host.params['host_cpus'] /
-                          self.host.params['guest_cpus'] * 1.5)
 
 
 class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls-to-init]

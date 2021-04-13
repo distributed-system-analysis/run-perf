@@ -21,7 +21,8 @@ import os
 import pipes
 import random
 import string
-import subprocess   # nosec
+import subprocess  # nosec
+import sys
 import threading
 import time
 
@@ -35,6 +36,9 @@ FS_UNSAFE_CHARS = '<>:"/\\|?*;'
 # Translate table to replace fs-unfriendly chars
 _FS_TRANSLATE = bytes.maketrans(bytes(FS_UNSAFE_CHARS, "ascii"), b'__________')
 
+# Default log level for the MutableShellSession object
+DEFAULT_ROOT_LOG_LEVEL = logging.DEBUG
+
 
 class ThreadWithStatus(threading.Thread):
     """
@@ -45,6 +49,37 @@ class ThreadWithStatus(threading.Thread):
     def run(self):
         super().run()
         self.completed = True
+
+
+class MutableShellSession(aexpect.ShellSession):
+    """
+    Mute-able aexpect.ShellSession
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__output_func = self.output_func
+        for name in dir(self):
+            if name.startswith('cmd'):
+                func = getattr(self, name)
+                if callable(func):
+                    setattr(self, name, self._muted(func))
+
+    def _muted(self, cmd):
+        def inner(*args, **kwargs):
+            if kwargs.get('print_func') == 'mute':
+                kwargs['print_func'] = None
+                logger = logging.getLogger()
+                try:
+                    self.set_output_func(None)
+                    logger.setLevel(logging.INFO)
+                    return cmd(*args, **kwargs)
+                finally:
+                    logger.setLevel(DEFAULT_ROOT_LOG_LEVEL)
+                    self.set_output_func(self.__output_func)
+            return cmd(*args, **kwargs)
+
+        return inner
 
 
 def read_file(path):

@@ -170,12 +170,29 @@ class PBenchTest(BaseTest):
                       ",".join(_.get_addr() for _ in self.workers[0])))
 
     def setup(self):
-        with self.host.get_session_cont() as session:
-            pbench.install_on(session, self.metadata, test=self.test)
+        def install_pbench(host, metadata, test):
+            with host.get_session_cont() as session:
+                pbench.install_on(session, metadata, test=test)
+        threads = []
+        threads.append(utils.ThreadWithStatus(target=install_pbench,
+                                              name="host %s" % self.host.name,
+                                              args=(self.host, self.metadata,
+                                                    self.test)))
         for workers in self.workers:
             for worker in workers:
-                with worker.get_session_cont() as session:
-                    pbench.install_on(session, self.metadata, test=self.test)
+                name = "worker %s" % worker.name
+                threads.append(utils.ThreadWithStatus(target=install_pbench,
+                                                      name=name,
+                                                      args=(worker,
+                                                            self.metadata,
+                                                            self.test)))
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        failed = [thread for thread in threads if thread.completed is not True]
+        if failed:
+            raise RuntimeError("Failed to install pbench on %s" % failed)
         # Wait for the machines to calm down before the testing and use
         # hop=self.host as the host will be executing the ssh commands.
         for workers in self.workers:

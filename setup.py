@@ -86,6 +86,7 @@ if __name__ == '__main__':
               'runperf.profiles': [
                   '50Localhost = runperf.profiles:Localhost',
                   '50DefaultLibvirt = runperf.profiles:DefaultLibvirt',
+                  '50DefaultLibvirtMulti = runperf.profiles:DefaultLibvirtMulti',
                   '50Overcommit1_5 = runperf.profiles:Overcommit1p5',
                   '50TunedLibvirt = runperf.profiles:TunedLibvirt'],
               'runperf.tests': [
