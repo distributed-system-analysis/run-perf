@@ -174,6 +174,9 @@ def setup_logging(verbosity_arg, fmt=None):
 
     logging.basicConfig(level=log_level, stream=sys.stderr,
                         format=fmt, datefmt="%H:%M:%S")
+    # In case root logger already existed reset the root's log_level
+    root = logging.getLogger('')
+    root.setLevel(log_level)
 
 
 def create_metadata(output_dir, args):
