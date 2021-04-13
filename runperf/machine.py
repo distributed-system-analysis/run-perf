@@ -660,7 +660,7 @@ class LibvirtGuest(BaseMachine):
         if not self.distro:
             raise ValueError("No distro specified %s" % self.distro)
         lower = self.distro.lower()
-        oss = session.cmd("osinfo-query os -f short-id")
+        oss = session.cmd("osinfo-query os -f short-id", print_func="mute")
         if lower in oss:
             return lower
         if lower.startswith('rhel'):
