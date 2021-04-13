@@ -31,6 +31,7 @@ import aexpect
 from . import exceptions, tests, result
 from .machine import Controller
 from .version import __version__
+from runperf import utils
 
 PROG = 'run-perf'
 DESCRIPTION = ("A tool to execute the same tasks on pre-defined scenarios/"
@@ -177,6 +178,8 @@ def setup_logging(verbosity_arg, fmt=None):
     # In case root logger already existed reset the root's log_level
     root = logging.getLogger('')
     root.setLevel(log_level)
+    # Store the main log level in utils so MutableShellSession can use it
+    utils.DEFAULT_ROOT_LOG_LEVEL = log_level
 
 
 def create_metadata(output_dir, args):
