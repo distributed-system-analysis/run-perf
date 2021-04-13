@@ -21,6 +21,7 @@ Tests for the profiles handling
 import argparse
 import os
 import shutil
+import unittest
 from unittest import mock
 
 from runperf import profiles
@@ -226,3 +227,7 @@ class RunPerfTest(Selftest):
                         "rc_local", "persistent_setup_finished",
                         "persistent_setup_expected"):
                 self.assertIn(cmd, str(session.mock_calls))
+
+
+if __name__ == '__main__':
+    unittest.main()

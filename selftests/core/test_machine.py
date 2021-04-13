@@ -179,3 +179,7 @@ class LibvirtGuestTests(Selftest):
         self.assertEqual("rhel8.0", vm._get_os_variant(session))
         vm.distro = "NOT-RHEL-8.0"
         self.assertRaises(NotImplementedError, vm._get_os_variant, session)
+
+
+if __name__ == '__main__':
+    unittest.main()

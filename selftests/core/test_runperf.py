@@ -19,6 +19,7 @@ Tests for the main runperf app
 import argparse
 import json
 import os
+import unittest
 from unittest import mock
 
 from runperf import main, tests
@@ -167,3 +168,7 @@ class RunPerfTest(Selftest):
                                   ["$@", ["DummyTest", {"foo": "bar"}],
                                    ["DummyTest", {"other": "baz"}], "$@"]},
                                  simple + simple))
+
+
+if __name__ == '__main__':
+    unittest.main()
