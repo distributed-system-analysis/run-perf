@@ -108,7 +108,8 @@ class BaseProvider:
                          " | sort -n -k 5 | tail -n 1 | "
                          "cut -f1 -d' ') %s %s.tmp"
                          % (self.image, self.image, self.image), timeout=600)
-        self.session.cmd("qemu-img convert -f raw -O qcow2 %s.tmp %s"
+        self.session.cmd("qemu-img convert -o preallocation=full -f raw "
+                         "-O qcow2 %s.tmp %s"
                          % (self.image, self.image), timeout=600)
         self.session.cmd("rm -Rf %s.tmp" % self.image)
         # Use "yum -y update" instead of "--update", because of the order the
