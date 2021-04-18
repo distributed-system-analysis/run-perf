@@ -696,10 +696,12 @@ class LibvirtGuest(BaseMachine):
         image = "%s-%s.%s" % (self.base_image[:-(len(src_fmt) + 1)],
                               self.name, fmt)
         if fmt == src_fmt:
-            session.cmd("\\cp -f %s %s" % (self.base_image, image))
+            session.cmd("\\cp -f %s %s" % (self.base_image, image),
+                        timeout=600)
         else:
             session.cmd("qemu-img convert -f %s -O %s %s %s"
-                        % (src_fmt, fmt, self.base_image, image))
+                        % (src_fmt, fmt, self.base_image, image),
+                        timeout=600)
         self.image = image
 
         xml = self.extra_params.get("xml", None)
