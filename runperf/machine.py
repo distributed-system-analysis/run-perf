@@ -702,6 +702,9 @@ class LibvirtGuest(BaseMachine):
             session.cmd("qemu-img convert -f %s -O %s %s %s"
                         % (src_fmt, fmt, self.base_image, image),
                         timeout=600)
+        # System might get a bit laggy after huge-file copy, use sync to
+        # avoid unresponsive system
+        session.cmd("sync", timeout=600)
         self.image = image
 
         xml = self.extra_params.get("xml", None)
