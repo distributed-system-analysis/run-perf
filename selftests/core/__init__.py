@@ -39,6 +39,9 @@ class DummyHost(Host):
     def copy_from(self, src, dst):
         """Do nothing"""
 
+    def copy_to(self, src, dst):
+        """Do nothing"""
+
 
 class Selftest(unittest.TestCase):
     tmpdir = None

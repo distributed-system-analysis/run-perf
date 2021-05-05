@@ -20,6 +20,8 @@ import argparse
 import logging
 import os
 import random
+import shutil
+import tempfile
 from unittest import mock
 import unittest
 
@@ -48,14 +50,10 @@ class PBenchTest(Selftest):
                                   distro=distro)
         host = DummyHost(logging.getLogger(''), 'Test', 'addr', distro,
                          args)
-        with open(os.path.join(asset_path, "tests",
-                               "PBenchTestResult.json")) as json_fd:
-            result_json = json_fd.read()
         mock_args = {'cmd_status.return_value': 0,
                      'cmd_output.side_effect': (
                          prepend_host_cmd_output_side_effect +
-                         ["", "prefix+self._cmd", "0", result_path,
-                          result_json])}
+                         ["", "prefix+self._cmd", "0", result_path])}
         host.mock_session = mock.Mock(**mock_args)
         host.profile = mock.Mock()
         host.profile.name = profile
@@ -65,11 +63,17 @@ class PBenchTest(Selftest):
             **{'cmd_status.return_value': 0,
                'cmd.return_value': ""})
         test = klass(host, [[worker]], self.tmpdir, metadata, extra)
-        with mock.patch("runperf.tests.pbench.install_on"):
-            with mock.patch("runperf.tests.time.sleep"):
-                test.setup()
-                test.run()
-                test.cleanup()
+        with tempfile.NamedTemporaryFile(delete=True) as local_json_fd:
+            shutil.copy(os.path.join(asset_path, "tests",
+                                     "PBenchTestResult.json"),
+                        local_json_fd.name)
+            with mock.patch("runperf.tests.tempfile.NamedTemporaryFile",
+                            lambda *_, **_2: local_json_fd):
+                with mock.patch("runperf.tests.pbench.install_on"):
+                    with mock.patch("runperf.tests.time.sleep"):
+                        test.setup()
+                        test.run()
+                        test.cleanup()
 
         calls = [exp_cmdline, "[ -e '%s/result.json' ]" % result_path,
                  "cp '%s/result.json' '%s/result.json.backup'"

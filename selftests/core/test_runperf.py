@@ -19,6 +19,7 @@ Tests for the main runperf app
 import argparse
 import json
 import os
+import shutil
 import unittest
 from unittest import mock
 
@@ -101,7 +102,11 @@ class RunPerfTest(Selftest):
             with mock.patch("sys.argv", args):
                 with mock.patch("runperf.machine.BaseMachine.get_ssh_cmd",
                                 lambda *args, **kwargs: "sh"):
-                    main()
+                    with mock.patch("runperf.machine.BaseMachine.copy_from",
+                                    lambda _, src, dst: shutil.copy(src, dst)):
+                        with mock.patch("runperf.machine.BaseMachine.copy_to",
+                                        lambda _, src, dst: shutil.copy(src, dst)):
+                            main()
         # Check only for test dirs, metadata are checked in other tests
         self.assertTrue(os.path.exists(os.path.join(self.tmpdir, "result")))
         for serial in ["0000", "0001"]:
