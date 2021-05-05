@@ -204,6 +204,18 @@ class BaseMachine:
                dst]
         utils.check_output(cmd)
 
+    def copy_to(self, src, dst):
+        """
+        Copy file(s) to the machine
+
+        :warning: This won't check/setup keys
+        """
+        cmd = ["rsync", "-amrh", "-e", "ssh -o StrictHostKeyChecking=no " +
+               "-o UserKnownHostsFile=/dev/null -o ControlMaster=auto " +
+               "-o ControlPath='/var/tmp/%%r@%%h-%%p' -o ControlPersist=60" +
+               " -o BatchMode=yes", src, "root@%s:%s" % (self.get_addr(), dst)]
+        utils.check_output(cmd)
+
     def get_info(self):
         """
         Report basic info about this machine
