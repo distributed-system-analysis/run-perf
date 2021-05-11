@@ -215,15 +215,6 @@ class PBenchTest(BaseTest):
                 worker.log.warning("Host did not stabilize in 1800s,"
                                    " proceeding on a loaded machine!")
 
-    @staticmethod
-    def add_metadata(session, key, value):
-        """
-        Appends key=value to standard location in current directory in provided
-        session.
-        """
-        session.cmd("echo %s=%s >> metadata_runperf.log"
-                    % (pipes.quote(key), pipes.quote(value)))
-
     def _run(self):
         # We only need one group of workers
         session = None
@@ -265,18 +256,6 @@ class PBenchTest(BaseTest):
                         extra_args.append("--prefix %s" % prefix)
                     session.cmd("pbench-copy-results %s"
                                 % " ".join(extra_args), timeout=600)
-                self.add_metadata(session, "cmdline", str(sys.argv))
-                self.add_metadata(session, "profile",
-                                  self.host.profile.name)
-                self.add_metadata(session, "distro", self.host.distro)
-                for workers in self.workers:
-                    for worker in workers:
-                        content = ("\n\n%s\n%s\n%s\n%s"
-                                   % ('-' * 80, worker.name, '-' * 80,
-                                      worker.get_info()))
-                        session.cmd(utils.shell_write_content_cmd(
-                            "metadata_worker.log", content),
-                                    print_func='mute')
             self.host.copy_from(src, self.output)
         finally:
             session.close()

@@ -80,8 +80,6 @@ class PBenchTest(Selftest):
                  % (result_path, result_path)]
         if "pbench_server_publish" in metadata:
             calls.append('pbench-copy-results --user asdf --prefix fdsa')
-        calls.append('echo profile=%s >> metadata_runperf.log' % profile)
-        calls.append('echo distro=%s >> metadata_runperf.log' % distro)
         self.check_calls(host.mock_session.method_calls, calls)
 
     def test_fio_default(self):
