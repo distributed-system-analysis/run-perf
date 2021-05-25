@@ -399,13 +399,17 @@ class DefaultLibvirt(BaseProfile):
         return ret
 
     def _prerequisities(self, session):
+        if self._custom_qemu:
+            deps = self.deps + " git"
+            session.cmd("yum install -y %s" % deps)
+        else:
+            deps = self.deps
+
         if (session.cmd_status("systemctl is-active libvirtd") or
                 session.cmd_status("which virt-install")):
-            if self._custom_qemu:
-                deps = self.deps + " git"
-            else:
-                deps = self.deps
-            session.cmd("yum install -y %s" % deps)
+            if not self._custom_qemu:
+                # with custom qemu we force-install prior to libvirt check
+                session.cmd("yum install -y %s" % deps)
             session.cmd("systemctl start libvirtd")
 
     def _image_up_to_date(self, session, pubkey, image, setup_script,
