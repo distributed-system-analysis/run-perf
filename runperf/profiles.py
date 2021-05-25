@@ -201,6 +201,8 @@ class PersistentProfile(BaseProfile):
     _rc_local = None
     # "tuned-adm profile $profile" to be enforced
     _tuned_adm_profile = None
+    # enable/disable irqbalance service
+    _irqbalance = None
 
     def __init__(self, host, rp_paths, extra, skip_init_call=False):
         """
@@ -213,6 +215,10 @@ class PersistentProfile(BaseProfile):
             BaseProfile.__init__(self, host, rp_paths, extra)
         if self._grub_args is None:
             self._grub_args = set()
+        # TODO: Add extra handling of our arguments in Baseclass similarly to
+        # DefaultLibvirt
+        if 'irqbalance' in extra:
+            self._irqbalance = extra['irqbalance']
         self.performed_setup_path = self._persistent_storage_path(
             "persistent_setup_finished")
 
@@ -268,6 +274,16 @@ class PersistentProfile(BaseProfile):
         self.session.cmd('grubby --args="%s" --update-kernel='
                          '"$(grubby --default-kernel)"' % args)
 
+    def _persistent_irqbalance(self, status):
+        _status = self.session.cmd_status("systemctl is-enabled irqbalance")
+        if status == _status:
+            # We are done, they are configured correctly
+            return
+        self._set("persistent_setup/irqbalance", _status)
+        self.session.cmd('systemctl %s irqbalance'
+                         % 'enable' if status else 'disable')
+        self.host.reboot_request = True
+
     def _apply_persistent(self):
         """
         Perfrom persistent setup
@@ -283,9 +299,16 @@ class PersistentProfile(BaseProfile):
 
         if self._grub_args:
             self._persistent_grub_args(self._grub_args)
+
+        if self._irqbalance is not None:
+            self._persistent_irqbalance(self._irqbalance)
         return True
 
     def _revert(self):
+        irqbalance = self._get("persistent_setup/irqbalance", -1)
+        if irqbalance != -1:
+            self._persistent_irqbalance(int(irqbalance))
+            self._remove("persistent_setup/irqbalance")
         cmdline = self._get("persistent_setup/grub_args", -1)
         if cmdline != -1:
             self.host.reboot_request = True
@@ -316,6 +339,8 @@ class PersistentProfile(BaseProfile):
             params["rc_local"] = self._read_file("/etc/rc.d/rc.local")
         if self._tuned_adm_profile:
             params["tuned_adm_profile"] = self.session.cmd("tuned-adm active")
+        params["tuned_adm_profile"] = self.session.cmd_status_output(
+            "systemctl is-enabled irqbalance")[1]
         return info
 
 

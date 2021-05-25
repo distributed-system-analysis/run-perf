@@ -111,6 +111,10 @@ host-specific settings like cgroups to move other processes to unused
 CPUs, numa pinning, hugepages, ... The purpose is not to be fast, but
 to use different features than default ones.
 
+In this profile one can also force-enable or force-disable the
+irqbalance service by supplying ``"irqbalance": true`` or
+``"irqbalance": false`` extra profile parameter.
+
 Overcommit1_5
 -------------
 

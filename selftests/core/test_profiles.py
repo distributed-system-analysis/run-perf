@@ -210,6 +210,7 @@ class RunPerfTest(Selftest):
             self.assertRaises(RuntimeError, profile.apply, None)
             session.reset_mock()
             # get_info should combine default get info and persistent get_info
+            session.cmd_status_output.return_value = (1, "some-error")
             info = list(profile.get_info().keys())
             if "rpm" in info:  # rpm is only there when rpm command available
                 info.remove("rpm")
@@ -220,7 +221,7 @@ class RunPerfTest(Selftest):
                               'guest0_kernel', 'guest0_mitigations',
                               'guest0_params'], info)
             # Revert the profile
-            session.cmd_status.return_value = 0
+            session.cmd_status.side_effect = (0, 1, 0, 0, 0, 0)
             session.cmd_output.return_value = "TunedLibvirt"
             profile.revert()
             for cmd in ("set_profile", "grub_args", "tuned_adm_profile",
