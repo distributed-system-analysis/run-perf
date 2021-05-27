@@ -540,7 +540,9 @@ class RelativeResults:
             if src == 0:
                 return 0, self.mean_tolerance
             return (float(dst) - src) / abs(src) * 100, self.mean_tolerance
-        return src - dst, self.stddev_tolerance
+        if test_name.endswith("stddev"):
+            return src - dst, self.stddev_tolerance
+        return 0 if src == dst else 1, 0
 
     def record_result(self, test_name, src, dst, primary=False, grouped=False,
                       difference=None, tolerance=None, params=None):
@@ -606,7 +608,8 @@ class RelativeResults:
                     if values:
                         out.append("%s %s" % (section.upper(),
                                               ", ".join(values)))
-                srcs = "/".join("%.2f" % _ for _ in self.srcs)
+                srcs = "/".join(("%.2f" if isinstance(_, float) else "%s") % _
+                                for _ in self.srcs)
                 out.append("(%s; %s)" % (srcs, self.dst))
                 out.append("+-%s%% tolerance" % self.tolerance)
                 return Result(status, diff, test_name, self.srcs[-1],
