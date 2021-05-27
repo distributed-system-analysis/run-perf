@@ -147,7 +147,10 @@ class Fedora(BaseProvider):
             imgs = re.findall(br'href="([^"]+\.qcow2)"', urlopen(url).read())
             if not imgs:
                 return False
-            return url + imgs[-1].decode('utf-8')
+            img = imgs[-1].decode('utf-8')
+            if img.startswith('/'):
+                img = img.rsplit('/', 1)[-1]
+            return url + img
         except OSError:
             return False
 
