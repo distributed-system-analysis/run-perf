@@ -370,7 +370,7 @@ class DefaultLibvirt(BaseProfile):
 
     name = "DefaultLibvirt"
     img_base = "/var/lib/libvirt/images"
-    deps = "libvirt libguestfs-tools-c virt-install"
+    deps = "tuned libvirt libguestfs-tools-c virt-install"
 
     def __init__(self, host, rp_paths, extra):
         super().__init__(host, rp_paths, extra)
