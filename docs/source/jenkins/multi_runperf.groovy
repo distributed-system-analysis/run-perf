@@ -55,7 +55,7 @@ upstreamQemuCommits = params.UPSTREAM_QEMU_COMMITS.split(csvSeparator)
 
 // Extra variables
 // Provisioner machine
-workerNode = 'runperf-slave1'
+workerNode = 'runperf-slave'
 // misc variables
 srcBuildUnset = '-1'
 

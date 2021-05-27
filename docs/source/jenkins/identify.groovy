@@ -13,7 +13,7 @@ extraArgs = params.EXTRA_ARGS
 
 // Extra variables
 // Provisioner machine
-workerNode = 'runperf-slave1'
+workerNode = 'runperf-slave'
 // runperf git branch
 gitBranch = 'master'
 // misc variables
