@@ -28,6 +28,9 @@ import time
 
 import aexpect
 import pkg_resources
+import traceback
+import hashlib
+import shutil
 
 
 # : String containing all fs-unfriendly chars (Windows-fat/Linux-ext3)
@@ -412,3 +415,61 @@ def named_entry_point(group, loaded_name):
     raise KeyError("No plugin provider for %s:%s (%s)"
                    % (group, loaded_name,
                       ",".join(str(_) for _ in sorted_entry_points(group))))
+
+def record_failure(path, exc, paths=None, details=None):
+    """
+    Record details about exception in a dir structure
+
+    :param path: Path to create the '__error%d__' dir with details in
+    :param exc: Forwarded exception
+    :param details: Extra human readable details
+    :param paths: Paths to attach to this failure
+    """
+    logging.debug("Recording '%s' failure in %s", details if details else exc,
+                  path)
+    for i in range(1000):
+        try:
+            errpath = os.path.join(path, '__error%d__' % i)
+            os.makedirs(errpath)
+            break
+        except FileExistsError:
+            pass
+    else:
+        errpath = os.path.join(path, '__error__')
+    with open(os.path.join(errpath, 'exception'), 'w') as fd_exc:
+        fd_exc.write(str(exc))
+    with open(os.path.join(errpath, 'traceback'), 'w') as fd_tb:
+        out = ''.join(traceback.format_exception(type(exc), exc,
+                                                 exc.__traceback__))
+        logging.debug(out)
+        fd_tb.write(out)
+    if paths:
+        dst = os.path.join(errpath, 'FILES')
+        os.makedirs(dst)
+        for src in paths:
+            shutil.copytree(src, dst + os.path.sep + src, dirs_exist_ok=True)
+    if details:
+        with open(os.path.join(errpath, 'details'), 'w') as fd_details:
+            fd_details.write(details)
+    return errpath
+
+def list_dir_hashes(path):
+    """
+    Recursively hashes all files inside the path and reports them as a dict
+
+    :param path: Path to be processed
+    """
+    entries = {}
+    fd_curfile = None
+    for curdir, _, files in os.walk(path):
+        for curfile in files:
+            curpath = os.path.join(curdir, curfile)
+            try:
+                sha = hashlib.sha1()
+                with open(curpath, "rb") as fd_curfile:
+                    for chunk in iter(lambda: fd_curfile.read(4096), b""):
+                        sha.update(chunk)
+                entries[os.path.relpath(curpath, path)] = sha.hexdigest()
+            except Exception:
+                entries[os.path.relpath(curpath, path)] = 'ERROR READING'
+    return entries

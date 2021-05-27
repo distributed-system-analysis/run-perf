@@ -282,28 +282,45 @@ def main():
             # Applies profile and set `hosts.workers` to contain list of IP
             # addrs to be used in tests. In case manual reboot is required
             # return non-zero.
-            workers = hosts.apply_profile(profile, profile_args)
+            try:
+                workers = hosts.apply_profile(profile, profile_args)
+            except exceptions.StepFailed:
+                try:
+                    hosts.revert_profile()
+                except Exception:
+                    pass
+                continue
+
             # Run all tests under current profile
+            profile_path = os.path.join(args.output, profile)
             for test, extra in test_defs:
-                for _ in range(args.retry_tests):
+                for i in range(args.retry_tests):
                     try:
                         hosts.run_test(test, workers, extra)
                         break
                     except (AssertionError, aexpect.ExpectError,
                             aexpect.ShellError, RuntimeError) as details:
-                        log.error("Running test %s@%s failed, trying again: "
-                                  "%s", test.test, profile, details)
+                        msg = ('test %s@%s attempt %s execution failure: %s'
+                               % (test.test, profile, i, details))
+                        utils.record_failure(os.path.join(profile_path,
+                                                          test.test, str(i)),
+                                             details, details=msg)
                 else:
-                    raise RuntimeError("Failed to run %s@%s in %s attempts"
-                                       % (test.test, profile,
-                                          args.retry_tests))
-
+                    log.error("ERROR running %s@%s, test will be SKIPPED!",
+                              test.test, profile)
+            # Fetch logs
+            try:
+                hosts.fetch_logs(os.path.join(args.output, profile,
+                                              '__sysinfo__'))
+            except Exception as exc:
+                utils.record_failure(os.path.join(args.output, profile), exc)
             # Revert profile changes. In case manual reboot is required return
             # non-zero.
             hosts.revert_profile()
         # Remove unnecessary files
         hosts.cleanup()
     except Exception as exc:
+        utils.record_failure(args.output, exc)
         if args.keep_tmp_files:
             log.error("Exception %s, asked not to cleanup by --keep-tmp-files",
                       exc)

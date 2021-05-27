@@ -376,6 +376,7 @@ def iter_results(path, skip_incorrect=False):
         result_name_glob = '[09]*'
     else:
         result_name_glob = '*'
+    # Process results
     for src_path in glob.glob(os.path.join(path, '*', '*', result_name_glob,
                                            'result.json')):
         with open(src_path, 'r') as src_fd:
@@ -389,6 +390,21 @@ def iter_results(path, skip_incorrect=False):
                 # Skip failed iterations
                 continue
             yield from _handle_iteration(src_result['iteration_data'])
+    # Process errors
+    for level in range(3):
+        level_path = (path,) + ('*',) * level + ('__error__',)
+        for src_path in glob.glob(os.path.join(*level_path)):
+            split_path = src_path.split(os.sep)[-(level + 1): -1]
+            split_path = split_path + ['*'] * (3 - level)
+            result_id = "/".join(split_path)
+            exc_path = os.path.join(src_path, 'exception')
+            if os.path.exists(exc_path):
+                with open(exc_path) as exc_fd:
+                    exc = exc_fd.read()
+            else:
+                exc = '<Unknown exception>'
+            yield("%s:./ERROR/ERROR/ERROR.error" % result_id, exc, True,
+                  utils.list_dir_hashes(src_path))
 
 
 class AveragesModel:
@@ -540,7 +556,9 @@ class RelativeResults:
             if src == 0:
                 return 0, self.mean_tolerance
             return (float(dst) - src) / abs(src) * 100, self.mean_tolerance
-        return src - dst, self.stddev_tolerance
+        if test_name.endswith("stddev"):
+            return src - dst, self.stddev_tolerance
+        return 0 if src == dst else 1, 0
 
     def record_result(self, test_name, src, dst, primary=False, grouped=False,
                       difference=None, tolerance=None, params=None):
@@ -606,7 +624,8 @@ class RelativeResults:
                     if values:
                         out.append("%s %s" % (section.upper(),
                                               ", ".join(values)))
-                srcs = "/".join("%.2f" % _ for _ in self.srcs)
+                srcs = "/".join(("%.2f" if isinstance(_, float) else "%s") % _
+                                for _ in self.srcs)
                 out.append("(%s; %s)" % (srcs, self.dst))
                 out.append("+-%s%% tolerance" % self.tolerance)
                 return Result(status, diff, test_name, self.srcs[-1],

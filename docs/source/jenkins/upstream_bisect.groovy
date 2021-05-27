@@ -40,7 +40,7 @@ pbenchPublish = params.PBENCH_PUBLISH
 
 // Extra variables
 // Provisioner machine
-workerNode = 'runperf-slave1'
+workerNode = 'runperf-slave'
 // runperf git branch
 gitBranch = 'master'
 // extra runperf arguments

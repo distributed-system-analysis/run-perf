@@ -101,7 +101,8 @@ class BaseProvider:
         url = self.get_url()
         if not url:
             return "Failed to get download URL"
-        self.session.cmd("wget '%s' -O '%s'" % (url, self.image), timeout=360)
+        self.session.cmd("curl -L '%s' -o '%s'" % (url, self.image),
+                         timeout=360)
         self.session.cmd("chmod 666 '%s'" % self.image)
         self.session.cmd("truncate -s 20G %s.tmp" % self.image)
         self.session.cmd("virt-resize --expand $(virt-filesystems --long -a %s"
@@ -146,7 +147,10 @@ class Fedora(BaseProvider):
             imgs = re.findall(br'href="([^"]+\.qcow2)"', urlopen(url).read())
             if not imgs:
                 return False
-            return url + imgs[-1].decode('utf-8')
+            img = imgs[-1].decode('utf-8')
+            if img.startswith('/'):
+                img = img.rsplit('/', 1)[-1]
+            return url + img
         except OSError:
             return False
 

@@ -25,6 +25,49 @@ LOG = logging.getLogger(__name__)
 # : Persistent storage path
 CONFIG_DIR = '/var/lib/runperf/'
 
+class LogFetcher:
+    def __init__(self):
+        self.host_paths = set()
+        self.worker_paths = set()
+        self.host_cmds = set()
+        self.worker_cmds = set()
+
+    def collect_files(self, out_path, host, paths):
+        for path in paths:
+            try:
+                dst = out_path + os.path.sep + path
+                os.makedirs(os.path.dirname(dst))
+                host.copy_from(path, dst)
+            except Exception:
+                pass
+
+    def collect_cmds(self, out_path, host, cmds):
+        if not cmds:
+            return
+        out_path = os.path.join(out_path, 'COMMANDS')
+        os.makedirs(out_path)
+        try:
+            with host.get_session_cont() as session:
+                for cmd in cmds:
+                    path = os.path.join(out_path,
+                                        utils.string_to_safe_path(cmd))
+                    try:
+                        with open(path, 'w') as out_fd:
+                            out_fd.write(session.cmd_output(cmd))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    def collect(self, path, host, workers):
+        self.collect_files(path, host, self.host_paths)
+        self.collect_cmds(path, host, self.host_cmds)
+        for worker in workers:
+            worker_path = os.path.join(path, worker.name)
+            self.collect_files(worker_path, worker, self.worker_paths)
+            self.collect_cmds(worker_path, worker, self.worker_cmds)
+
+
 
 class BaseProfile:
 
@@ -48,6 +91,7 @@ class BaseProfile:
         self.extra = extra
         # List of available workers
         self.workers = []
+        self.log_fetcher = LogFetcher()
 
     def _write_file(self, path, content, append=False):
         """
@@ -178,6 +222,9 @@ class BaseProfile:
         """
         raise NotImplementedError
 
+    def fetch_logs(self, path):
+        self.log_fetcher.collect(path, self.host, self.workers)
+
     def __del__(self):
         if self.session:
             self.session.close()
@@ -201,6 +248,8 @@ class PersistentProfile(BaseProfile):
     _rc_local = None
     # "tuned-adm profile $profile" to be enforced
     _tuned_adm_profile = None
+    # enable/disable irqbalance service
+    _irqbalance = None
 
     def __init__(self, host, rp_paths, extra, skip_init_call=False):
         """
@@ -213,6 +262,10 @@ class PersistentProfile(BaseProfile):
             BaseProfile.__init__(self, host, rp_paths, extra)
         if self._grub_args is None:
             self._grub_args = set()
+        # TODO: Add extra handling of our arguments in Baseclass similarly to
+        # DefaultLibvirt
+        if 'irqbalance' in extra:
+            self._irqbalance = extra['irqbalance']
         self.performed_setup_path = self._persistent_storage_path(
             "persistent_setup_finished")
 
@@ -248,7 +301,7 @@ class PersistentProfile(BaseProfile):
             self._set('persistent_setup/rc_local_was_missing', "missing")
         else:
             self._set('persistent_setup/rc_local', rc_local_content, True)
-            self._write_file("/etc/rc.d/rc.local", rc_local, False)
+        self._write_file("/etc/rc.d/rc.local", rc_local, False)
         self.session.cmd("chmod 755 /etc/rc.d/rc.local")
 
     def _persistent_tuned_adm(self, profile):
@@ -268,6 +321,16 @@ class PersistentProfile(BaseProfile):
         self.session.cmd('grubby --args="%s" --update-kernel='
                          '"$(grubby --default-kernel)"' % args)
 
+    def _persistent_irqbalance(self, status):
+        _status = self.session.cmd_status("systemctl is-enabled irqbalance")
+        if status == _status:
+            # We are done, they are configured correctly
+            return
+        self._set("persistent_setup/irqbalance", _status)
+        self.session.cmd('systemctl %s irqbalance'
+                         % 'enable' if status else 'disable')
+        self.host.reboot_request = True
+
     def _apply_persistent(self):
         """
         Perfrom persistent setup
@@ -283,9 +346,16 @@ class PersistentProfile(BaseProfile):
 
         if self._grub_args:
             self._persistent_grub_args(self._grub_args)
+
+        if self._irqbalance is not None:
+            self._persistent_irqbalance(self._irqbalance)
         return True
 
     def _revert(self):
+        irqbalance = self._get("persistent_setup/irqbalance", -1)
+        if irqbalance != -1:
+            self._persistent_irqbalance(int(irqbalance))
+            self._remove("persistent_setup/irqbalance")
         cmdline = self._get("persistent_setup/grub_args", -1)
         if cmdline != -1:
             self.host.reboot_request = True
@@ -316,6 +386,8 @@ class PersistentProfile(BaseProfile):
             params["rc_local"] = self._read_file("/etc/rc.d/rc.local")
         if self._tuned_adm_profile:
             params["tuned_adm_profile"] = self.session.cmd("tuned-adm active")
+        params["tuned_adm_profile"] = self.session.cmd_status_output(
+            "systemctl is-enabled irqbalance")[1]
         return info
 
 
@@ -345,7 +417,7 @@ class DefaultLibvirt(BaseProfile):
 
     name = "DefaultLibvirt"
     img_base = "/var/lib/libvirt/images"
-    deps = "libvirt libguestfs-tools-c virt-install"
+    deps = "tuned libvirt libguestfs-tools-c virt-install"
 
     def __init__(self, host, rp_paths, extra):
         super().__init__(host, rp_paths, extra)
@@ -362,6 +434,8 @@ class DefaultLibvirt(BaseProfile):
             value = self.extra.get("force_" + param)
             if value:
                 self._guest[param] = value
+        self.log_fetcher.host_paths.add('/var/log/libvirt')
+        self.log_fetcher.worker_cmds.add('journalctl --no-pager')
 
     def _apply(self, setup_script):
         if self.vms:
@@ -374,13 +448,17 @@ class DefaultLibvirt(BaseProfile):
         return ret
 
     def _prerequisities(self, session):
+        if self._custom_qemu:
+            deps = self.deps + " git"
+            session.cmd("yum install -y %s" % deps)
+        else:
+            deps = self.deps
+
         if (session.cmd_status("systemctl is-active libvirtd") or
                 session.cmd_status("which virt-install")):
-            if self._custom_qemu:
-                deps = self.deps + " git"
-            else:
-                deps = self.deps
-            session.cmd("yum install -y %s" % deps)
+            if not self._custom_qemu:
+                # with custom qemu we force-install prior to libvirt check
+                session.cmd("yum install -y %s" % deps)
             session.cmd("systemctl start libvirtd")
 
     def _image_up_to_date(self, session, pubkey, image, setup_script,
