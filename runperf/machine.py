@@ -357,23 +357,48 @@ class Controller:
             out.write("\n%s:" % key)
             out.write(value)
 
-    def apply_profile(self, profile, extra):
-        """Apply profile on each host, report list of lists of workers"""
+    def fetch_logs(self, path):
+        self.for_each_host(self.hosts, 'fetch_logs', (path, ))
+
+    def _step(self):
+        """
+        Decorator to record failures in our outputdir
+        """
+        def inner(func):
+            def wrapper(*args, **kwargs):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as exc:
+                    err_path = utils.record_failure(self._output_dir, exc)
+                    try:
+                        self.fetch_logs(err_path)
+                    except Exception:
+                        pass
+                    raise exceptions.StepFailed from exc
+            return wrapper
+        return inner
+
+    def _apply_profile(self, profile, extra):
         self.log.info("APPLY profile %s %s", profile, extra)
-        # Allow 5 attempts, one to revert previous profile, one to apply
-        # and 3 extra in case one boot fails to get resources (eg. hugepages)
+        # Allow 5 attempts, one to revert previous profile, one to
+        # apply and 3 extra in case one boot fails to get resources
+        # (eg. hugepages)
         if self._worker_setup_script:
             with open(self._worker_setup_script) as setup_script_fd:
                 setup_script = setup_script_fd.read()
         else:
             setup_script = None
         self.for_each_host_retry(5, self.hosts, 'apply_profile',
-                                 (profile, extra, setup_script, self.paths))
+                                 (profile, extra, setup_script,
+                                  self.paths))
         self.profile = self.main_host.profile.name
         return [host.workers for host in self.hosts]
 
-    def revert_profile(self):
-        """Revert profile"""
+    def apply_profile(self, profile, extra):
+        """Apply profile on each host, report list of lists of workers"""
+        return self._step()(self._apply_profile)(profile, extra)
+
+    def _revert_profile(self):
         self.log.info("REVERT profile %s", self.profile)
         # Collect information about the profile in case it was applied
         if self.profile is not None:
@@ -390,6 +415,10 @@ class Controller:
         # and one extra in case one boot fails to get resources (eg. hugepages)
         self.for_each_host_retry(3, self.hosts, 'revert_profile')
         self.profile = None
+
+    def revert_profile(self):
+        """Revert profile"""
+        return self._step()(self._revert_profile)()
 
     @staticmethod
     def _move_results(tmp_path):
@@ -595,6 +624,19 @@ class Host(BaseMachine):
         out["params"] = "\n".join("%s: %s" % _
                                   for _ in sorted(self.params.items()))
         return out
+
+    def fetch_logs(self, path):
+        """Fetch important logs"""
+        path = os.path.join(path, self.name)
+        if self.profile:
+            self.profile.fetch_logs(path)
+        try:
+            out = utils.check_output(["journalctl", "--no-pager"])
+            with open(os.path.join(path, 'COMMANDS', 'journalctl'),
+                      'w') as journal_fd:
+                journal_fd.write(out)
+        except Exception:
+            pass
 
     def __del__(self):
         self.cleanup()

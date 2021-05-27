@@ -31,3 +31,9 @@ class TestSkip(RuntimeWarning):
     """
     Exception used to mark skipped tests
     """
+
+class StepFailed(RuntimeError):
+
+    """
+    Exception used to mark failed steps
+    """
