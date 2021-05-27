@@ -90,7 +90,7 @@ List getDistroRange(String[] range, String workerNode) {
 // Process list of distros and replace '..' ranges with individual versions
 List getDistrosRange(String[] distrosRaw, String workerNode) {
     println("getDistrosRange ${distrosRaw}")
-    distros = []
+    List distros = []
     for (distro in distrosRaw) {
         if (distro.contains('..')) {
             distroRange = getDistroRange(distro.split('\\.\\.'), workerNode)
