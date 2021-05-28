@@ -63,7 +63,7 @@ makeInstallCmd = '\nmake -j $(getconf _NPROCESSORS_ONLN)\nmake install'
 pythonDeployCmd = 'python3 setup.py develop --user'
 
 String getBkrInstallCmd(String hostBkrLinks, String hostBkrLinksFilter, String arch) {
-    return ('\nfor url in ' + hostBkrLinks + '; do dnf install -y --allowerasing ' +
+    return ('\nfor url in ' + hostBkrLinks + '; do dnf install -y --allowerasing --skip-broken ' +
             '$(curl -k \$url | grep -o -e "http[^\\"]*' + arch + '\\.rpm" -e ' +
             '"http[^\\"]*noarch\\.rpm" | grep -v $(for expr in ' + hostBkrLinksFilter + '; do ' +
             'echo -n " -e $expr"; done)); done')
