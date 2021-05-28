@@ -122,7 +122,7 @@ node(workerNode) {
         }
         // The same on guest
         if (guestBkrLinks) {
-            getBkrInstallCmd(guestBkrLinks, guestBkrLinksFilter, arch)
+            guestScript += getBkrInstallCmd(guestBkrLinks, guestBkrLinksFilter, arch)
         }
         // Install deps and compile custom fio with nbd ioengine
         if (fioNbdSetup) {
