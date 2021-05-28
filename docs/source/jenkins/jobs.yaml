@@ -21,6 +21,7 @@
     param-cmp-stddev-tolerance: 10
     param-cmp-model-job: ''
     param-cmp-model-build: ''
+    param-host-bkr-links: ''
     param-no-reference-builds: 14
     param-fio-nbd-setup: false
     param-upstream-qemu-commit: ''
@@ -88,7 +89,7 @@
         - string:
             name: HOST_BKR_LINKS
             description: 'Space separated list of urls to be grepped for "http.*$arch\\.rpm" and "http.*noarch\\.rpm", filtered by HOST_BKR_LINKS_FILTER and then set to be installed on host/workers with "--allowerase". Intended usage is to use koji/beaker link like: https://koji.fedoraproject.org/koji/buildinfo?buildID=1534744'
-            default: ""
+            default: "{param-host-bkr-links}"
         - string:
             name: HOST_BKR_LINKS_FILTER
             description: 'Filter to be split and applied via "grep -v -e EXPR1 -e EXPR2 ..."'
