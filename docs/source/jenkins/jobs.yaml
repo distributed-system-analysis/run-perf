@@ -117,6 +117,10 @@
             name: UPSTREAM_QEMU_COMMIT
             description: 'Compile and install qemu using provided commit/tag from the upstream git. Use it by using $PROFILE:{{"qemu_bin": "/usr/local/bin/qemu-system-$ARCH"}} when specifying profiles.'
             default: "{param-upstream-qemu-commit}"
+        - bool:
+            name: FEDORA_LATEST_KERNEL
+            description: 'Install the latest kernel from koji (Fedora rpm)'
+            default: false
         - string:
             name: DESCRIPTION_PREFIX
             description: Description prefix (describe the difference from default)
