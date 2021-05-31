@@ -37,6 +37,8 @@ guestBkrLinksFilter = params.GUEST_BKR_LINKS_FILTER
 fioNbdSetup = params.FIO_NBD_SETUP
 // Add steps to checkout, compile and install the upstream qemu from git
 upstreamQemuCommit = params.UPSTREAM_QEMU_COMMIT
+// Add steps to install the latest kernel from koji (Fedora rpm)
+fedoraLatestKernel = params.FEDORA_LATEST_KERNEL
 // Description prefix (describe the difference from default)
 descriptionPrefix = params.DESCRIPTION_PREFIX
 // Number of reference builds
@@ -61,9 +63,10 @@ thisPath = '.'
 runperfResultsFilter = 'result*/**/*.json,result*/RUNPERF_METADATA'
 makeInstallCmd = '\nmake -j $(getconf _NPROCESSORS_ONLN)\nmake install'
 pythonDeployCmd = 'python3 setup.py develop --user'
+kojiUrl = 'https://koji.fedoraproject.org/koji/'
 
 String getBkrInstallCmd(String hostBkrLinks, String hostBkrLinksFilter, String arch) {
-    return ('\nfor url in ' + hostBkrLinks + '; do dnf install -y --allowerasing ' +
+    return ('\nfor url in ' + hostBkrLinks + '; do dnf install -y --allowerasing --skip-broken ' +
             '$(curl -k \$url | grep -o -e "http[^\\"]*' + arch + '\\.rpm" -e ' +
             '"http[^\\"]*noarch\\.rpm" | grep -v $(for expr in ' + hostBkrLinksFilter + '; do ' +
             'echo -n " -e $expr"; done)); done')
@@ -122,7 +125,7 @@ node(workerNode) {
         }
         // The same on guest
         if (guestBkrLinks) {
-            getBkrInstallCmd(guestBkrLinks, guestBkrLinksFilter, arch)
+            guestScript += getBkrInstallCmd(guestBkrLinks, guestBkrLinksFilter, arch)
         }
         // Install deps and compile custom fio with nbd ioengine
         if (fioNbdSetup) {
@@ -160,6 +163,18 @@ node(workerNode) {
             hostScript += '\nchcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"'
             hostScript += '\n\\cp -f build/config.status /usr/local/share/qemu/'
             hostScript += '\ncd $OLD_PWD'
+        }
+        // Install the latest kernel from koji (Fedora rpm)
+        if (fedoraLatestKernel) {
+            kernelBuild = sh(returnStdout: true,
+                             script: ("curl '$kojiUrl/packageinfo?packageID=8' | " +
+                                      'grep -B 4 "complete" | grep "kernel" | ' +
+                                      'grep "git" | grep -m 1 -o -e \'href="[^"]*"\'')
+                             ).trim()[6..-2]
+            kernelBuildUrl = kojiUrl + kernelBuild
+            kernelBuildFilter = 'debug bpftool kernel-tools perf kernel-selftests kernel-doc'
+            hostScript += getBkrInstallCmd(kernelBuildUrl, kernelBuildFilter, arch)
+            guestScript += getBkrInstallCmd(kernelBuildUrl, kernelBuildFilter, arch)
         }
         if (hostScript) {
             writeFile file: 'host_script', text: hostScript
