@@ -525,6 +525,6 @@ class LogFetcher:
         :param path: Path to store the outpus locally
         :param host: `machine.BaseMachine`-like object to collect from
         """
-        path = os.path.join(path, host.name)
+        path = os.path.join(path, host.get_fullname())
         self.collect_files(path, host, self.paths)
         self.collect_cmds(path, host, self.cmds)

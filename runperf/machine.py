@@ -87,6 +87,12 @@ class BaseMachine:
         return ("%s(%s, %s)"
                 % (self.__class__.__name__, self.name, self.distro))
 
+    def get_fullname(self):
+        """
+        Return full host name
+        """
+        return self.name
+
     def get_addr(self):
         """
         Get addr/hostname
@@ -511,6 +517,11 @@ class Host(BaseMachine):
                 session.cmd("grubby --update-kernel=ALL "
                             "--args=nosmt=force")
 
+    def get_fullname(self):
+        if self.hop:
+            return self.hop.get_fullname() + '-' + self.addr
+        return self.addr
+
     def get_addr(self):
         """Return addr as they are static"""
         return self.addr
@@ -685,6 +696,9 @@ class LibvirtGuest(BaseMachine):
         self._started = False
         self.xml = None
         self.image = None
+
+    def get_fullname(self):
+        return self.host.get_fullname() + '-' + self.get_addr()
 
     def get_session(self, timeout=60, hop=None):
         if hop is None:

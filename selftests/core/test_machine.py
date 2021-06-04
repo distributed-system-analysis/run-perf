@@ -69,6 +69,25 @@ class DummyController(Controller):
         for host in self.hosts:
             host.get_session = mock.Mock()
 
+class TestBasics(Selftest):
+
+    def get_args(self, addrs):
+        force_params = {_: 1 for _ in machine.HOST_KEYS}
+        return argparse.Namespace(paths=[], default_passwords=[],
+                                  force_params={_: force_params
+                                                for _ in addrs},
+                                  guest_distro='FOO')
+
+    def test_fullname(self):
+        machine1 = machine.BaseMachine(None, 'name1', None)
+        self.assertEqual('name1', machine1.get_fullname())
+        args = self.get_args(["addr", "addr2"])
+        machine2 = machine.Host(mock.Mock(), 'name2', 'addr', None,
+                                args)
+        self.assertEqual('addr', machine2.get_fullname())
+        machine3 = machine.Host(mock.Mock(), 'name3', 'addr2', None,
+                                args, machine2)
+        self.assertEqual('addr-addr2', machine3.get_fullname())
 
 class GetDistroInfo(Selftest):
     """Tests for get_distro_info"""
