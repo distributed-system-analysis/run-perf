@@ -473,3 +473,58 @@ def list_dir_hashes(path):
             except Exception:
                 entries[os.path.relpath(curpath, path)] = 'ERROR READING'
     return entries
+
+class LogFetcher:
+    """
+    Object that handles fetching logs or command outputs
+    """
+    def __init__(self, paths=None, cmds=None):
+        self.paths = set(paths) if paths else set()
+        self.cmds = set(cmds) if cmds else set(["journalctl --no-pager"])
+
+    def collect_files(self, out_path, host, paths):
+        """Fetch files from `host`"""
+        for path in paths:
+            try:
+                dst = out_path + os.path.sep + path
+                try:
+                    os.makedirs(os.path.dirname(dst))
+                except FileExistsError:
+                    pass
+                host.copy_from(path, dst)
+            except Exception:
+                pass
+
+    def collect_cmds(self, out_path, host, cmds):
+        """Collect the commands output from `host`"""
+        if not cmds:
+            return
+        out_path = os.path.join(out_path, 'COMMANDS')
+        try:
+            os.makedirs(out_path)
+        except FileExistsError:
+            pass
+        try:
+            with host.get_session_cont() as session:
+                for cmd in cmds:
+                    path = os.path.join(out_path,
+                                        string_to_safe_path(cmd))
+                    try:
+                        with open(path, 'w') as out_fd:
+                            out_fd.write(session.cmd_output(cmd,
+                                                            print_func='mute'))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    def collect(self, path, host):
+        """
+        Collect all paths and command outputs
+
+        :param path: Path to store the outpus locally
+        :param host: `machine.BaseMachine`-like object to collect from
+        """
+        path = os.path.join(path, host.name)
+        self.collect_files(path, host, self.paths)
+        self.collect_cmds(path, host, self.cmds)

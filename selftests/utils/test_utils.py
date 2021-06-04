@@ -20,6 +20,8 @@ from unittest import mock
 import unittest
 
 from runperf import utils
+import shutil
+import contextlib
 
 
 class BasicUtils(unittest.TestCase):
@@ -134,6 +136,71 @@ class BasicUtils(unittest.TestCase):
         with mock.patch("runperf.utils.pkg_resources.iter_entry_points",
                         entries):
             self.assertRaises(KeyError, utils.named_entry_point, "", "missing")
+
+class Machine:
+    def __init__(self, name, sessions=None):
+        self.name = name
+        self.sessions = sessions
+
+    def get_fullname(self):
+        return self.name
+
+    def copy_from(self, src, dst):
+        shutil.copytree(src, dst)
+
+    @contextlib.contextmanager
+    def get_session_cont(self):
+        for session in self.sessions:
+            yield session
+
+class LogFetcher(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="runperf-selftest")
+
+    def test_default(self):
+        fetcher = utils.LogFetcher()
+        os.makedirs(os.path.join(self.tmpdir, 'TO', 'BE', 'COLLECTED'))
+        path1 = os.path.join(self.tmpdir, 'TO', 'some')
+        with open(path1, 'w') as fd_tmp:
+            fd_tmp.write('SOME')
+        path2 = os.path.join(self.tmpdir, 'TO', 'BE', 'files')
+        with open(path2, 'w') as fd_tmp:
+            fd_tmp.write('CONTENT')
+        path3 = os.path.join(self.tmpdir, 'TO', 'BE', 'COLLECTED', 'we_want')
+        with open(path3, 'w') as fd_tmp:
+            fd_tmp.write('LAST')
+        fetcher.paths.add(os.path.join(self.tmpdir, 'TO'))
+        session = mock.Mock()
+        session.cmd_output.return_value = 'OUTPUT'
+        machine = Machine('vm1', [session])
+        fetcher.collect(self.tmpdir, machine)
+        prefix = os.path.join(self.tmpdir, 'vm1') + '/'
+        with open(prefix + path1) as fd_tmp:
+            self.assertEqual('SOME', fd_tmp.read())
+        with open(prefix + path2) as fd_tmp:
+            self.assertEqual('CONTENT', fd_tmp.read())
+        with open(prefix + path3) as fd_tmp:
+            self.assertEqual('LAST', fd_tmp.read())
+        with open(prefix + 'COMMANDS/journalctl --no-pager') as fd_tmp:
+            self.assertEqual('OUTPUT', fd_tmp.read())
+
+    def test_fail_to_get_session(self):
+        fetcher = utils.LogFetcher()
+        fetcher.paths.add('/foo/bar/baz')
+        machine = mock.Mock()
+        machine.get_fullname.return_value = "TEST"
+        fetcher.collect(self.tmpdir, machine)
+        # Fetch fails so the "baz" should not be created
+        self.assertTrue(os.path.exists(os.path.join(self.tmpdir, 'TEST',
+                                                    'foo/bar')))
+        self.assertFalse(os.path.exists(os.path.join(self.tmpdir, 'TEST',
+                                                     'foo/bar/baz')))
+        self.assertTrue(os.path.exists(os.path.join(self.tmpdir, 'TEST',
+                                                    'COMMANDS')))
+
+    def tearDown(self):
+        if self.tmpdir:
+            shutil.rmtree(self.tmpdir)
 
 
 if __name__ == '__main__':

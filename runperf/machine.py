@@ -78,6 +78,7 @@ class BaseMachine:
         self.name = name  # human readable name
         self.distro = distro  # distribution running/to-be-provisioned
         self.default_passwords = default_passwords  # default ssh passwords
+        self.log_fetcher = utils.LogFetcher()
 
     def __str__(self):
         return self.name
@@ -227,6 +228,12 @@ class BaseMachine:
                 output.update(out)
         return output
 
+    def fetch_logs(self, path):
+        """
+        Fetch logs from this machine
+        """
+        self.log_fetcher.collect(path, self)
+
 
 class Controller:
     """
@@ -358,6 +365,9 @@ class Controller:
             out.write(value)
 
     def fetch_logs(self, path):
+        """
+        Fetch logs from all hosts
+        """
         self.for_each_host(self.hosts, 'fetch_logs', (path, ))
 
     def _step(self):
@@ -627,16 +637,9 @@ class Host(BaseMachine):
 
     def fetch_logs(self, path):
         """Fetch important logs"""
-        path = os.path.join(path, self.name)
         if self.profile:
             self.profile.fetch_logs(path)
-        try:
-            out = utils.check_output(["journalctl", "--no-pager"])
-            with open(os.path.join(path, 'COMMANDS', 'journalctl'),
-                      'w') as journal_fd:
-                journal_fd.write(out)
-        except Exception:
-            pass
+        self.log_fetcher.collect(path, self)
 
     def __del__(self):
         self.cleanup()
