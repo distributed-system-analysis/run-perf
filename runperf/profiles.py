@@ -25,49 +25,6 @@ LOG = logging.getLogger(__name__)
 # : Persistent storage path
 CONFIG_DIR = '/var/lib/runperf/'
 
-class LogFetcher:
-    def __init__(self):
-        self.host_paths = set()
-        self.worker_paths = set()
-        self.host_cmds = set()
-        self.worker_cmds = set()
-
-    def collect_files(self, out_path, host, paths):
-        for path in paths:
-            try:
-                dst = out_path + os.path.sep + path
-                os.makedirs(os.path.dirname(dst))
-                host.copy_from(path, dst)
-            except Exception:
-                pass
-
-    def collect_cmds(self, out_path, host, cmds):
-        if not cmds:
-            return
-        out_path = os.path.join(out_path, 'COMMANDS')
-        os.makedirs(out_path)
-        try:
-            with host.get_session_cont() as session:
-                for cmd in cmds:
-                    path = os.path.join(out_path,
-                                        utils.string_to_safe_path(cmd))
-                    try:
-                        with open(path, 'w') as out_fd:
-                            out_fd.write(session.cmd_output(cmd))
-                    except Exception:
-                        pass
-        except Exception:
-            pass
-
-    def collect(self, path, host, workers):
-        self.collect_files(path, host, self.host_paths)
-        self.collect_cmds(path, host, self.host_cmds)
-        for worker in workers:
-            worker_path = os.path.join(path, worker.name)
-            self.collect_files(worker_path, worker, self.worker_paths)
-            self.collect_cmds(worker_path, worker, self.worker_cmds)
-
-
 
 class BaseProfile:
 
@@ -91,7 +48,8 @@ class BaseProfile:
         self.extra = extra
         # List of available workers
         self.workers = []
-        self.log_fetcher = LogFetcher()
+        self.log_fetcher = utils.LogFetcher()
+        self.workers_log_fetcher = utils.LogFetcher()
 
     def _write_file(self, path, content, append=False):
         """
@@ -223,7 +181,9 @@ class BaseProfile:
         raise NotImplementedError
 
     def fetch_logs(self, path):
-        self.log_fetcher.collect(path, self.host, self.workers)
+        self.log_fetcher.collect(path, self.host)
+        for worker in self.workers:
+            self.workers_log_fetcher.collect(path, worker)
 
     def __del__(self):
         if self.session:
@@ -434,8 +394,7 @@ class DefaultLibvirt(BaseProfile):
             value = self.extra.get("force_" + param)
             if value:
                 self._guest[param] = value
-        self.log_fetcher.host_paths.add('/var/log/libvirt')
-        self.log_fetcher.worker_cmds.add('journalctl --no-pager')
+        self.log_fetcher.paths.add('/var/log/libvirt/')
 
     def _apply(self, setup_script):
         if self.vms:

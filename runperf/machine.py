@@ -78,6 +78,7 @@ class BaseMachine:
         self.name = name  # human readable name
         self.distro = distro  # distribution running/to-be-provisioned
         self.default_passwords = default_passwords  # default ssh passwords
+        self.log_fetcher = utils.LogFetcher()
 
     def __str__(self):
         return self.name
@@ -85,6 +86,12 @@ class BaseMachine:
     def __repr__(self):
         return ("%s(%s, %s)"
                 % (self.__class__.__name__, self.name, self.distro))
+
+    def get_fullname(self):
+        """
+        Return full host name
+        """
+        return self.name
 
     def get_addr(self):
         """
@@ -227,6 +234,12 @@ class BaseMachine:
                 output.update(out)
         return output
 
+    def fetch_logs(self, path):
+        """
+        Fetch logs from this machine
+        """
+        self.log_fetcher.collect(path, self)
+
 
 class Controller:
     """
@@ -358,6 +371,9 @@ class Controller:
             out.write(value)
 
     def fetch_logs(self, path):
+        """
+        Fetch logs from all hosts
+        """
         self.for_each_host(self.hosts, 'fetch_logs', (path, ))
 
     def _step(self):
@@ -501,6 +517,11 @@ class Host(BaseMachine):
                 session.cmd("grubby --update-kernel=ALL "
                             "--args=nosmt=force")
 
+    def get_fullname(self):
+        if self.hop:
+            return self.hop.get_fullname() + '-' + self.addr
+        return self.addr
+
     def get_addr(self):
         """Return addr as they are static"""
         return self.addr
@@ -508,6 +529,12 @@ class Host(BaseMachine):
     def get_host_addr(self):
         """Return our addr as we are the host"""
         return self.addr
+
+    def get_ssh_cmd(self, hop=None):
+        """By default use self.hop as the default hop"""
+        if hop is None and self.hop:
+            hop = self.hop
+        return BaseMachine.get_ssh_cmd(self, hop=hop)
 
     def _process_params(self, args):
         # Use args.paths to find yaml file for given machine
@@ -627,16 +654,9 @@ class Host(BaseMachine):
 
     def fetch_logs(self, path):
         """Fetch important logs"""
-        path = os.path.join(path, self.name)
         if self.profile:
             self.profile.fetch_logs(path)
-        try:
-            out = utils.check_output(["journalctl", "--no-pager"])
-            with open(os.path.join(path, 'COMMANDS', 'journalctl'),
-                      'w') as journal_fd:
-                journal_fd.write(out)
-        except Exception:
-            pass
+        self.log_fetcher.collect(path, self)
 
     def __del__(self):
         self.cleanup()
@@ -683,10 +703,14 @@ class LibvirtGuest(BaseMachine):
         self.xml = None
         self.image = None
 
-    def get_session(self, timeout=60, hop=None):
+    def get_fullname(self):
+        return self.host.get_fullname() + '-' + self.get_addr()
+
+    def get_ssh_cmd(self, hop=None):
+        """By default use self.hop as the default hop"""
         if hop is None:
             hop = self.host
-        return BaseMachine.get_session(self, timeout=timeout, hop=hop)
+        return BaseMachine.get_ssh_cmd(self, hop=hop)
 
     def get_host_session(self):
         """
