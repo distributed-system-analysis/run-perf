@@ -89,6 +89,56 @@ class TestBasics(Selftest):
                                 args, machine2)
         self.assertEqual('addr-addr2', machine3.get_fullname())
 
+    def test_ssh_cmd(self):
+        args = self.get_args(["addr1", "addr2", "addr3"])
+        machine1 = machine.Host(mock.Mock(), 'name1', 'addr1', None, args)
+        self.assertEqual("ssh -o BatchMode=yes -o StrictHostKeyChecking=no "
+                         "-o UserKnownHostsFile=/dev/null -o "
+                         "ControlMaster=auto -o "
+                         "ControlPath='/var/tmp/%r@%h-%p' -o "
+                         "ControlPersist=60 root@addr1",
+                         machine1.get_ssh_cmd())
+        machine2 = machine.Host(mock.Mock(), 'name2', 'addr2', None, args,
+                                machine1)
+        self.assertEqual("ssh -o BatchMode=yes -o StrictHostKeyChecking=no "
+                         "-o UserKnownHostsFile=/dev/null -o "
+                         "ControlMaster=auto -o "
+                         "ControlPath='/var/tmp/%r@%h-%p' -o "
+                         "ControlPersist=60 root@addr1 -A -t ssh -o "
+                         "BatchMode=yes -o StrictHostKeyChecking=no -o "
+                         "UserKnownHostsFile=/dev/null -o ControlMaster=auto "
+                         "-o ControlPath='/var/tmp/%r@%h-%p' -o "
+                         "ControlPersist=60 root@addr2",
+                         machine2.get_ssh_cmd())
+        machine3 = machine.Host(mock.Mock(), 'name3', 'addr3', None, args,
+                                machine2)
+        self.assertEqual("ssh -o BatchMode=yes -o StrictHostKeyChecking=no "
+                         "-o UserKnownHostsFile=/dev/null -o "
+                         "ControlMaster=auto -o "
+                         "ControlPath='/var/tmp/%r@%h-%p' -o "
+                         "ControlPersist=60 root@addr1 -A -t ssh -o "
+                         "BatchMode=yes -o StrictHostKeyChecking=no "
+                         "-o UserKnownHostsFile=/dev/null -o "
+                         "ControlMaster=auto -o "
+                         "ControlPath='/var/tmp/%r@%h-%p' -o "
+                         "ControlPersist=60 root@addr2 -A -t ssh -o "
+                         "BatchMode=yes -o StrictHostKeyChecking=no -o "
+                         "UserKnownHostsFile=/dev/null -o ControlMaster=auto "
+                         "-o ControlPath='/var/tmp/%r@%h-%p' -o "
+                         "ControlPersist=60 root@addr3",
+                         machine3.get_ssh_cmd())
+        self.assertEqual("ssh -o BatchMode=yes -o StrictHostKeyChecking=no "
+                         "-o UserKnownHostsFile=/dev/null -o "
+                         "ControlMaster=auto -o "
+                         "ControlPath='/var/tmp/%r@%h-%p' -o "
+                         "ControlPersist=60 root@addr1 -A -t ssh -o "
+                         "BatchMode=yes -o StrictHostKeyChecking=no -o "
+                         "UserKnownHostsFile=/dev/null -o ControlMaster=auto "
+                         "-o ControlPath='/var/tmp/%r@%h-%p' -o "
+                         "ControlPersist=60 root@addr3",
+                         machine3.get_ssh_cmd(machine1))
+
+
 class GetDistroInfo(Selftest):
     """Tests for get_distro_info"""
 

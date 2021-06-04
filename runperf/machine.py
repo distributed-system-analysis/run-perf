@@ -530,6 +530,12 @@ class Host(BaseMachine):
         """Return our addr as we are the host"""
         return self.addr
 
+    def get_ssh_cmd(self, hop=None):
+        """By default use self.hop as the default hop"""
+        if hop is None and self.hop:
+            hop = self.hop
+        return BaseMachine.get_ssh_cmd(self, hop=hop)
+
     def _process_params(self, args):
         # Use args.paths to find yaml file for given machine
         path_cfg = None
@@ -700,10 +706,11 @@ class LibvirtGuest(BaseMachine):
     def get_fullname(self):
         return self.host.get_fullname() + '-' + self.get_addr()
 
-    def get_session(self, timeout=60, hop=None):
+    def get_ssh_cmd(self, hop=None):
+        """By default use self.hop as the default hop"""
         if hop is None:
             hop = self.host
-        return BaseMachine.get_session(self, timeout=timeout, hop=hop)
+        return BaseMachine.get_ssh_cmd(self, hop=hop)
 
     def get_host_session(self):
         """
