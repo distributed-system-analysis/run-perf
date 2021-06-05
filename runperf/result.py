@@ -934,8 +934,11 @@ def closest_result(src_path, dst_paths):
         count = storage.count(score)
         LOG.debug("Score: %s (matching %s result(s))", score, count)
         if count == 1:
-            return storage.index(score)
-        return [i for i, value in enumerate(storage) if value == score]
+            for i in selection:
+                if storage[i] == score:
+                    return i
+        return [i for i, value in enumerate(storage)
+                if i in selection and value == score]
 
     def _process_results(dst_paths):
         storage = collections.defaultdict(

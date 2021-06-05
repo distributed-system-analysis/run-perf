@@ -70,7 +70,7 @@ class RunPerfTest(Selftest):
                          "9_bad/result_20200726_091827",
                          "9_bad/result_20200726_114437")]
         args.extend(res)
-        self.assertEqual(self._run(args), 0)
+        self.assertEqual(self._run(args), 1)
 
     def test_all_alike(self):
         """Check when all results are alike we return the first one"""
