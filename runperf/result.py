@@ -970,6 +970,8 @@ def closest_result(src_path, dst_paths):
         # [0] => distances of primary scores
         # [1] => distances of secondary scores
         stats = [[0] * no_results for _ in range(2)]
+        # Iterate only through the src items as the missing tests from other
+        # results should not affect the closenest of the current result.
         for test, value in src.items():
             score, primary, stddev = value
             if test not in storage:
