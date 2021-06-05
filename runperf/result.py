@@ -916,11 +916,14 @@ def closest_result(src_path, dst_paths):
         This calculates the normal pdf and then multiplies it by standard
         deviation to always scale it as it the std was 1 (useful to compare
         results with different stds together as if they were alike)
+
+        As a last step scale the probability from the highest ~0.4 to ~1 (there
+        is still some rounding, but slightly above 1)
         """
         var = float(sd)**2
         denom = (2*math.pi*var)**.5
         num = math.exp(-(float(x)-float(mean))**2/(2*var))
-        return num/denom * sd
+        return (num/denom * sd) * 2.51
 
     def process_score(storage, selection):
         """
@@ -958,18 +961,17 @@ def closest_result(src_path, dst_paths):
             return abs(this_score - score)
 
         # stats is a list of per-cathegory similarities
-        # [0] => score distance calculated from pdf based on sample stddev
-        #        using primary results
-        # [1] => like [0] on secondary results
-        # [2] => score distance calculated from pdf based on scaled stddev
-        #        calculated only on results without stddev using primary
-        #        results
-        # [3] => like [2] but from secondary results
-        stats = [[0] * no_results for _ in range(4)]
+        # [0] => distances of primary scores
+        # [1] => distances of secondary scores
+        stats = [[0] * no_results for _ in range(2)]
         for test, value in src.items():
             score, primary, stddev = value
             if test not in storage:
                 continue
+            if not primary:
+                this_cathegory = stats[1]
+            else:
+                this_cathegory = stats[0]
             this = storage[test]
             # Distances are in absolute values
             if stddev or any(True for _ in this if _[1] is not None):
@@ -988,10 +990,6 @@ def closest_result(src_path, dst_paths):
                                get_uncertainty(len(stddevs)) * 2)
                 norm_score = [0 if _[0] is None else norm_normpdf(_[0], score, norm_stddev)
                               for _ in this]
-                if not primary:
-                    this_cathegory = stats[1]
-                else:
-                    this_cathegory = stats[0]
             else:
                 distances = [_distance(x, score) for x in range(len(this))]
                 # Treat missing results by using 2x max distance
@@ -1009,12 +1007,10 @@ def closest_result(src_path, dst_paths):
                 # Calculate the norm distance per each element using simplified
                 # norm because we already normalized the distances to the range
                 # of 0-3
-                norm_score = [math.exp(-1/2 * distance ** 2)
+                # Divide each element by 2 to decrease the significance of this
+                # method to the stddev based one
+                norm_score = [math.exp(-1/2 * distance ** 2) / 2
                               for distance in norm_distances]
-                if not primary:
-                    this_cathegory = stats[3]
-                else:
-                    this_cathegory = stats[2]
             # Calculate the norm distance per each element using simplified
             # norm because we already normalized the distances to the range
             # of 0-3
