@@ -1020,6 +1020,7 @@ def closest_result(src_path, dst_paths):
             # of 0-3
             for idx, result_score in enumerate(norm_score):
                 this_cathegory[idx] += result_score
+            LOG.debug("%s %s: %s", "P" if primary else "S", test, norm_score)
         return stats
 
     def _process_src(src_path):
