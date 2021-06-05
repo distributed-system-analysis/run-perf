@@ -1043,11 +1043,6 @@ def closest_result(src_path, dst_paths):
     src = _process_src(src_path)
     storage = _process_results(dst_paths)
     no_results = len(dst_paths)
-    # Results by category
-    # 0 = primary mean
-    # 1 = secondary mean
-    # 2 = primary stddev
-    # 3 = secondary stddev
     stats = _calculate_stats(src, storage)
     selection = range(no_results)
     for values in stats:
