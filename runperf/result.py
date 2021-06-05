@@ -961,7 +961,10 @@ def closest_result(src_path, dst_paths):
             this_score = this[i][0]
             if this_score is None:
                 return None
-            return abs(this_score - score)
+            try:
+                return abs(this_score - score)
+            except TypeError:
+                return 0 if this_score == score else 1
 
         # stats is a list of per-cathegory similarities
         # [0] => distances of primary scores
