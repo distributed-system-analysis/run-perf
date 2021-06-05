@@ -996,14 +996,23 @@ def closest_result(src_path, dst_paths):
             else:
                 distances = [_distance(x, score) for x in range(len(this))]
                 # Treat missing results by using 2x max distance
-                _bad_distance = max(_ for _ in distances
-                                    if _ is not None) * 2
-                distances = [_bad_distance if _ is None else _
-                             for _ in distances]
-                one_third_of_max_distance = max(distances) / 3
-                # Skip results where all distances are 0 (100% match for all)
-                if not one_third_of_max_distance:
+                min_distance = min(_ for _ in distances if _ is not None)
+                max_distance = max(_ for _ in distances if _ is not None)
+                if None in distances:
+                    if min_distance == max_distance:
+                        _bad_distance = min_distance * 2
+                    else:
+                        _bad_distance = max_distance * 2
+                    if min_distance == 0:
+                        _bad_distance = 1
+                    distances = [_bad_distance if _ is None else _
+                                 for _ in distances]
+                elif min_distance == max_distance:
+                    # Skip results where all distances are 0 (100% match for
+                    # all)
+                    LOG.debug("%s: SKIP - same distances", test)
                     continue
+                one_third_of_max_distance = max(distances) / 3
                 # Normalize distance so they are within 0-3. That way we'd be able
                 # to calculate normal distribution via e^(-1/2*x^2)
                 norm_distances = [_ / one_third_of_max_distance for _ in distances]
