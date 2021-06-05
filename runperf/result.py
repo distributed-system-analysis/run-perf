@@ -391,8 +391,8 @@ def iter_results(path, skip_incorrect=False):
                 continue
             yield from _handle_iteration(src_result['iteration_data'])
     # Process errors
-    for level in range(3):
-        level_path = (path,) + ('*',) * level + ('__error__',)
+    for level in range(4):
+        level_path = (path,) + ('*',) * level + ('__error*__',)
         for src_path in glob.glob(os.path.join(*level_path)):
             split_path = src_path.split(os.sep)[-(level + 1): -1]
             split_path = split_path + ['*'] * (3 - level)
