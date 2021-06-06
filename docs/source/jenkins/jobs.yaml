@@ -444,42 +444,6 @@
         - python:
             !include-raw-escape ../scripts/prune_artifacts.py
 
-
-##############################################################################
-# Definition of the git-publisher job
-##############################################################################
-- job-template:
-    name: "rp-publish-results-git"
-    description: |
-        Publish the build result in git so it can be viewed eg. in github
-        pages
-    project-type: pipeline
-    parameters:
-        - string:
-            name: JOB
-            default: ""
-            description: "Job containing the result"
-        - string:
-            name: BUILD
-            default: ""
-            description: "Build of the job with the result"
-        - bool:
-            name: STATUS
-            default: false
-            description: "Status of the comparison (GOOD=true/BAD=false)"
-        - string:
-            name: PROJECT
-            default: ""
-            description: "Owner of the results (usually a group/company name + project/machine)"
-    pipeline-scm:
-        scm:
-            - git:
-                url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
-                branches:
-                    - master
-        script-path: "publish-results-git.groovy"
-        lightweight-checkout: true
-
 ###############################################################################
 ## Project to define jobs for automated regression jobs on example.org machine
 ###############################################################################
