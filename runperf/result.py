@@ -391,8 +391,8 @@ def iter_results(path, skip_incorrect=False):
                 continue
             yield from _handle_iteration(src_result['iteration_data'])
     # Process errors
-    for level in range(3):
-        level_path = (path,) + ('*',) * level + ('__error__',)
+    for level in range(4):
+        level_path = (path,) + ('*',) * level + ('__error*__',)
         for src_path in glob.glob(os.path.join(*level_path)):
             split_path = src_path.split(os.sep)[-(level + 1): -1]
             split_path = split_path + ['*'] * (3 - level)
@@ -916,11 +916,14 @@ def closest_result(src_path, dst_paths):
         This calculates the normal pdf and then multiplies it by standard
         deviation to always scale it as it the std was 1 (useful to compare
         results with different stds together as if they were alike)
+
+        As a last step scale the probability from the highest ~0.4 to ~1 (there
+        is still some rounding, but slightly above 1)
         """
         var = float(sd)**2
         denom = (2*math.pi*var)**.5
         num = math.exp(-(float(x)-float(mean))**2/(2*var))
-        return num/denom * sd
+        return (num/denom * sd) * 2.51
 
     def process_score(storage, selection):
         """
@@ -931,8 +934,11 @@ def closest_result(src_path, dst_paths):
         count = storage.count(score)
         LOG.debug("Score: %s (matching %s result(s))", score, count)
         if count == 1:
-            return storage.index(score)
-        return [i for i, value in enumerate(storage) if value == score]
+            for i in selection:
+                if storage[i] == score:
+                    return i
+        return [i for i, value in enumerate(storage)
+                if i in selection and value == score]
 
     def _process_results(dst_paths):
         storage = collections.defaultdict(
@@ -955,21 +961,25 @@ def closest_result(src_path, dst_paths):
             this_score = this[i][0]
             if this_score is None:
                 return None
-            return abs(this_score - score)
+            try:
+                return abs(this_score - score)
+            except TypeError:
+                return 0 if this_score == score else 1
 
         # stats is a list of per-cathegory similarities
-        # [0] => score distance calculated from pdf based on sample stddev
-        #        using primary results
-        # [1] => like [0] on secondary results
-        # [2] => score distance calculated from pdf based on scaled stddev
-        #        calculated only on results without stddev using primary
-        #        results
-        # [3] => like [2] but from secondary results
-        stats = [[0] * no_results for _ in range(4)]
+        # [0] => distances of primary scores
+        # [1] => distances of secondary scores
+        stats = [[0] * no_results for _ in range(2)]
+        # Iterate only through the src items as the missing tests from other
+        # results should not affect the closenest of the current result.
         for test, value in src.items():
             score, primary, stddev = value
             if test not in storage:
                 continue
+            if not primary:
+                this_cathegory = stats[1]
+            else:
+                this_cathegory = stats[0]
             this = storage[test]
             # Distances are in absolute values
             if stddev or any(True for _ in this if _[1] is not None):
@@ -988,38 +998,42 @@ def closest_result(src_path, dst_paths):
                                get_uncertainty(len(stddevs)) * 2)
                 norm_score = [0 if _[0] is None else norm_normpdf(_[0], score, norm_stddev)
                               for _ in this]
-                if not primary:
-                    this_cathegory = stats[1]
-                else:
-                    this_cathegory = stats[0]
             else:
                 distances = [_distance(x, score) for x in range(len(this))]
                 # Treat missing results by using 2x max distance
-                _bad_distance = max(_ for _ in distances
-                                    if _ is not None) * 2
-                distances = [_bad_distance if _ is None else _
-                             for _ in distances]
-                one_third_of_max_distance = max(distances) / 3
-                # Skip results where all distances are 0 (100% match for all)
-                if not one_third_of_max_distance:
+                min_distance = min(_ for _ in distances if _ is not None)
+                max_distance = max(_ for _ in distances if _ is not None)
+                if None in distances:
+                    if min_distance == max_distance:
+                        _bad_distance = min_distance * 2
+                    else:
+                        _bad_distance = max_distance * 2
+                    if min_distance == 0:
+                        _bad_distance = 1
+                    distances = [_bad_distance if _ is None else _
+                                 for _ in distances]
+                elif min_distance == max_distance:
+                    # Skip results where all distances are 0 (100% match for
+                    # all)
+                    LOG.debug("%s: SKIP - same distances", test)
                     continue
+                one_third_of_max_distance = max(distances) / 3
                 # Normalize distance so they are within 0-3. That way we'd be able
                 # to calculate normal distribution via e^(-1/2*x^2)
                 norm_distances = [_ / one_third_of_max_distance for _ in distances]
                 # Calculate the norm distance per each element using simplified
                 # norm because we already normalized the distances to the range
                 # of 0-3
-                norm_score = [math.exp(-1/2 * distance ** 2)
+                # Divide each element by 2 to decrease the significance of this
+                # method to the stddev based one
+                norm_score = [math.exp(-1/2 * distance ** 2) / 2
                               for distance in norm_distances]
-                if not primary:
-                    this_cathegory = stats[3]
-                else:
-                    this_cathegory = stats[2]
             # Calculate the norm distance per each element using simplified
             # norm because we already normalized the distances to the range
             # of 0-3
             for idx, result_score in enumerate(norm_score):
                 this_cathegory[idx] += result_score
+            LOG.debug("%s %s: %s", "P" if primary else "S", test, norm_score)
         return stats
 
     def _process_src(src_path):
@@ -1043,11 +1057,6 @@ def closest_result(src_path, dst_paths):
     src = _process_src(src_path)
     storage = _process_results(dst_paths)
     no_results = len(dst_paths)
-    # Results by category
-    # 0 = primary mean
-    # 1 = secondary mean
-    # 2 = primary stddev
-    # 3 = secondary stddev
     stats = _calculate_stats(src, storage)
     selection = range(no_results)
     for values in stats:

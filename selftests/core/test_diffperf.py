@@ -70,7 +70,23 @@ class RunPerfTest(Selftest):
                          "9_bad/result_20200726_091827",
                          "9_bad/result_20200726_114437")]
         args.extend(res)
+        self.assertEqual(self._run(args), 1)
+
+    def test_extra_results_not_affecting_closenest(self):
+        args = ["diff-perf", "--"]
+        res = [os.path.join("selftests/.assets/results/9_bad", _)
+               for _ in ("result_20200726_091827",
+                         "result_three_bad", "result_20200726_091827")]
+        args.extend(res)
         self.assertEqual(self._run(args), 0)
+
+    def test_error_results(self):
+        args = ["diff-perf", "--"]
+        res = [os.path.join("selftests/.assets/results/9_bad", _)
+               for _ in ("result_two_bad", "result_three_bad",
+                         "result_20200726_091827", "result_two_bad")]
+        args.extend(res)
+        self.assertEqual(self._run(args), 2)
 
     def test_all_alike(self):
         """Check when all results are alike we return the first one"""

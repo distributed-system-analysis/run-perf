@@ -403,6 +403,10 @@ class DefaultLibvirt(BaseProfile):
         self._prerequisities(self.session)
         self._guest["image"] = self._get_image(self.session, setup_script)
         ret = self._start_vms()
+        # Make sure vms are accessible
+        for vm in self.vms:
+            with vm.get_session_cont() as session:
+                session.cmd("true")
         self._set("applied_profile", self.name)
         return ret
 

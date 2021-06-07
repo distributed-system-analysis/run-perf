@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/opt/jenkins/workspace/rp-virtlab722-upstream/runperf/__init__.py", line 299, in main
+    hosts.run_test(test, workers, extra)
+  File "/opt/jenkins/workspace/rp-virtlab722-upstream/runperf/machine.py", line 446, in run_test
+    test = test_class(self.main_host, workers,
+  File "/opt/jenkins/workspace/rp-virtlab722-upstream/runperf/tests.py", line 171, in __init__
+    ",".join(_.get_addr() for _ in self.workers[0])))
+  File "/opt/jenkins/workspace/rp-virtlab722-upstream/runperf/tests.py", line 171, in <genexpr>
+    ",".join(_.get_addr() for _ in self.workers[0])))
+  File "/opt/jenkins/workspace/rp-virtlab722-upstream/runperf/machine.py", line 814, in get_addr
+    raise RuntimeError("Failed to get %s IP addr in 240s: %s"
+RuntimeError: Failed to get virtlab722.TunedLibvirt0 IP addr in 240s:  Name       MAC address          Protocol     Address
+-------------------------------------------------------------------------------
+
+
