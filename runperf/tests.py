@@ -15,8 +15,6 @@
 
 import json
 import os
-import pipes
-import sys
 import tempfile
 import time
 
@@ -63,18 +61,8 @@ class BaseTest:
 
     def inject_metadata(self, session, path):
         """
-        Inject our metadata into pbench-like json results or in a
-        "RUNPERF_METADATA.json" file within the dirname(path).
-
-        It injects the self.metadata into each::
-
-            [:]["iteration_data"]["parameters"]["user"].append()
-
-        creating the "user" list if not exists, skipping the iteration when
-        the previous items don't exist.
-
-        In case the $path file does not exists and dirname($path) does it
-        creates a "RUNPERF_METADATA.json" file and dumps the content there.
+        Add our "RUNPERF_METADATA.json" to the dirname($path) in order to
+        preserve our extended data (especially profile, workers and such...)
 
         :param session: Session to the worker
         :param path: Path where the results should be located
@@ -89,36 +77,13 @@ class BaseTest:
             str_workers[i] = {worker.name: worker.get_info()
                               for worker in workers}
         meta['workers'] = str_workers
-        if session.cmd_status("[ -e '%s' ]" % path) == 0:
-            session.cmd("\\cp '%s' '%s.backup'" % (path, path))
-            with tempfile.NamedTemporaryFile(prefix="runperf-result",
-                                             suffix=".json") as tmp_file:
-                local_json = tmp_file.name
-                self.host.copy_from(path, local_json)
-                with open(local_json) as fd_local_json:
-                    results = json.load(fd_local_json)
-                for result in results:
-                    if 'iteration_data' not in result:
-                        continue
-                    iteration_data = result['iteration_data']
-                    if 'parameters' not in iteration_data:
-                        continue
-                    params = iteration_data['parameters']
-                    if 'user' in params:
-                        params['user'].append(meta)
-                    else:
-                        params['user'] = [meta]
-                with open(local_json, 'w') as fp_local_json:
-                    json.dump(results, fp_local_json, indent=4, sort_keys=True)
-                self.host.copy_to(local_json, path)
-        else:
-            dir_path = os.path.dirname(path)
-            if session.cmd_status("[ -d '%s' ]" % dir_path) == 0:
-                result_path = os.path.join(dir_path, "RUNPERF_METADATA.json")
-                results_json = json.dumps(meta, indent=4, sort_keys=True)
-                session.cmd(utils.shell_write_content_cmd(result_path,
-                                                          results_json),
-                            timeout=600, print_func='mute')
+        dir_path = os.path.dirname(path)
+        if session.cmd_status("[ -d '%s' ]" % dir_path) == 0:
+            result_path = os.path.join(dir_path, "RUNPERF_METADATA.json")
+            results_json = json.dumps(meta, indent=4, sort_keys=True)
+            session.cmd(utils.shell_write_content_cmd(result_path,
+                                                      results_json),
+                        timeout=600, print_func='mute')
 
     def cleanup(self):
         """

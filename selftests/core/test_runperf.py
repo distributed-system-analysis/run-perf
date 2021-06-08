@@ -111,16 +111,13 @@ class RunPerfTest(Selftest):
         self.assertTrue(os.path.exists(os.path.join(self.tmpdir, "result")))
         for serial in ["0000", "0001"]:
             result_path = os.path.join(self.tmpdir, "result", "Localhost",
-                                       "DummyTest", serial, "result.json")
+                                       "DummyTest", serial,
+                                       "RUNPERF_METADATA.json")
             self.assertTrue(os.path.exists(result_path))
             with open(result_path) as fd_result:
                 out = json.load(fd_result)
-                self.assertEqual(len(out), 3)
-                for result in out:
-                    user_data = result["iteration_data"]["parameters"]["user"][0]
-                    self.assertIn("profile", user_data)
-                    self.assertIn("workers", user_data)
-                    self.assertIn("cmdline", user_data)
+                self.assertIn("profile", out)
+                self.assertIn("workers", out)
 
     def test_create_metadata(self):
         args = argparse.Namespace(metadata=[], distro=None, guest_distro=None,
