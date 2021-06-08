@@ -82,7 +82,6 @@ class BaseTest:
         meta = {}
         for key, value in self.metadata.items():
             meta[key] = value
-        meta['cmdline'] = str(sys.argv)
         meta['distro'] = self.host.distro
         meta['profile'] = self.host.profile.name
         str_workers = {}
