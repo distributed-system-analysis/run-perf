@@ -79,6 +79,8 @@ class BaseMachine:
         self.distro = distro  # distribution running/to-be-provisioned
         self.default_passwords = default_passwords  # default ssh passwords
         self.log_fetcher = utils.LogFetcher()
+        # For the first time collect everything
+        self.log_fetcher.params["since"] = 0
 
     def __str__(self):
         return self.name

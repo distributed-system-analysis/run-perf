@@ -276,6 +276,11 @@ def main():
         _test_defs = list(tests.get(test, extra) for test, extra in args.tests)
         # provision, fetch assets, ...
         hosts.setup()
+        try:
+            hosts.fetch_logs(os.path.join(args.output, '__sysinfo_before__'))
+        except Exception as exc:
+            utils.record_failure(os.path.join(args.output,
+                                              '__sysinfo_before__'), exc)
         for profile, profile_args in args.profiles:
             # Check whether this profile changes test set
             test_defs = profile_test_defs(profile_args, _test_defs)
