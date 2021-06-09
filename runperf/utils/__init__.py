@@ -493,6 +493,9 @@ class LogFetcher:
         for path in paths:
             try:
                 dst = out_path + os.path.sep + path
+                if os.path.exists(dst):
+                    # Avoid fetching the files multiple times
+                    continue
                 try:
                     os.makedirs(os.path.dirname(dst))
                 except FileExistsError:
@@ -516,6 +519,9 @@ class LogFetcher:
                 for cmd in cmds:
                     path = os.path.join(out_path,
                                         string_to_safe_path(cmd))
+                    if os.path.exists(path):
+                        # Avoid fetching the files multiple times
+                        continue
                     try:
                         with open(path, 'w') as out_fd:
                             out_fd.write(session.cmd_output(cmd % self.params,
