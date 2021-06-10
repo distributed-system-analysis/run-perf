@@ -79,6 +79,8 @@ class BaseMachine:
         self.distro = distro  # distribution running/to-be-provisioned
         self.default_passwords = default_passwords  # default ssh passwords
         self.log_fetcher = utils.LogFetcher()
+        # For the first time collect everything
+        self.log_fetcher.params["since"] = 0
 
     def __str__(self):
         return self.name
@@ -796,11 +798,12 @@ class LibvirtGuest(BaseMachine):
             self.xml = True
         else:
             session.cmd("virt-install --import --disk '%s' --memory '%s' "
-                        "--name '%s' --os-variant '%s' --vcpus '%s' "
+                        "--name '%s' --os-variant '%s' --vcpus '%s' --serial "
+                        "file,path=/var/log/libvirt/%s_serial.log "
                         "--dry-run --print-xml > '%s.xml'"
                         % (self.image, self.mem, self.name,
                            self._get_os_variant(session),
-                           self.smp, image))
+                           self.smp, os.path.basename(image), image))
         if "qemu_bin" in self.extra_params:
             session.cmd("echo -e 'cd /domain/devices/emulator\nset %s\nsave' "
                         "| xmllint --shell '%s.xml'"
@@ -866,8 +869,10 @@ class LibvirtGuest(BaseMachine):
                     session.cmd_status("virsh undefine '%s'" % self.name)):
                 errs.append("undefine")
             if self.image:
-                session.cmd_status("rm -f '%s' '%s.xml'"
-                                   % (self.image, self.image))
+                session.cmd_status("rm -f '%s' '%s.xml' '/var/log/libvirt/"
+                                   "%s_serial.log'"
+                                   % (self.image, self.image,
+                                      os.path.basename(self.image)))
             self._started = False
             if errs:
                 raise RuntimeError("Cleanup of %s failed" % errs)

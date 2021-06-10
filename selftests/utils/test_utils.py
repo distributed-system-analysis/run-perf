@@ -181,7 +181,8 @@ class LogFetcher(unittest.TestCase):
             self.assertEqual('CONTENT', fd_tmp.read())
         with open(prefix + path3) as fd_tmp:
             self.assertEqual('LAST', fd_tmp.read())
-        with open(prefix + 'COMMANDS/journalctl --no-pager') as fd_tmp:
+        with open(prefix + 'COMMANDS/journalctl --no-pager '
+                  '--since=@%(since)s') as fd_tmp:
             self.assertEqual('OUTPUT', fd_tmp.read())
 
     def test_fail_to_get_session(self):

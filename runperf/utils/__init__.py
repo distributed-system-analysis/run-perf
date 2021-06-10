@@ -478,15 +478,24 @@ class LogFetcher:
     """
     Object that handles fetching logs or command outputs
     """
-    def __init__(self, paths=None, cmds=None):
+    def __init__(self, paths=None, cmds=None, params=None):
+        if params is None:
+            params = {}
+        if "since" not in params:
+            params["since"] = time.time()
+        self.params = params
         self.paths = set(paths) if paths else set()
-        self.cmds = set(cmds) if cmds else set(["journalctl --no-pager"])
+        self.cmds = set(cmds) if cmds else set(["journalctl --no-pager "
+                                                "--since=@%(since)s"])
 
     def collect_files(self, out_path, host, paths):
         """Fetch files from `host`"""
         for path in paths:
             try:
                 dst = out_path + os.path.sep + path
+                if os.path.exists(dst):
+                    # Avoid fetching the files multiple times
+                    continue
                 try:
                     os.makedirs(os.path.dirname(dst))
                 except FileExistsError:
@@ -504,19 +513,24 @@ class LogFetcher:
             os.makedirs(out_path)
         except FileExistsError:
             pass
+        since = time.time()
         try:
             with host.get_session_cont() as session:
                 for cmd in cmds:
                     path = os.path.join(out_path,
                                         string_to_safe_path(cmd))
+                    if os.path.exists(path):
+                        # Avoid fetching the files multiple times
+                        continue
                     try:
                         with open(path, 'w') as out_fd:
-                            out_fd.write(session.cmd_output(cmd,
+                            out_fd.write(session.cmd_output(cmd % self.params,
                                                             print_func='mute'))
                     except Exception:
                         pass
         except Exception:
             pass
+        self.params["since"] = since
 
     def collect(self, path, host):
         """
