@@ -12,6 +12,7 @@
 #
 # Copyright: Red Hat Inc. 2018
 # Author: Lukas Doktor <ldoktor@redhat.com>
+import glob
 import logging
 import os
 import time
@@ -514,6 +515,15 @@ class DefaultLibvirt(BaseProfile):
         if not stat:
             out.append("configuration:\n%s" % config)
         return "\n".join(out)
+
+    def fetch_logs(self, path):
+        BaseProfile.fetch_logs(self, path)
+        for log in glob.glob(os.path.join(path, self.host.get_fullname(),
+                                          'var', 'log', 'libvirt', '*.log')):
+            with open(log) as fd_serial_log:
+                if 'kernel: Call Trace:' in fd_serial_log:
+                    raise("'kernel: Call Trace' found in %s, likely VM "
+                          "had stability issues." % log)
 
     def _revert(self):
         for vm in getattr(self, "vms", []):
