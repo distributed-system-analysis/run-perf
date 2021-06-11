@@ -75,7 +75,7 @@ class KnownItems:
         return "".join(out[::-1])
 
 
-def generate_report(path, results, with_charts=False):
+def generate_report(path, results, with_charts=False, small_file=False):
     """
     Generate html report from results
 
@@ -94,7 +94,7 @@ def generate_report(path, results, with_charts=False):
         return "\n".join(line for line in raw_diff
                          if (line.startswith("+") or line.startswith("-")))
 
-    def generate_builds(results):
+    def generate_builds(results, small_file):
         """Populate builds dictionary"""
 
         def generate_build_diff(environment, src):
@@ -194,7 +194,7 @@ def generate_report(path, results, with_charts=False):
                     profiles.append(profile)
             return env, profiles
 
-        def process_metadata(metadata, known_items, dst_env):
+        def process_metadata(metadata, known_items, dst_env, small_file):
             """Generate extra entries used in html_results out of metadata"""
             build = {}
             for key in ["build", "machine", "machine_url", "url", "distro",
@@ -218,7 +218,12 @@ def generate_report(path, results, with_charts=False):
             build['profiles'] = profiles
             _build_diff = process_diff_environemnt(env, dst_env)
             build_env, build_diff, build_diff_sections = _build_diff
-            build["environment"] = build_env
+            if small_file:
+                _ = {key: [""] * len(value)
+                     for key, value in build_env.items()}
+                build["environment"] = _
+            else:
+                build["environment"] = build_env
             build["environment_diff"] = build_diff
             build["environment_diff_sections"] = build_diff_sections
             build["environment_short"] = {}
@@ -269,7 +274,8 @@ def generate_report(path, results, with_charts=False):
         # BUILDS
         build = res = None
         for res in reversed(results):
-            build = process_metadata(res.metadata, known_items, dst_env)
+            build = process_metadata(res.metadata, known_items, dst_env,
+                                     small_file)
             failures = grouped_failures = non_primary_failures = 0
             for record in res.records:
                 if record.status < 0:
@@ -321,7 +327,8 @@ def generate_report(path, results, with_charts=False):
         list_of_group_results.extend(list_of_group_stddev_results)
 
         # SRC
-        src = process_metadata(results.src_metadata, known_items, dst_env)
+        src = process_metadata(results.src_metadata, known_items, dst_env,
+                               small_file)
         src["score"] = 0
         src["test_params_anonymized"] = {
             key: anonymize_test_params_dict(value[2])
@@ -572,7 +579,7 @@ def generate_report(path, results, with_charts=False):
                                % (key, "=" * len(str(key))))
         return params_raw, "\n".join(params_diff)
 
-    def generate_builds_statuses(results, values):
+    def generate_builds_statuses(results, values, small_file):
         """Transform results into build statuses"""
         src_params = values["src"]["test_params_anonymized"]
         statuses = {}
@@ -608,10 +615,14 @@ def generate_report(path, results, with_charts=False):
                     grp_statuses[record.name] = {}
                 grp_statuses[record.name][i] = (record.status, record.details,
                                                 "%.1f" % record.score)
+            if small_file:
+                _values = ""
+            else:
+                _values = "\n".join(key for key, value in this_result_diff.items()
+                                    if value)
             per_build_test_params_stat.append(
                 [known_test_params_diffs.get_short(this_result_diff),
-                 "\n".join(key for key, value in this_result_diff.items()
-                           if value)])
+                 _values])
         builds_statuses = []
         group_statuses = []
         src_params_raw = values["src"]["test_params"]
@@ -659,14 +670,15 @@ def generate_report(path, results, with_charts=False):
         return filters
 
     values = {}
-    values["src"], values["builds"], values["dst"] = generate_builds(results)
+    _ = generate_builds(results, small_file)
+    values["src"], values["builds"], values["dst"] = _
     profiles = sorted(list(set(profile
                                for build in values["builds"]
                                for profile in build["profiles"])))
     values["profiles"] = ["World"] + profiles
     if with_charts:
         values["charts"] = generate_charts(results)
-    statuses = generate_builds_statuses(results, values)
+    statuses = generate_builds_statuses(results, values, small_file)
     values["builds_statuses"], values["group_statuses"] = statuses
     values["filters"] = get_filters(results)
     values["with_charts"] = with_charts

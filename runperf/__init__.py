@@ -405,6 +405,9 @@ class ComparePerf:
                             "in the provided path.")
         parser.add_argument("--html-with-charts", action="store_true",
                             help="Generate charts in the html results")
+        parser.add_argument("--html-small-file", help="Do not include the "
+                            "full environments and such to minimize the report"
+                            "size.", action="store_true")
         parser.add_argument("--xunit", help="Write XUnit/JUnit results to "
                             "specified file.")
         parser.add_argument("--verbose", "-v", action="count", default=0,
@@ -437,7 +440,8 @@ class ComparePerf:
             from . import html_report  # pylint: disable=C0415
             self.log.debug("Generating HTML report: %s", args.html)
             html_report.generate_report(args.html, results,
-                                        args.html_with_charts)
+                                        args.html_with_charts,
+                                        args.html_small_file)
         return res.finish()
 
 
