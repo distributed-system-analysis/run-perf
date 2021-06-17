@@ -155,7 +155,8 @@ class Fedora(BaseProvider):
             return False
 
     def _extend_cloudinit_cmd(self, cmd):
+        # Currently Fedora fails to boot when "--update" is specified
+        # (initrd rebuild changes disk uuid)
         cmd += (" --run-command 'yum -y remove cloud-init "
-                "cloud-utils-growpart || true' --selinux-relabel "
-                "--update")
+                "cloud-utils-growpart || true' --selinux-relabel")
         return cmd

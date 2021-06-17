@@ -799,11 +799,13 @@ class LibvirtGuest(BaseMachine):
         else:
             session.cmd("virt-install --import --disk '%s' --memory '%s' "
                         "--name '%s' --os-variant '%s' --vcpus '%s' --serial "
-                        "file,path=/var/log/libvirt/%s_serial.log "
+                        "file,path=/var/log/libvirt/%s_serial.log %s "
                         "--dry-run --print-xml > '%s.xml'"
                         % (self.image, self.mem, self.name,
-                           self._get_os_variant(session),
-                           self.smp, os.path.basename(image), image))
+                           self._get_os_variant(session), self.smp,
+                           os.path.basename(image),
+                           self.extra_params.get('virt-install-extra', ''),
+                           image))
         if "qemu_bin" in self.extra_params:
             session.cmd("echo -e 'cd /domain/devices/emulator\nset %s\nsave' "
                         "| xmllint --shell '%s.xml'"
