@@ -92,8 +92,8 @@ class Dnf:  # pylint: disable=R0903
                                "assets", "pbench-devel.repo")) as repo:
             session.cmd(shell_write_content_cmd("/etc/yum.repos.d/pbench-devel."
                                                 "repo", repo.read() % distro))
-        session.cmd("dnf install -y --nobest pbench-agent "
-                    "pbench-sysstat", timeout=600)
+        session.cmd("dnf install -y --nobest --skip-broken pbench-agent "
+                    "pbench-sysstat python3-libselinux", timeout=600)
         self._update_pbench()
 
     def _check_test_installed(self):
