@@ -208,7 +208,7 @@ class BaseMachine:
         """
         cmd = ["rsync", "-amrh", "-e", "ssh -o StrictHostKeyChecking=no " +
                "-o UserKnownHostsFile=/dev/null -o ControlMaster=auto " +
-               "-o ControlPath='/var/tmp/%%r@%%h-%%p' -o ControlPersist=60" +
+               "-o ControlPath='/var/tmp/%r@%h-%p' -o ControlPersist=60" +
                " -o BatchMode=yes", "root@%s:%s" % (self.get_addr(), src),
                dst]
         utils.check_output(cmd)
@@ -221,7 +221,7 @@ class BaseMachine:
         """
         cmd = ["rsync", "-amrh", "-e", "ssh -o StrictHostKeyChecking=no " +
                "-o UserKnownHostsFile=/dev/null -o ControlMaster=auto " +
-               "-o ControlPath='/var/tmp/%%r@%%h-%%p' -o ControlPersist=60" +
+               "-o ControlPath='/var/tmp/%r@%h-%p' -o ControlPersist=60" +
                " -o BatchMode=yes", src, "root@%s:%s" % (self.get_addr(), dst)]
         utils.check_output(cmd)
 
