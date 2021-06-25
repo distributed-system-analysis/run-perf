@@ -537,3 +537,14 @@ a specific example for upstream qemu bisection in
 ``contrib/upstream_qemu_bisect.sh``. You can also check-out
 the :ref:`jenkins` chapter for a jenkins pipeline
 using it.
+
+
+==============
+Strip-run-perf
+==============
+
+This tool can be used to obtain stripped results that only contain the
+bits used by run-perf tools (compare-perf, ...). It can reduce the results
+significantly (MB->KB) but you are going to lose all of the extra
+information essential to debug issues. The primary focus is to keep
+run-perf data while storing the detailed information elsewhere.

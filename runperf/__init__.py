@@ -580,3 +580,132 @@ class AnalyzePerf:
                 linear_regression.close()
             if stddev_regression:
                 stddev_regression.close()
+
+
+class StripPerf:
+    """
+    Class to cherry-pick only the data used by run-perf tools useful for
+    later analysis.
+    """
+
+    def __init__(self):
+        self.result = None
+        self.log = logging.getLogger("strip")
+
+    def __call__(self):
+        """
+        Perform the stripping
+        """
+        parser = ArgumentParser(prog="strip-run-perf",
+                                description="Tool to cherry-pick only the data"
+                                "used by run-perf tools for later analysis")
+        parser.add_argument("src", help="Path to run-perf results",
+                            type=get_abs_path)
+        parser.add_argument("dst", help="Path to put stripped results to.")
+        parser.add_argument("-i", "--include-incorrect", help="Include "
+                            "the incorrect results (usually failed ones)",
+                            action="store_true")
+        parser.add_argument("-s", "--attach-sysinfo", help="Copy the assets "
+                            "of failed the results", action="store_true")
+        parser.add_argument("--verbose", "-v", action="count", default=0,
+                            help="Increase the verbosity level")
+        args = parser.parse_args()
+        setup_logging(args.verbose, "%(levelname)-5s| %(message)s")
+        os.makedirs(args.dst, exist_ok=True)
+        # Main metadata
+        metadata_path = os.path.join(args.src, "RUNPERF_METADATA")
+        if os.path.exists(metadata_path):
+            shutil.copy(metadata_path,
+                        os.path.join(args.dst, "RUNPERF_METADATA"))
+        # Results
+        for src_json in result.iter_results_jsons(args.src,
+                                                  not args.include_incorrect):
+            dst_path = self.process_result_json(src_json, args.dst)
+            self.process_result_metadata(os.path.dirname(src_json), dst_path)
+        # Exceptions
+        for level, src_path in result.iter_results_errors(args.src):
+            split_path = src_path.split(os.sep)[-(level + 1):]
+            result_id = "/".join(split_path)
+            shutil.copytree(src_path, os.path.join(args.dst, result_id),
+                            dirs_exist_ok=True)
+        # Sysinfo
+        if args.attach_sysinfo:
+            self.process_sysinfo(args.src, args.dst)
+
+    @staticmethod
+    def process_result_json(src_path, dst_base):
+        """Gather result.json data"""
+        def get_workflow_type_data(src_workflow):
+            out = []
+            # Avoid including per-host results on single worker
+            only_all = bool(len(src_workflow) == 2 and
+                            any(_.get("client_hostname") == "all"
+                                for _ in src_workflow))
+            for src in src_workflow:
+                if only_all and src.get("client_hostname") != "all":
+                    continue
+                this = {}
+                for include in ("client_hostname", "mean", "stddevpct"):
+                    if include in src:
+                        this[include] = src[include]
+                out.append(this)
+            return out
+
+        def get_iteration_data(src_iteration):
+            params = src_iteration["iteration_data"]["parameters"]
+            iteration = {"iteration_name": src_iteration["iteration_name"],
+                         "iteration_data": {"parameters": params}}
+            iteration_data = iteration["iteration_data"]
+            src_iteration_data = src_iteration["iteration_data"]
+            for workflow in ('throughput', 'latency'):
+                if workflow not in src_iteration_data:
+                    continue
+                iteration_data[workflow] = {}
+                workflow_items = src_iteration_data[workflow].items()
+                for workflow_type, results in workflow_items:
+                    workflow_data = get_workflow_type_data(results)
+                    iteration_data[workflow][workflow_type] = workflow_data
+            return iteration
+
+        with open(src_path, 'r') as src_fd:
+            src = json.load(src_fd)
+        result_id = os.sep.join(src_path.split(os.sep)[-4:])
+        res = []
+        for src_iteration in src:
+            if "iteration_name" not in src_iteration:
+                continue
+            if "iteration_data" not in src_iteration:
+                continue
+            if "parameters" not in src_iteration["iteration_data"]:
+                continue
+            iteration = get_iteration_data(src_iteration)
+            res.append(iteration)
+        dst_json = os.path.join(dst_base, result_id)
+        dst_path = os.path.dirname(dst_json)
+        os.makedirs(dst_path, exist_ok=True)
+        with open(dst_json, 'w') as dst:
+            json.dump(res, dst)
+        return dst_path
+
+    @staticmethod
+    def process_result_metadata(src_path, dst_path):
+        """Gather RUNPERF_METADATA.json"""
+        rp_path = os.path.join(src_path, "RUNPERF_METADATA.json")
+        if os.path.exists(rp_path):
+            shutil.copy(rp_path,
+                        os.path.join(dst_path, "RUNPERF_METADATA.json"))
+
+    @staticmethod
+    def process_sysinfo(src_path, dst_path):
+        """Gather __sysinfo*__ files (global and profile)"""
+        # Global level
+        for src in glob.glob(os.path.join(src_path, '__sysinfo*__')):
+            sysinfo_dir = os.path.basename(src)
+            shutil.copytree(src, os.path.join(dst_path, sysinfo_dir),
+                            dirs_exist_ok=True)
+        # Profile level
+        for src in glob.glob(os.path.join(src_path, '*', '__sysinfo*__')):
+            profile_dir, sysinfo_dir = src.rsplit(os.sep, 2)[-2:]
+            shutil.copytree(src,
+                            os.path.join(dst_path, profile_dir, sysinfo_dir),
+                            dirs_exist_ok=True)

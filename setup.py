@@ -81,7 +81,8 @@ if __name__ == '__main__':
           packages=find_packages(exclude=('selftests*',)),
           include_package_data=True,
           scripts=['scripts/run-perf', 'scripts/analyze-perf',
-                   'scripts/compare-perf', 'scripts/diff-perf'],
+                   'scripts/compare-perf', 'scripts/diff-perf',
+                   'scripts/strip-run-perf'],
           entry_points={
               'runperf.profiles': [
                   '50Localhost = runperf.profiles:Localhost',

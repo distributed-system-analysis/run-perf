@@ -316,6 +316,29 @@ class Result:
         return "%s/%s/%s:./%s-%s/%s/%s.%s" % tuple(out)
 
 
+def iter_results_jsons(path, skip_incorrect=False):
+    """
+    Process runperf results and yield the result.json files
+    """
+    if skip_incorrect:
+        result_name_glob = '[09]*'
+    else:
+        result_name_glob = '*'
+    for src_path in glob.glob(os.path.join(path, '*', '*', result_name_glob,
+                                           'result.json')):
+        yield src_path
+
+
+def iter_results_errors(path):
+    """
+    Process runperf results and yield the dirs with runperf errors
+    """
+    for level in range(4):
+        level_path = (path,) + ('*',) * level + ('__error*__',)
+        for src_path in glob.glob(os.path.join(*level_path)):
+            yield level, src_path
+
+
 def iter_results(path, skip_incorrect=False):
     """
     Process runperf results and yield individual results
@@ -372,13 +395,8 @@ def iter_results(path, skip_incorrect=False):
                        test_params)
 
     LOG.debug("Processing %s", path)
-    if skip_incorrect:
-        result_name_glob = '[09]*'
-    else:
-        result_name_glob = '*'
     # Process results
-    for src_path in glob.glob(os.path.join(path, '*', '*', result_name_glob,
-                                           'result.json')):
+    for src_path in iter_results_jsons(path, skip_incorrect):
         with open(src_path, 'r') as src_fd:
             src = json.load(src_fd)
         split_path = src_path.split(os.sep)
@@ -391,20 +409,18 @@ def iter_results(path, skip_incorrect=False):
                 continue
             yield from _handle_iteration(src_result['iteration_data'])
     # Process errors
-    for level in range(4):
-        level_path = (path,) + ('*',) * level + ('__error*__',)
-        for src_path in glob.glob(os.path.join(*level_path)):
-            split_path = src_path.split(os.sep)[-(level + 1): -1]
-            split_path = split_path + ['*'] * (3 - level)
-            result_id = "/".join(split_path)
-            exc_path = os.path.join(src_path, 'exception')
-            if os.path.exists(exc_path):
-                with open(exc_path) as exc_fd:
-                    exc = exc_fd.read()
-            else:
-                exc = '<Unknown exception>'
-            yield("%s:./ERROR/ERROR/ERROR.error" % result_id, exc, True,
-                  utils.list_dir_hashes(src_path))
+    for level, src_path in iter_results_errors(path):
+        split_path = src_path.split(os.sep)[-(level + 1): -1]
+        split_path = split_path + ['*'] * (3 - level)
+        result_id = "/".join(split_path)
+        exc_path = os.path.join(src_path, 'exception')
+        if os.path.exists(exc_path):
+            with open(exc_path) as exc_fd:
+                exc = exc_fd.read()
+        else:
+            exc = '<Unknown exception>'
+        yield("%s:./ERROR/ERROR/ERROR.error" % result_id, exc, True,
+              utils.list_dir_hashes(src_path))
 
 
 class AveragesModel:
