@@ -3,3 +3,4 @@
 # inspektor (static and style checks)
 inspektor
 Sphinx
+jinja2

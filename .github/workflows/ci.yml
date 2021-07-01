@@ -12,14 +12,39 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.4, 3.x]
+        python-version: [3.x]
+      fail-fast: false
     steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 500
+      - name: Fetch tags required for run-perf version
+        run: git fetch --tags --depth 500
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install missing aexpect dependency (remove when https://github.com/avocado-framework/aexpect/pull/81 is merged)
+        run: pip install six
+      - run: pip install -r requirements.txt
       - run: make check
 
-  code coverage:
+  code_coverage:
     name: CodeCoverage
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
     steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 500
+      - name: Fetch tags required for run-perf version
+        run: git fetch --tags --depth 500
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install missing aexpect dependency (remove when https://github.com/avocado-framework/aexpect/pull/81 is merged)
+        run: pip install six
+      - run: pip install -r requirements.txt
       - run: |
           pip install coverage
           curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
@@ -28,4 +53,4 @@ jobs:
           make develop && ./selftests/run_coverage
           ./cc-test-reporter after-build
         env:
-          CC_TEST_REPORTER_ID=009b4c0bfafb850daeb66460df98eded574477a064df0b4a75f65752b18b1d01
+          CC_TEST_REPORTER_ID: 009b4c0bfafb850daeb66460df98eded574477a064df0b4a75f65752b18b1d01
