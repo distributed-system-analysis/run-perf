@@ -67,3 +67,16 @@ class RunPerfTest(Selftest):
                                "results", "data.csv")) as exp:
             with open(path_csv) as act:
                 self.assertEqual(exp.read(), act.read())
+
+    def test_bad(self):
+        """Make sure we are not crashing on 'bad' results"""
+        path_model = os.path.join(self.tmpdir, "model.json")
+        path_model_stddev = os.path.join(self.tmpdir, "model_stddev.json")
+        path_csv = os.path.join(self.tmpdir, "data.csv")
+        args = ["analyze-perf", "-l", path_model, "-s", path_model_stddev,
+                "-c", path_csv, "--"]
+        res = [os.path.join("selftests/.assets/results/9_bad/", _)
+               for _ in ("result_20200726_091827", "result_20200726_114437",
+                         "result_three_bad", "result_two_bad")]
+        args.extend(res)
+        self.assertEqual(self._run(args), None)
