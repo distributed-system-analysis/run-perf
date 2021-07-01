@@ -172,7 +172,11 @@ class ModelLinearRegression(Model):
         too_strict_coefficient = (self.mean_tolerance / 100 /
                                   self.TOO_STRICT_COEFFICIENT)
         for test in sorted(data.keys()):
-            values = [float(_) for _ in data.get(test, {}).values()]
+            try:
+                values = [float(_) for _ in data.get(test, {}).values()]
+            except ValueError:
+                # Probably string (error, other kind of result)
+                continue
             average = numpy.average(values)
             max_value = max(values)
             highest = average * (1 + too_strict_coefficient)
@@ -222,12 +226,16 @@ class ModelStdev(ModelLinearRegression):
             self.model["__metadata__"] = {"version": 1}
         self.model["__metadata__"]["tolerance"] = self.mean_tolerance
         for test in sorted(data.keys()):
-            values = [float(_) for _ in data.get(test, {}).values()]
+            try:
+                values = [float(_) for _ in data.get(test, {}).values()]
+            except ValueError:
+                # Probably string (error, other kind of result)
+                continue
             uncertainty = get_uncertainty(len(values))
             average = numpy.average(values)
             max_stddev = self.ERROR_COEFICIENT * numpy.std(values)
-            max_value = (average + max_stddev) * uncertainty
-            min_value = (average - max_stddev) * uncertainty
+            max_value = average + (max_stddev * uncertainty)
+            min_value = average - (max_stddev * uncertainty)
             model = self._identify(min_value, max_value)
             if not model:
                 # Singular matrix, not possible to map
