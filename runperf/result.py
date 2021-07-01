@@ -234,8 +234,8 @@ class ModelStdev(ModelLinearRegression):
             uncertainty = get_uncertainty(len(values))
             average = numpy.average(values)
             max_stddev = self.ERROR_COEFICIENT * numpy.std(values)
-            max_value = (average + max_stddev) * uncertainty
-            min_value = (average - max_stddev) * uncertainty
+            max_value = average + (max_stddev * uncertainty)
+            min_value = average - (max_stddev * uncertainty)
             model = self._identify(min_value, max_value)
             if not model:
                 # Singular matrix, not possible to map
