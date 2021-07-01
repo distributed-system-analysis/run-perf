@@ -707,8 +707,7 @@ class RelativeResults:
                     errors += 1
                     element_type = 'error'
                 element = document.createElement(element_type)
-                element.setAttribute('type', _str("%s_ELEMENT_TYPE"
-                                                  % element_type))
+                element.setAttribute('type', _str(element_type))
                 element.setAttribute('message', _str(test.details))
                 testcase.appendChild(element)
             testsuite.appendChild(testcase)
