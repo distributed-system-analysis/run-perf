@@ -1,0 +1,31 @@
+---
+name: Run-perf CI
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+jobs:
+  selftests:
+    name: ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.4, 3.x]
+    steps:
+      - run: make check
+
+  code coverage:
+    name: CodeCoverage
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          pip install coverage
+          curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+          chmod +x ./cc-test-reporter
+          ./cc-test-reporter before-build
+          make develop && ./selftests/run_coverage
+          ./cc-test-reporter after-build
+        env:
+          CC_TEST_REPORTER_ID=009b4c0bfafb850daeb66460df98eded574477a064df0b4a75f65752b18b1d01
