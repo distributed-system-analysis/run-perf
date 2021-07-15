@@ -220,7 +220,7 @@ node(workerNode) {
             copyArtifacts(filter: runperfResultsFilter, optional: true,
                           fingerprintArtifacts: true, projectName: env.JOB_NAME, selector: specific("${build}"),
                           target: "reference_builds/${build}/")
-            if (fileExists("reference_builds/${build}")) {
+            if (findFiles(glob: "reference_builds/${build}/result*/*/*/*/*.json")) {
                 referenceBuilds.add("${build}:" + sh(returnStdout: true,
                                      script: "echo reference_builds/${build}/*").trim())
                 if (referenceBuilds.size() >= noReferenceBuilds) {
