@@ -249,8 +249,8 @@ node(workerNode) {
         status = sh(returnStatus: true,
                     script: ('python3 scripts/compare-perf -vvv --tolerance ' + cmpTolerance +
                              ' --stddev-tolerance ' + cmpStddevTolerance +
-                             " --xunit ${resultXml} --html ${htmlIndex} " + cmpExtra + ' -- src_result/* '
-                             + referenceBuilds.reverse().join(' ') +
+                             " --xunit ${resultXml} --html ${htmlIndex} --html-small-file " + cmpExtra +
+                             ' -- src_result/* ' + referenceBuilds.reverse().join(' ') +
                              ' $(find . -maxdepth 1 -type d ! -name "*.tar.*" -name "result*")'))
         if (fileExists(resultXml)) {
             if (status) {
