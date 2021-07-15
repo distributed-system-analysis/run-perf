@@ -45,6 +45,8 @@ descriptionPrefix = params.DESCRIPTION_PREFIX
 noReferenceBuilds = params.NO_REFERENCE_BUILDS.toInteger()
 // Pbench-publish related options
 pbenchPublish = params.PBENCH_PUBLISH
+// Github-publisher project ID
+githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT
 
 // Extra variables
 // Provisioner machine
@@ -278,6 +280,17 @@ node(workerNode) {
                parameters: [string(name: 'JOB', value: env.JOB_NAME)],
                quietPeriod: 0,
                wait: false)
+        // Publish the results
+        if (githubPublisherProject) {
+            build (job: 'rp-publish-results-git',
+                   parameters: [string(name: 'JOB', value: env.JOB_NAME),
+                                string(name: 'BUILD', value: env.BUILD_NUMBER),
+                                booleanParam(name: 'STATUS', value: status == 0),
+                                string(name: 'PROJECT', value: githubPublisherProject),
+                                booleanParam(name: 'STRIP_RESULTS', value: true)],
+                   quietPeriod: 0,
+                   wait: false)
+        }
     }
 }
 

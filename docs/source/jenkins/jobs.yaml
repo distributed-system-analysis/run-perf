@@ -25,6 +25,7 @@
     param-no-reference-builds: 14
     param-fio-nbd-setup: false
     param-upstream-qemu-commit: ''
+    param-github-publisher: ''
     trigger-on: "H 17 * * *"
     disabled: false
 
@@ -110,6 +111,10 @@
             name: PBENCH_PUBLISH
             description: 'Push the pbench results to company pbench server'
             default: "{param-pbench-publish}"
+        - string:
+            name: GITHUB_PUBLISHER_PROJECT
+            description: 'Github publisher project ID (when you want to publish your results)'
+            default: "{param-github-publisher}"
         - bool:
             name: FIO_NBD_SETUP
             description: 'Compile and install fio with nbd ioengine enabled before test execution'
@@ -443,6 +448,46 @@
     builders:
         - python:
             !include-raw-escape ../scripts/prune_artifacts.py
+
+
+##############################################################################
+# Definition of the git-publisher job
+##############################################################################
+- job-template:
+    name: "rp-publish-results-git"
+    description: |
+        Publish the build result in git so it can be viewed eg. in github
+        pages
+    project-type: pipeline
+    parameters:
+        - string:
+            name: JOB
+            default: ""
+            description: "Job containing the result"
+        - string:
+            name: BUILD
+            default: ""
+            description: "Build of the job with the result"
+        - bool:
+            name: STATUS
+            default: false
+            description: "Status of the comparison (GOOD=true/BAD=false)"
+        - string:
+            name: PROJECT
+            default: ""
+            description: "Owner of the results (usually a group/company name + project/machine)"
+        - bool:
+            name: STRIP_RESULTS
+            default: true
+            description: "Publish stripped results (MB->KB)"
+    pipeline-scm:
+        scm:
+            - git:
+                url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
+                branches:
+                    - master
+        script-path: "publish-results-git.groovy"
+        lightweight-checkout: true
 
 ###############################################################################
 ## Project to define jobs for automated regression jobs on example.org machine
