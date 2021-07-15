@@ -60,7 +60,8 @@ htmlFile = 'index.html'
 htmlIndex = "${htmlPath}/${htmlFile}"
 modelJson = 'model.json'
 thisPath = '.'
-runperfResultsFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA')
+runperfResultsFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**,' +
+                        'result*/**/__sysinfo*__/**')
 makeInstallCmd = '\nmake -j $(getconf _NPROCESSORS_ONLN)\nmake install'
 pythonDeployCmd = 'python3 setup.py develop --user'
 kojiUrl = 'https://koji.fedoraproject.org/koji/'
