@@ -135,7 +135,7 @@ node(workerNode) {
         if (fioNbdSetup) {
             nbdSetupScript = ('\n\n# FIO_NBD_SETUP' +
                               '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img ' +
-                              'libaio-devel' +
+                              'libaio-devel tar' +
                               '\ncd /tmp' +
                               '\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz' +
                               '\ncd fio-fio-3.19' +
