@@ -275,11 +275,6 @@ node(workerNode) {
         junit allowEmptyResults: true, testResults: resultXml
         // Remove the unnecessary big files
         sh '\\rm -Rf result* src_result* reference_builds'
-        // Run cleanup on older artifacts
-        build (job: 'rp-prune-artifacts',
-               parameters: [string(name: 'JOB', value: env.JOB_NAME)],
-               quietPeriod: 0,
-               wait: false)
         // Publish the results
         if (githubPublisherProject) {
             build (job: 'rp-publish-results-git',

@@ -436,10 +436,12 @@
     description: |
         Remove the big tar.xz files from oldish results not tagged
         as keep-forewer.
+    triggers:
+        - timed: "H 06 * * *"
     parameters:
         - string:
             name: JOB
-            default: ""
+            default: "{list,your,runperf,jobs,here,to,clean,them,daily}"
             description: Name of the job to be pruned
         - string:
             name: AGE
