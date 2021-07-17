@@ -844,10 +844,7 @@ class RelativeResults:
         values = collections.defaultdict(list)
         for record in records:
             record_id = record.get_merged_name(merge)
-            value, tolerance = self._calculate_test_difference(record_id,
-                                                               record.src,
-                                                               record.dst)
-            values[record_id].append(value)
+            values[record_id].append(record.score)
         for test_name, values in values.items():
             value = numpy.average(values)
             self.record_result(test_name, value, value, True, True,
