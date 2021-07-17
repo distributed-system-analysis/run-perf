@@ -26,7 +26,7 @@ stage('Analyze') {
         sh '\\rm -Rf results* model.json'
         // Get all the specified builds
         for (build in builds) {
-            copyArtifacts(filter: 'result*/**/*.json', optional: false, fingerprintArtifacts: true,
+            copyArtifacts(filter: 'result*/**/result*.json', optional: false, fingerprintArtifacts: true,
                           projectName: srcJob, selector: specific(build), target: 'results/')
         }
         status = 0
@@ -35,7 +35,7 @@ stage('Analyze') {
             sh 'python3 setup.py develop --user'
             status = sh(returnStatus: true,
                         script: ('python3 scripts/analyze-perf -vvv --stddev-linear-regression ' +
-                                 modelJson + spaceChr + extraArgs + ' -- results/*'))
+                                 modelFile + spaceChr + extraArgs + ' -- results/*'))
         }
         if (fileExists(modelFile)) {
             // This could mean there were no tests to compare or other failures, interrupt the build

@@ -45,6 +45,8 @@ descriptionPrefix = params.DESCRIPTION_PREFIX
 noReferenceBuilds = params.NO_REFERENCE_BUILDS.toInteger()
 // Pbench-publish related options
 pbenchPublish = params.PBENCH_PUBLISH
+// Github-publisher project ID
+githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT
 
 // Extra variables
 // Provisioner machine
@@ -60,15 +62,17 @@ htmlFile = 'index.html'
 htmlIndex = "${htmlPath}/${htmlFile}"
 modelJson = 'model.json'
 thisPath = '.'
-runperfResultsFilter = 'result*/**/*.json,result*/RUNPERF_METADATA'
+runperfResultsFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**,' +
+                        'result*/**/__sysinfo*__/**')
 makeInstallCmd = '\nmake -j $(getconf _NPROCESSORS_ONLN)\nmake install'
 pythonDeployCmd = 'python3 setup.py develop --user'
 kojiUrl = 'https://koji.fedoraproject.org/koji/'
 
 String getBkrInstallCmd(String hostBkrLinks, String hostBkrLinksFilter, String arch) {
-    return ('\nfor url in ' + hostBkrLinks + '; do dnf install -y --allowerasing --skip-broken ' +
-            '$(curl -k \$url | grep -o -e "http[^\\"]*' + arch + '\\.rpm" -e ' +
-            '"http[^\\"]*noarch\\.rpm" | grep -v $(for expr in ' + hostBkrLinksFilter + '; do ' +
+    return ('\ndnf remove -y --skip-broken qemu-kvm;' +
+            '\nfor url in ' + hostBkrLinks + '; do dnf install -y --allowerasing --skip-broken ' +
+            '$(curl -k \$url | grep -oP \'href="\\K[^"]*(noarch|' + arch + ')\\.rpm\' | ' +
+            'sed -e "/^http/! s#^#$url/#" | grep -v $(for expr in ' + hostBkrLinksFilter + '; do ' +
             'echo -n " -e $expr"; done)); done')
 }
 
@@ -131,7 +135,7 @@ node(workerNode) {
         if (fioNbdSetup) {
             nbdSetupScript = ('\n\n# FIO_NBD_SETUP' +
                               '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img ' +
-                              'libaio-devel' +
+                              'libaio-devel tar' +
                               '\ncd /tmp' +
                               '\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz' +
                               '\ncd fio-fio-3.19' +
@@ -216,7 +220,7 @@ node(workerNode) {
             copyArtifacts(filter: runperfResultsFilter, optional: true,
                           fingerprintArtifacts: true, projectName: env.JOB_NAME, selector: specific("${build}"),
                           target: "reference_builds/${build}/")
-            if (fileExists("reference_builds/${build}")) {
+            if (findFiles(glob: "reference_builds/${build}/result*/*/*/*/*.json")) {
                 referenceBuilds.add("${build}:" + sh(returnStdout: true,
                                      script: "echo reference_builds/${build}/*").trim())
                 if (referenceBuilds.size() >= noReferenceBuilds) {
@@ -245,8 +249,8 @@ node(workerNode) {
         status = sh(returnStatus: true,
                     script: ('python3 scripts/compare-perf -vvv --tolerance ' + cmpTolerance +
                              ' --stddev-tolerance ' + cmpStddevTolerance +
-                             " --xunit ${resultXml} --html ${htmlIndex} " + cmpExtra + ' -- src_result/* '
-                             + referenceBuilds.reverse().join(' ') +
+                             " --xunit ${resultXml} --html ${htmlIndex} --html-small-file " + cmpExtra +
+                             ' -- src_result/* ' + referenceBuilds.reverse().join(' ') +
                              ' $(find . -maxdepth 1 -type d ! -name "*.tar.*" -name "result*")'))
         if (fileExists(resultXml)) {
             if (status) {
@@ -272,11 +276,17 @@ node(workerNode) {
         junit allowEmptyResults: true, testResults: resultXml
         // Remove the unnecessary big files
         sh '\\rm -Rf result* src_result* reference_builds'
-        // Run cleanup on older artifacts
-        build (job: 'rp-prune-artifacts',
-               parameters: [string(name: 'JOB', value: env.JOB_NAME)],
-               quietPeriod: 0,
-               wait: false)
+        // Publish the results
+        if (githubPublisherProject) {
+            build (job: 'rp-publish-results-git',
+                   parameters: [string(name: 'JOB', value: env.JOB_NAME),
+                                string(name: 'BUILD', value: env.BUILD_NUMBER),
+                                booleanParam(name: 'STATUS', value: status == 0),
+                                string(name: 'PROJECT', value: githubPublisherProject),
+                                booleanParam(name: 'STRIP_RESULTS', value: true)],
+                   quietPeriod: 0,
+                   wait: false)
+        }
     }
 }
 

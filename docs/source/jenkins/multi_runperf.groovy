@@ -119,7 +119,7 @@ String triggerJob(List parameters, String srcBuild, String jobName) {
 distros = getDistrosRange(distrosRaw, workerNode)
 guestDistros = getDistrosRange(guestDistrosRaw, workerNode)
 
-referenceBuilds = -1
+referenceBuilds = 0
 srcBuild = srcBuildUnset
 paramTypes = [iterations, guestBkrLinkss, guestKernelArgss, hostBkrLinkss, hostKernelArgss,
                upstreamQemuCommits, guestDistros, distros]
