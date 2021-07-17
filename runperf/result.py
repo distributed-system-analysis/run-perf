@@ -842,25 +842,21 @@ class RelativeResults:
         :param merge: What option should be merged into the same group
         """
         values = collections.defaultdict(list)
-        tolerances = {}
         for record in records:
             record_id = record.get_merged_name(merge)
-            value, tolerance = self._calculate_test_difference(record_id,
-                                                               record.src,
-                                                               record.dst)
-            values[record_id].append(value)
-            tolerances[record_id] = tolerance
+            values[record_id].append(record.score)
         for test_name, values in values.items():
             value = numpy.average(values)
             self.record_result(test_name, value, value, True, True,
-                               value, tolerances[record_id])
+                               value, self.mean_tolerance)
 
     def expand_grouped_results(self):
         """
         Calculate pre-defined grouped results
         """
         records = [record for record in self.records
-                   if record.primary and record.status != ERROR]
+                   if record.primary and record.status != ERROR and
+                   not record.is_stddev()]
         # iteration_name_extra only
         self._expand_grouped_result(records, ["iteration_name_extra"])
         # iteration_name_extra and profile
