@@ -847,8 +847,10 @@ class RelativeResults:
             values[record_id].append(record.score)
         for test_name, values in values.items():
             value = numpy.average(values)
+            # Use half of mean_tolerance * uncertainty
+            tolerance = self.mean_tolerance * get_uncertainty(len(values)) / 2
             self.record_result(test_name, value, value, True, True,
-                               value, self.mean_tolerance)
+                               value, tolerance)
 
     def expand_grouped_results(self):
         """
