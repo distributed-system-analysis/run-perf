@@ -702,7 +702,6 @@ class LibvirtGuest(BaseMachine):
         self._re_running = re.compile(r'\d+ +%s +running' % self.name)
         self._addr = None
         self._started = False
-        self.xml = None
         self.image = None
 
     def get_fullname(self):
@@ -795,7 +794,6 @@ class LibvirtGuest(BaseMachine):
                         "virt-xml --edit --metadata uuid=%s > "
                         "'%s.xml'\n%s\nEOF"
                         % (image, self.name, uuid.uuid1(), image, xml))
-            self.xml = True
         else:
             session.cmd("virt-install --import --disk '%s' --memory '%s' "
                         "--name '%s' --os-variant '%s' --vcpus '%s' --serial "
