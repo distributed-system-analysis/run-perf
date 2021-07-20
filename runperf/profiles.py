@@ -588,6 +588,10 @@ class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls
     * pin ioports to unused cpus
     * grub: nosoftlockup nohz=on
     * use cgroups to move most processes to the unused cpus
+
+    extra params:
+    * xml - override full xml path
+    * xml_suffix - suffix to xml path ["-tuned"]
     """
 
     name = "TunedLibvirt"
@@ -595,7 +599,8 @@ class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls
     def __init__(self, host, rp_paths, extra):
         extra.setdefault("image_format", "raw")
         if "xml" not in extra:
-            extra["xml"] = self._get_xml(host, rp_paths)
+            extra["xml"] = self._get_xml(host, rp_paths,
+                                         extra.get("xml_suffix", "-tuned"))
         DefaultLibvirt.__init__(self, host, rp_paths, extra)
         PersistentProfile.__init__(self, host, rp_paths, extra,
                                    skip_init_call=True)
@@ -614,15 +619,15 @@ class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls
                                 "nosoftlockup", "nohz=on",
                                 "hugepages=%s" % total_hp))
 
-    def _get_xml(self, host, rp_paths):
+    def _get_xml(self, host, rp_paths, suffix):
         for path in rp_paths:
             path_xml = os.path.join(path, 'libvirt',
-                                    "%s-tuned.xml" % host.addr)
+                                    "%s%s.xml" % (host.addr, suffix))
             if os.path.exists(path_xml):
                 with open(path_xml) as xml_fd:
                     return xml_fd.read()
-        raise ValueError("%s-tuned.xml not found in %s, unable to apply "
-                         "%s" % (host.addr, rp_paths, self.name))
+        raise ValueError("%s%s.xml not found in %s, unable to apply "
+                         "%s" % (host.addr, suffix, rp_paths, self.name))
 
     def _apply(self, setup_script):
         ret = PersistentProfile._apply(self, setup_script)
