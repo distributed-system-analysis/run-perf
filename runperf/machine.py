@@ -702,7 +702,6 @@ class LibvirtGuest(BaseMachine):
         self._re_running = re.compile(r'\d+ +%s +running' % self.name)
         self._addr = None
         self._started = False
-        self.xml = None
         self.image = None
 
     def get_fullname(self):
@@ -761,6 +760,10 @@ class LibvirtGuest(BaseMachine):
         out["libvirt_xml"] = xml
         return out
 
+    def _log_path(self, suffix):
+        return "/var/log/libvirt/%s_%s" % (os.path.basename(self.image),
+                                           suffix)
+
     def start(self):
         """
         Define and start the VM
@@ -793,27 +796,27 @@ class LibvirtGuest(BaseMachine):
                         "virt-xml --edit --disk driver_type=raw | "
                         "virt-xml --edit --metadata name=%s | "
                         "virt-xml --edit --metadata uuid=%s > "
-                        "'%s.xml'\n%s\nEOF"
-                        % (image, self.name, uuid.uuid1(), image, xml))
-            self.xml = True
+                        "'%s'\n%s\nEOF"
+                        % (image, self.name, uuid.uuid1(),
+                           self._log_path(".xml"), xml))
         else:
             session.cmd("virt-install --import --disk '%s' --memory '%s' "
                         "--name '%s' --os-variant '%s' --vcpus '%s' --serial "
-                        "file,path=/var/log/libvirt/%s_serial.log %s "
-                        "--dry-run --print-xml > '%s.xml'"
+                        "file,path='%s' %s --dry-run --print-xml > '%s'"
                         % (self.image, self.mem, self.name,
                            self._get_os_variant(session), self.smp,
-                           os.path.basename(image),
+                           self._log_path("_serial.log"),
                            self.extra_params.get('virt-install-extra', ''),
-                           image))
+                           self._log_path(".xml")))
         if "qemu_bin" in self.extra_params:
             session.cmd("echo -e 'cd /domain/devices/emulator\nset %s\nsave' "
-                        "| xmllint --shell '%s.xml'"
-                        % (self.extra_params['qemu_bin'], image))
+                        "| xmllint --shell '%s'"
+                        % (self.extra_params['qemu_bin'],
+                           self._log_path('.xml')))
 
         # Finally start the machine
         session.cmd("chown -R qemu:qemu /dev/hugepages/")
-        session.cmd("virsh create '%s.xml'" % self.image)
+        session.cmd("virsh create '%s'" % self._log_path('.xml'))
 
     def is_running(self):
         """Whether VM is running"""
