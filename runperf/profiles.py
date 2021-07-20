@@ -202,6 +202,9 @@ class PersistentProfile(BaseProfile):
 
     There are also some features like grub_args, rc_local and tuned_adm_profile
     modules that can be handled automatically.
+
+    extra params:
+    * irqbalance - enable/disable irqbalance
     """
     # Grub arguments to be added (implies reboot)
     _grub_args = None
@@ -374,6 +377,12 @@ class DefaultLibvirt(BaseProfile):
 
     """
     Use libvirt defaults to create one VM leaving some free CPUs
+
+    extra params:
+    * force_guest_cpus - override guest_cpus
+    * force_guest_mem - override guest_mem
+    * force_no_vms - override no vms
+    * qemu_bin - custom qemu bin location
     """
 
     name = "DefaultLibvirt"
@@ -580,7 +589,7 @@ class Overcommit1p5(DefaultLibvirt):
 
 class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls-to-init]
     """
-    Use a single guest defined by $host-tuned.xml libvirt definition
+    Use a single guest defined by $host-$suffix.xml libvirt definition
 
     * hugepages on host
     * strictly pinned numa
