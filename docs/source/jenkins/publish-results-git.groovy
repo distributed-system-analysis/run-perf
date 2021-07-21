@@ -195,14 +195,14 @@ node('runperf-slave') {
             break
         }
     }
-    // Filter internal values
-    sh "find $buildArtifacts -type f -exec sed -i $sedFilters {} +"
     // Attach the files into resultGit
     if (fileExists("$buildArtifacts/html/index.html")) {
         sh "mv $buildArtifacts/html/index.html ${resultGit}/${thisResult}.html"
     } else {
         writeFile(file: resultGit + "/${thisResult}.html", text: 'Missing file')
     }
+    // Filter internal values
+    sh "find $buildArtifacts -type f -exec sed -i $sedFilters {} +"
     dir(runperfResults) {
         sh "tar -cf ../../${resultGit}/${thisResult}.tar.xz *"
     }
