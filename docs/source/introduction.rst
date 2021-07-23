@@ -40,7 +40,7 @@ under `Localhost` (directly on the `foo.example.org` machine) and
 `TunedLibvirt` (configures host, fetches guest image, configures it and
 spawns guest VM) profiles and report results in `./result_$date` directory::
 
-    run-perf -vvv --hosts foo:foo.example.org --provisioner beaker --distro Fedora-32 --default-password password --profiles Localhost TunedLibvirt -- uperf fio:'{"type":"read", "ramptime":"1", "runtime":"10", "samples":"1", "file-size": "100", "targets": "/fio"}'
+    run-perf -vvv --hosts foo:foo.example.org --provisioner Beaker --distro Fedora-32 --default-password password --profiles Localhost TunedLibvirt -- uperf fio:'{"type":"read", "ramptime":"1", "runtime":"10", "samples":"1", "file-size": "100", "targets": "/fio"}'
 
 Process `result*` directories, compare the ranges and create a `linear model`
 that normalizes the ranges to `<-3, +3>` range::
@@ -53,7 +53,7 @@ the comparison in human readable form to the console, in XUNIT format in
 some tasks the `result*` results are also added as reference for better
 visualization of the changes::
 
-    compare-perf -vvv --tolerance 5 --stddev-tolerance 10 -l model1.json --xunit result.xml --html result.html --references result* -- src dst
+    compare-perf -vvv --tolerance 5 --stddev-tolerance 10 -l model1.json --xunit result.xml --html result.html -- src result* dst
 
 
 ----------
