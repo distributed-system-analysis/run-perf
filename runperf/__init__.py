@@ -397,7 +397,7 @@ class ComparePerf:
                             "compare it to the source value. Specify the "
                             "weight of this model. Note the weight might be "
                             "adjusted based on the number of builds "
-                            "(when no builds < 8)", nargs=1, default=1)
+                            "(when no builds < 8)", type=float, default=1)
         parser.add_argument("--model-linear-regression", "-l", help="Use "
                             "linear regression model for matching results",
                             nargs='+', default=[])
