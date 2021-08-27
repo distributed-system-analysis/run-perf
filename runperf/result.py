@@ -329,7 +329,7 @@ def iter_results_jsons(path, skip_incorrect=False):
     Process runperf results and yield the result.json files
     """
     if skip_incorrect:
-        result_name_glob = '[09]*'
+        result_name_glob = '[0-9]*'
     else:
         result_name_glob = '*'
     for src_path in glob.glob(os.path.join(path, '*', '*', result_name_glob,
