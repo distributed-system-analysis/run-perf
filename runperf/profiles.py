@@ -404,6 +404,9 @@ class DefaultLibvirt(BaseProfile):
             value = self.extra.get("force_" + param)
             if value:
                 self._guest[param] = value
+        # Remove previously existing libvirt logs
+        with self.host.get_session_cont() as session:
+            session.cmd_status("rm -Rf /var/log/libvirt/*")
         self.log_fetcher.paths.add('/var/log/libvirt/')
 
     def _apply(self, setup_script):
