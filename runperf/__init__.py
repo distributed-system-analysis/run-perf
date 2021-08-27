@@ -387,6 +387,9 @@ class ComparePerf:
                             "destination result and the middle ones are "
                             "only used as a reference.",
                             nargs="+", type=self._get_name_and_path)
+        parser.add_argument("--include-incorrect-results", action="store_true",
+                            help="Include incorrect/partial results (by "
+                            "default we only include [0-9]* iterations)")
         parser.add_argument("--tolerance", "-t", help="Acceptable tolerance "
                             "(+-%(default)s%%)", default=5, type=float)
         parser.add_argument("--stddev-tolerance", "-s", help="Acceptable "
@@ -426,10 +429,14 @@ class ComparePerf:
                                           models,
                                           args.results[0][0],
                                           args.results[0][1])
+        skip_incorrect = not args.include_incorrect_results
         for name, path in args.results[1:-1]:
-            results.add_result_by_path(name, path).expand_grouped_results()
+            res = results.add_result_by_path(name, path,
+                                             skip_incorrect=skip_incorrect)
+            res.expand_grouped_results()
         res = results.add_result_by_path(args.results[-1][0],
-                                         args.results[-1][1], last=True)
+                                         args.results[-1][1], last=True,
+                                         skip_incorrect=skip_incorrect)
         if args.xunit:
             with open(args.xunit, 'wb') as xunit_fd:
                 xunit_fd.write(res.get_xunit())

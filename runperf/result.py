@@ -329,7 +329,7 @@ def iter_results_jsons(path, skip_incorrect=False):
     Process runperf results and yield the result.json files
     """
     if skip_incorrect:
-        result_name_glob = '[09]*'
+        result_name_glob = '[0-9]*'
     else:
         result_name_glob = '*'
     for src_path in glob.glob(os.path.join(path, '*', '*', result_name_glob,
@@ -509,7 +509,7 @@ class ResultsContainer:
                     metadata[split_line[0]] = split_line[1]
         return metadata
 
-    def add_result_by_path(self, name, path, last=False):
+    def add_result_by_path(self, name, path, last=False, skip_incorrect=True):
         """
         Insert test result according to path hierarchy
         """
@@ -519,7 +519,7 @@ class ResultsContainer:
         res = RelativeResults(self.log, self.tolerance, self.stddev_tolerance,
                               self.models, metadata, self.averages)
         src_tests = list(self.src_results.keys())
-        for test, score, primary, params in iter_results(path, True):
+        for test, score, primary, params in iter_results(path, skip_incorrect):
             if test in src_tests:
                 res.record_result(test, self.src_results[test][0],
                                   score, primary, params=params)
