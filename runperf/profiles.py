@@ -391,7 +391,6 @@ class DefaultLibvirt(BaseProfile):
 
     def __init__(self, host, rp_paths, extra):
         super().__init__(host, rp_paths, extra)
-        self.host = host
         self.vms = []
         self.shared_pub_key = self.host.shared_pub_key
         self._custom_qemu = self.extra.get("qemu_bin", "")
@@ -404,6 +403,9 @@ class DefaultLibvirt(BaseProfile):
             value = self.extra.get("force_" + param)
             if value:
                 self._guest[param] = value
+        # Remove previously existing libvirt logs
+        with self.host.get_session_cont() as session:
+            session.cmd_status("rm -Rf /var/log/libvirt/*")
         self.log_fetcher.paths.add('/var/log/libvirt/')
 
     def _apply(self, setup_script):

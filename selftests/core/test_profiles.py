@@ -249,8 +249,14 @@ class DefaultLibvirtTest(Selftest):
         """
         Initialize the profile, deploy vms and check they are as expected
         """
+        def get_session_cont():
+            session = mock.Mock()
+            session.__enter__ = mock.Mock(return_value=mock.Mock())
+            session.__exit__ = mock.Mock(return_value=False)
+            return session
         host = mock.Mock(shared_pub_key="SSH_PUB_KEY", guest_distro="DISTRO",
-                         params=params)
+                         params=params, get_session_cont=mock.Mock())
+        host.get_session_cont = get_session_cont
         profile = klass(host, "", extra)
         with mock.patch("runperf.machine.LibvirtGuest", self.FakeGuest):
             profile._start_vms()
