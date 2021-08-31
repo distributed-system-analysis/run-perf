@@ -26,6 +26,23 @@ import contextlib
 
 class BasicUtils(unittest.TestCase):
 
+    def test_thread_with_status(self):
+        def no_exc():
+            pass
+
+        def exc():
+            raise Exception("Testing exception")
+
+        good = utils.ThreadWithStatus(target=no_exc)
+        good.start()
+        good.join()
+        self.assertTrue(good.completed)
+        bad = utils.ThreadWithStatus(target=exc)
+        bad.start()
+        bad.join()
+        self.assertFalse(bad.completed)
+        self.assertIn(str(bad.exc), "Testing exception")
+
     def test_list_of_threads(self):
         self.assertRaises(ValueError, utils.list_of_threads, -5)
         self.assertRaises(ValueError, utils.list_of_threads, 0)

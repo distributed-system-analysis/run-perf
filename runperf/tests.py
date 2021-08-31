@@ -138,7 +138,6 @@ class PBenchTest(BaseTest):
         def install_pbench(host, metadata, test):
             with host.get_session_cont() as session:
                 pbench.install_on(session, metadata, test=test)
-        install_pbench(self.host, self.metadata, self.test)
         threads = []
         if self.host in self.workers:
             # When host is also in workers, perform install first on host
@@ -164,9 +163,18 @@ class PBenchTest(BaseTest):
             thread.join()
         failed = [thread for thread in threads if thread.completed is not True]
         if failed:
-            raise RuntimeError("Failed to install pbench on %s" % failed)
-        # Wait for the machines to calm down before the testing and use
-        # hop=self.host as the host will be executing the ssh commands.
+            for thread in threads:
+                if thread.exc:
+                    raise RuntimeError("Failed to install pbench on %s"
+                                       % failed) from thread.exc
+                raise RuntimeError("Failed to install pbench on %s" % failed)
+        self._wait_for_workers_calm_down()
+
+    def _wait_for_workers_calm_down(self):
+        """
+        Wait for the machines to calm down before the testing and use
+        hop=self.host as the host will be executing the ssh commands.
+        """
         for workers in self.workers:
             for worker in workers:
                 with worker.get_session_cont(hop=self.host) as session:
@@ -176,8 +184,8 @@ class PBenchTest(BaseTest):
                                            " proceeding on a loaded machine!")
         with self.host.get_session_cont(hop=self.host) as session:
             if not utils.wait_for_machine_calms_down(session, timeout=1800):
-                worker.log.warning("Host did not stabilize in 1800s,"
-                                   " proceeding on a loaded machine!")
+                self.host.log.warning("Host did not stabilize in 1800s,"
+                                      " proceeding on a loaded machine!")
 
     def _run(self):
         # We only need one group of workers
