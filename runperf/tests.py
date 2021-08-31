@@ -164,7 +164,11 @@ class PBenchTest(BaseTest):
             thread.join()
         failed = [thread for thread in threads if thread.completed is not True]
         if failed:
-            raise RuntimeError("Failed to install pbench on %s" % failed)
+            for thread in threads:
+                if thread.exc:
+                    raise RuntimeError("Failed to install pbench on %s"
+                                       % failed) from thread.exc
+                raise RuntimeError("Failed to install pbench on %s" % failed)
         # Wait for the machines to calm down before the testing and use
         # hop=self.host as the host will be executing the ssh commands.
         for workers in self.workers:

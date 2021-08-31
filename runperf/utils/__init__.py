@@ -48,10 +48,14 @@ class ThreadWithStatus(threading.Thread):
     Thread class that sets "self.completed" to True after execution
     """
     completed = False
+    exc = None
 
     def run(self):
-        super().run()
-        self.completed = True
+        try:
+            super().run()
+            self.completed = True
+        except BaseException as exc:
+            self.exc = exc
 
 
 class MutableShellSession(aexpect.ShellSession):

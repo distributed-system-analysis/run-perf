@@ -297,6 +297,9 @@ class Controller:
             thread.join()
         for thread in threads:
             if thread.completed is not True:
+                if thread.exc:
+                    raise RuntimeError("Thread %s failed"
+                                       % thread) from thread.exc
                 raise RuntimeError("Thread %s failed" % thread)
         reboot_request = [host for host in hosts if host.reboot_request]
         if reboot_request:
