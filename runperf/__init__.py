@@ -285,15 +285,19 @@ def main():
             # Check whether this profile changes test set
             test_defs = profile_test_defs(profile_args, _test_defs)
             # Applies profile and set `hosts.workers` to contain list of IP
-            # addrs to be used in tests. In case manual reboot is required
-            # return non-zero.
-            try:
-                workers = hosts.apply_profile(profile, profile_args)
-            except exceptions.StepFailed:
+            # addrs to be used in tests. It might retry on failure
+            for i in range(args.retry_tests):
                 try:
-                    hosts.revert_profile()
-                except Exception:
-                    pass
+                    workers = hosts.apply_profile(profile, profile_args)
+                    break
+                except exceptions.StepFailed:
+                    try:
+                        hosts.revert_profile()
+                    except Exception:
+                        pass
+            else:
+                log.error("ERROR applying profile %s, all tests will be "
+                          "SKIPPED!", profile)
                 continue
 
             # Run all tests under current profile
