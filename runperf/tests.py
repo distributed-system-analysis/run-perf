@@ -179,8 +179,8 @@ class PBenchTest(BaseTest):
                                            " proceeding on a loaded machine!")
         with self.host.get_session_cont(hop=self.host) as session:
             if not utils.wait_for_machine_calms_down(session, timeout=1800):
-                worker.log.warning("Host did not stabilize in 1800s,"
-                                   " proceeding on a loaded machine!")
+                self.host.log.warning("Host did not stabilize in 1800s,"
+                                      " proceeding on a loaded machine!")
 
     def _run(self):
         # We only need one group of workers
