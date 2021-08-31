@@ -54,11 +54,11 @@ class ThreadWithStatus(threading.Thread):
         try:
             super().run()
             self.completed = True
-        except BaseException as exc:
+        except BaseException as exc:  # lgtm [py/catch-base-exception]
             self.exc = exc
 
 
-class MutableShellSession(aexpect.ShellSession):
+class MutableShellSession(aexpect.ShellSession):  # lgtm [py/missing-call-to-init]
     """
     Mute-able aexpect.ShellSession
     """
