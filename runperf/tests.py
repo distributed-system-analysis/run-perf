@@ -168,8 +168,13 @@ class PBenchTest(BaseTest):
                     raise RuntimeError("Failed to install pbench on %s"
                                        % failed) from thread.exc
                 raise RuntimeError("Failed to install pbench on %s" % failed)
-        # Wait for the machines to calm down before the testing and use
-        # hop=self.host as the host will be executing the ssh commands.
+        self._wait_for_workers_calm_down()
+
+    def _wait_for_workers_calm_down(self):
+        """
+        Wait for the machines to calm down before the testing and use
+        hop=self.host as the host will be executing the ssh commands.
+        """
         for workers in self.workers:
             for worker in workers:
                 with worker.get_session_cont(hop=self.host) as session:
