@@ -207,8 +207,8 @@ class PBenchTest(BaseTest):
                 # Let the system to rest a bit after heavy load
                 session.read_nonblocking(5)
                 ret = session.cmd_output(session.status_test_command, 10)
-                digit_lines = [l for l in ret.splitlines()
-                               if l.strip().isdigit()]
+                digit_lines = [line for line in ret.splitlines()
+                               if line.strip().isdigit()]
                 if digit_lines:
                     if int(digit_lines[0].strip()) != 0:
                         raise RuntimeError("Execution failed %s" % digit_lines)
