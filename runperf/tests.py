@@ -205,7 +205,7 @@ class PBenchTest(BaseTest):
                 session.cmd_output(prefix + self._cmd,
                                    timeout=self.timeout)
                 # Let the system to rest a bit after heavy load
-                time.sleep(5)
+                session.read_nonblocking(5)
                 ret = session.cmd_output(session.status_test_command, 10)
                 digit_lines = [l for l in ret.splitlines()
                                if l.strip().isdigit()]
