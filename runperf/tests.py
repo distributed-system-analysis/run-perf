@@ -189,7 +189,7 @@ class PBenchTest(BaseTest):
 
     def _run(self):
         # We only need one group of workers
-        session = None
+        src = None
         try:
             with self.host.get_session_cont() as session:
                 session.cmd("true")
@@ -228,9 +228,11 @@ class PBenchTest(BaseTest):
                         extra_args.append("--prefix %s" % prefix)
                     session.cmd("pbench-copy-results %s"
                                 % " ".join(extra_args), timeout=600)
-            self.host.copy_from(src, self.output)
-        finally:
-            session.close()
+                self.host.copy_from(src, self.output)
+        except Exception:
+            if src:
+                self.host.copy_from(src, self.output)
+            raise
 
 
 class PBenchFio(PBenchTest):
