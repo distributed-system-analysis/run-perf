@@ -189,7 +189,7 @@ class PBenchTest(BaseTest):
 
     def _run(self):
         # We only need one group of workers
-        session = None
+        src = None
         try:
             with self.host.get_session_cont() as session:
                 session.cmd("true")
@@ -205,10 +205,10 @@ class PBenchTest(BaseTest):
                 session.cmd_output(prefix + self._cmd,
                                    timeout=self.timeout)
                 # Let the system to rest a bit after heavy load
-                time.sleep(5)
+                session.read_nonblocking(5)
                 ret = session.cmd_output(session.status_test_command, 10)
-                digit_lines = [l for l in ret.splitlines()
-                               if l.strip().isdigit()]
+                digit_lines = [line for line in ret.splitlines()
+                               if line.strip().isdigit()]
                 if digit_lines:
                     if int(digit_lines[0].strip()) != 0:
                         raise RuntimeError("Execution failed %s" % digit_lines)
@@ -228,9 +228,11 @@ class PBenchTest(BaseTest):
                         extra_args.append("--prefix %s" % prefix)
                     session.cmd("pbench-copy-results %s"
                                 % " ".join(extra_args), timeout=600)
-            self.host.copy_from(src, self.output)
-        finally:
-            session.close()
+                self.host.copy_from(src, self.output)
+        except Exception:
+            if src:
+                self.host.copy_from(src, self.output)
+            raise
 
 
 class PBenchFio(PBenchTest):
