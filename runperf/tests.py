@@ -139,9 +139,11 @@ class PBenchTest(BaseTest):
             with host.get_session_cont() as session:
                 pbench.install_on(session, metadata, test=test)
         threads = []
-        if self.host in self.workers:
-            # When host is also in workers, perform install first on host
-            install_pbench(self.host, self.metadata, self.test)
+        for host_workers in self.workers:
+            if self.host in host_workers:
+                # When host is also in workers, perform install first on host
+                install_pbench(self.host, self.metadata, self.test)
+                break
         else:
             name = "host %s" % self.host.name
             threads.append(utils.ThreadWithStatus(target=install_pbench,
