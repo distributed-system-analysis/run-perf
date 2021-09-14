@@ -1,4 +1,4 @@
-#!/bin/bash -xe
+#!/bin/bash -x
 # Variables
 # Number of pages per a single numa node (eg. 10)
 MEM_PER_NODE='%(mem_per_node)s'
@@ -24,15 +24,34 @@ for I in $(seq 10); do
 done
 
 # Move non-libvirt tasks to the last cpu
-RUNPERF_CGROUP=$(mktemp -d /sys/fs/cgroup/cpuset/runperf-XXXXXX)
-cat /sys/fs/cgroup/cpuset/cpuset.mems > "$RUNPERF_CGROUP/cpuset.mems"
-echo $(($(getconf _NPROCESSORS_ONLN) - 1)) > "$RUNPERF_CGROUP/cpuset.cpus"
-for I in $(seq 3); do
-    for TASK in $(cat /sys/fs/cgroup/cpuset/tasks); do
-        # Some tasks are unmovable, ignore the result
-        [[ "$(cat /proc/$TASK/cmdline)" = *'libvirtd'* ]] || echo $TASK >> "$RUNPERF_CGROUP/tasks" || true
+if [ -e '/sys/fs/cgroup/cgroup.procs' ]; then
+    # cgroup2
+    echo '+cpuset' > /sys/fs/cgroup/cgroup.subtree_control
+    LAST_CPU="$(($(getconf _NPROCESSORS_ONLN) - 1))"
+    for CGROUP_CPUS in /sys/fs/cgroup/*/cpuset.cpus; do
+        [[ "$CGROUP_CPUS" = *'machine.slice'* ]] && continue
+        echo $LAST_CPU > $CGROUP_CPUS
     done
-done
+    RUNPERF_CGROUP=$(mktemp -d /sys/fs/cgroup/runperf-XXXXXX)
+    echo "$LAST_CPU" > "$RUNPERF_CGROUP/cpuset.cpus"
+    for I in $(seq 3); do
+        for TASK in $(ps axo pid); do
+            # Some tasks are unmovable, ignore the result
+            [[ "$(cat /proc/$TASK/cmdline)" = *'libvirtd'* ]] || echo $TASK >> "$RUNPERF_CGROUP/cgroup.procs" || true
+        done
+    done
+else
+    # cgroup
+    RUNPERF_CGROUP=$(mktemp -d /sys/fs/cgroup/cpuset/runperf-XXXXXX)
+    cat /sys/fs/cgroup/cpuset/cpuset.mems > "$RUNPERF_CGROUP/cpuset.mems"
+    echo $(($(getconf _NPROCESSORS_ONLN) - 1)) > "$RUNPERF_CGROUP/cpuset.cpus"
+    for I in $(seq 3); do
+        for TASK in $(cat /sys/fs/cgroup/cpuset/tasks); do
+            # Some tasks are unmovable, ignore the result
+            [[ "$(cat /proc/$TASK/cmdline)" = *'libvirtd'* ]] || echo $TASK >> "$RUNPERF_CGROUP/tasks" || true
+        done
+    done
+fi
 
 # Let run-perf know the persistent setup is ready
 echo rc_local >> "$PERFORMED_SETUP_PATH"
