@@ -214,6 +214,7 @@ class ModelStdev(ModelLinearRegression):
     Simple linear regression model using 3*stddev as error
     """
     ERROR_COEFICIENT = 3
+    TOO_STRICT_COEFFICIENT = 1.1
 
     def identify(self, data):
         """
@@ -225,6 +226,8 @@ class ModelStdev(ModelLinearRegression):
         if "__metadata__" not in self.model:
             self.model["__metadata__"] = {"version": 1}
         self.model["__metadata__"]["tolerance"] = self.mean_tolerance
+        too_strict_coefficient = (self.mean_tolerance / 100 /
+                                  self.TOO_STRICT_COEFFICIENT)
         for test in sorted(data.keys()):
             try:
                 values = [float(_) for _ in data.get(test, {}).values()]
@@ -236,6 +239,17 @@ class ModelStdev(ModelLinearRegression):
             max_stddev = self.ERROR_COEFICIENT * numpy.std(values)
             max_value = average + (max_stddev * uncertainty)
             min_value = average - (max_stddev * uncertainty)
+            highest = average * (1 + too_strict_coefficient)
+            if highest > max_value:
+                LOG.debug("%s: Adjusting max_value from %.2f to %.2f", test,
+                          max_value, highest)
+                max_value = highest
+            min_value = min(values)
+            lowest = average * (1 - too_strict_coefficient)
+            if lowest < min_value:
+                LOG.debug("%s: Adjusting min_value from %.2f to %.2f", test,
+                          min_value, lowest)
+                min_value = lowest
             model = self._identify(min_value, max_value)
             if not model:
                 # Singular matrix, not possible to map
