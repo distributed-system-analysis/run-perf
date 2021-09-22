@@ -368,8 +368,11 @@ def shell_find_command(session, command):
     :param command: command we are looking for
     :return: path or empty string when not found
     """
-    return session.cmd_output("which --skip-alias --skip-functions %s "
-                              "2>/dev/null" % command).strip()
+    stat, out = session.cmd_status_output("which --skip-alias --skip-functions"
+                                          " %s 2>/dev/null" % command)
+    if stat == 0:
+        return out.strip()
+    return ''
 
 
 def wait_for_machine_calms_down(session, timeout=600):
