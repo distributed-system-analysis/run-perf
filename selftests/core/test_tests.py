@@ -53,7 +53,8 @@ class PBenchTest(Selftest):
         mock_args = {'cmd_status.return_value': 0,
                      'cmd_output.side_effect': (
                          prepend_host_cmd_output_side_effect +
-                         ["", "prefix+self._cmd", "0", result_path])}
+                         ["prefix+self._cmd", "0", result_path]),
+                     'cmd_status_output.return_value': [1, ""]}
         host.mock_session = mock.Mock(**mock_args)
         host.profile = mock.Mock()
         host.profile.name = profile

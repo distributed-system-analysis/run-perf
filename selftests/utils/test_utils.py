@@ -77,6 +77,15 @@ class BasicUtils(unittest.TestCase):
         # read on closed stdin should return immediately (otherwise it hangs)
         self.assertEqual("", utils.check_output(["cat", "/dev/stdin"]))
 
+    def test_shell_find_command(self):
+        session = mock.Mock()
+        session.cmd_status_output.return_value = (0, "  \n /bin/foo\n\n  ")
+        self.assertEqual(utils.shell_find_command(session, "bar"), "/bin/foo")
+        session.cmd_status_output.return_value = (1, "/bin/foo")
+        self.assertEqual(utils.shell_find_command(session, "bar"), "")
+        session.cmd_status_output.return_value = (0, "")
+        self.assertEqual(utils.shell_find_command(session, ""), "")
+
     def test_wait_for(self):
         with mock.patch("time.time", mock.Mock(side_effect=[0, 0, 0])):
             func = mock.Mock(side_effect=[0, 1])
