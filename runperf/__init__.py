@@ -328,6 +328,7 @@ def main():
             hosts.revert_profile()
         # Remove unnecessary files
         hosts.cleanup()
+        aexpect.kill_tail_threads()
     except Exception as exc:
         utils.record_failure(args.output, exc)
         if args.keep_tmp_files:
@@ -347,7 +348,9 @@ def main():
             else:
                 log.warning("Background threads present, killing: %s",
                             threading.enumerate())
+                aexpect.kill_tail_threads()
                 os.kill(0, 15)
+        aexpect.kill_tail_threads()
         raise
 
 
