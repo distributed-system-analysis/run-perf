@@ -13,6 +13,7 @@
 # Copyright: Red Hat Inc. 2018
 # Author: Lukas Doktor <ldoktor@redhat.com>
 import glob
+import locale
 import logging
 import os
 import time
@@ -160,6 +161,7 @@ class BaseProfile:
             raise RuntimeError("Workers not cleaned by profile %s" % profile)
         for path in self._get("cleanup/paths_to_be_removed", "").splitlines():
             self.session.cmd("rm -rf '%s'" % path, print_func="mute")
+        self._remove("cleanup/paths_to_be_removed")
         session = self.session
         self.session = None
         session.close()
@@ -215,23 +217,34 @@ class PersistentProfile(BaseProfile):
     # enable/disable irqbalance service
     _irqbalance = None
 
-    def __init__(self, host, rp_paths, extra, skip_init_call=False):
+    def __init__(self, host, rp_paths, extra):
         """
         :param host: Host machine to apply profile on
         :param rp_paths: list of runperf paths
         :param skip_init_call: Skip call to super class (in case of multiple
             inheritance)
         """
-        if not skip_init_call:
-            BaseProfile.__init__(self, host, rp_paths, extra)
+        BaseProfile.__init__(self, host, rp_paths, extra)
+        self.performed_setup_path = self._persistent_storage_path(
+            "persistent_setup_finished")
         if self._grub_args is None:
             self._grub_args = set()
+        for arg in extra.get("grub_args", "").split(" "):
+            self._grub_args.add(arg)
         # TODO: Add extra handling of our arguments in Baseclass similarly to
         # DefaultLibvirt
         if 'irqbalance' in extra:
             self._irqbalance = extra['irqbalance']
-        self.performed_setup_path = self._persistent_storage_path(
-            "persistent_setup_finished")
+        if 'tuned_adm_profile' in extra:
+            self._tuned_adm_profile = extra["tuned_adm_profile"]
+        if 'rc_local_file' in extra:
+            with open(extra["rc_local_file"],
+                      encoding=locale.getpreferredencoding()) as rc_local_fd:
+                params = {"performed_setup_path": self.performed_setup_path}
+                params.update(host.params)
+                if 'rc_local_file_params' in extra:
+                    params.update(extra["rc_local_file_params"])
+                self._rc_local = rc_local_fd.read() % params
 
     def _apply(self, setup_script):
         """
@@ -277,10 +290,12 @@ class PersistentProfile(BaseProfile):
             self.session.cmd("tuned-adm profile %s" % profile)
 
     def _persistent_grub_args(self, grub_args):
-        self.host.reboot_request = True
         cmdline = self._read_file("/proc/cmdline")
         args = " ".join(arg for arg in grub_args
                         if arg not in cmdline)
+        if not args:
+            return
+        self.host.reboot_request = True
         self._set("persistent_setup/grub_args", args)
         self.session.cmd('grubby --args="%s" --update-kernel='
                          '"$(grubby --default-kernel)"' % args)
@@ -313,7 +328,7 @@ class PersistentProfile(BaseProfile):
 
         if self._irqbalance is not None:
             self._persistent_irqbalance(self._irqbalance)
-        return True
+        return self.host.reboot_request
 
     def _revert(self):
         irqbalance = self._get("persistent_setup/irqbalance", -1)
@@ -373,7 +388,7 @@ class Localhost(BaseProfile):
         self._remove("applied_profile")
 
 
-class DefaultLibvirt(BaseProfile):
+class DefaultLibvirt(PersistentProfile):
 
     """
     Use libvirt defaults to create one VM leaving some free CPUs
@@ -390,7 +405,7 @@ class DefaultLibvirt(BaseProfile):
     deps = "tuned libvirt libguestfs-tools-c virt-install"
 
     def __init__(self, host, rp_paths, extra):
-        super().__init__(host, rp_paths, extra)
+        PersistentProfile.__init__(self, host, rp_paths, extra)
         self.vms = []
         self.shared_pub_key = self.host.shared_pub_key
         self._custom_qemu = self.extra.get("qemu_bin", "")
@@ -413,6 +428,9 @@ class DefaultLibvirt(BaseProfile):
             raise RuntimeError("VM already defined while applying profile. "
                                "This should never happen!")
         self._prerequisities(self.session)
+        ret = PersistentProfile._apply(self, setup_script)
+        if ret:
+            return ret
         self._guest["image"] = self._get_image(self.session, setup_script)
         ret = self._start_vms()
         # Make sure vms are accessible
@@ -503,7 +521,7 @@ class DefaultLibvirt(BaseProfile):
         return self.vms
 
     def get_info(self):
-        out = BaseProfile.get_info(self)
+        out = PersistentProfile.get_info(self)
         for i, vm in enumerate(self.vms):
             for key, value in vm.get_info().items():
                 out["guest%s_%s" % (i, key)] = value
@@ -528,7 +546,7 @@ class DefaultLibvirt(BaseProfile):
         return "\n".join(out)
 
     def fetch_logs(self, path):
-        BaseProfile.fetch_logs(self, path)
+        PersistentProfile.fetch_logs(self, path)
         for log in glob.glob(os.path.join(path, self.host.get_fullname(),
                                           'var', 'log', 'libvirt', '*.log')):
             with open(log) as fd_serial_log:
@@ -537,12 +555,13 @@ class DefaultLibvirt(BaseProfile):
                           "had stability issues." % log)
 
     def _revert(self):
+        ret = PersistentProfile._revert(self)
         for vm in getattr(self, "vms", []):
             vm.cleanup()
         self.workers = []
         self._remove("set_profile")
         self._remove("applied_profile")
-        return False
+        return ret
 
 
 class DefaultLibvirtMulti(DefaultLibvirt):
@@ -586,10 +605,10 @@ class Overcommit1p5(DefaultLibvirt):
     def __init__(self, host, rp_paths, extra):
         extra["force_no_vms"] = int(host.params['host_cpus'] /
                                     host.params['guest_cpus'] * 1.5)
-        super().__init__(host, rp_paths, extra)
+        DefaultLibvirt.__init__(self, host, rp_paths, extra)
 
 
-class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls-to-init]
+class TunedLibvirt(DefaultLibvirt):
     """
     Use a single guest defined by $host-$suffix.xml libvirt definition
 
@@ -612,23 +631,23 @@ class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls
         if "xml" not in extra:
             extra["xml"] = self._get_xml(host, rp_paths,
                                          extra.get("xml_suffix", "-tuned"))
+        total_hp = int(host.params["guest_mem_m"] * 1024 /
+                       host.params["hugepage_kb"])
+        if "grub_args" not in extra:
+            extra["grub_args"] = ("default_hugepagesz=1G hugepagesz=1G "
+                                  "nosoftlockup nohz=on "
+                                  f"hugepages={total_hp}")
+        if "tuned_adm_profile" not in extra:
+            extra["tuned_adm_profile"] = "virtual-host"
+        if "rc_local_file" not in extra:
+            extra["rc_local_file"] = os.path.join(os.path.dirname(__file__),
+                                                  "assets", "profiles",
+                                                  "TunedLibvirt",
+                                                  "rc.local.sh")
+            mem_per_node = int(total_hp / host.params["numa_nodes"])
+            params = {"mem_per_node": mem_per_node}
+            extra["rc_local_file_params"] = params
         DefaultLibvirt.__init__(self, host, rp_paths, extra)
-        PersistentProfile.__init__(self, host, rp_paths, extra,
-                                   skip_init_call=True)
-        total_hp = int(self.host.params["guest_mem_m"] * 1024 /
-                       self.host.params["hugepage_kb"])
-        self.mem_per_node = int(total_hp / self.host.params["numa_nodes"])
-        with open(os.path.join(os.path.dirname(__file__), "assets",
-                               "profiles", "TunedLibvirt",
-                               "rc.local.sh")) as rc_local_fd:
-            params = {"mem_per_node": self.mem_per_node,
-                      "performed_setup_path": self.performed_setup_path}
-            params.update(self.host.params)
-            self._rc_local = rc_local_fd.read() % params
-        self._tuned_adm_profile = "virtual-host"
-        self._grub_args.update(("default_hugepagesz=1G", "hugepagesz=1G",
-                                "nosoftlockup", "nohz=on",
-                                "hugepages=%s" % total_hp))
 
     def _get_xml(self, host, rp_paths, suffix):
         for path in rp_paths:
@@ -639,22 +658,6 @@ class TunedLibvirt(DefaultLibvirt, PersistentProfile):  # lgtm[py/multiple-calls
                     return xml_fd.read()
         raise ValueError("%s%s.xml not found in %s, unable to apply "
                          "%s" % (host.addr, suffix, rp_paths, self.name))
-
-    def _apply(self, setup_script):
-        ret = PersistentProfile._apply(self, setup_script)
-        if ret:
-            return ret
-        return DefaultLibvirt._apply(self, setup_script)
-
-    def _revert(self):
-        ret = PersistentProfile._revert(self)
-        ret |= DefaultLibvirt._revert(self)
-        return ret
-
-    def get_info(self):
-        info = PersistentProfile.get_info(self)
-        info.update(DefaultLibvirt.get_info(self))
-        return info
 
 
 def get(profile, extra, host, paths):
