@@ -22,6 +22,8 @@ for I in $(seq 10); do
     sleep 0.5
     echo 3 > /proc/sys/vm/drop_caches
 done
+mkdir /hugepages
+mount -t hugetlbfs -o pagesize=${HUGEPAGE_KB}K none /hugepages
 
 # Move non-libvirt tasks to the last cpu
 if [ -e '/sys/fs/cgroup/cgroup.procs' ]; then
