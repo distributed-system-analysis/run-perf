@@ -328,6 +328,7 @@ def main():
             hosts.revert_profile()
         # Remove unnecessary files
         hosts.cleanup()
+        aexpect.kill_tail_threads()
     except Exception as exc:
         utils.record_failure(args.output, exc)
         if args.keep_tmp_files:
@@ -347,7 +348,9 @@ def main():
             else:
                 log.warning("Background threads present, killing: %s",
                             threading.enumerate())
+                aexpect.kill_tail_threads()
                 os.kill(0, 15)
+        aexpect.kill_tail_threads()
         raise
 
 
@@ -404,7 +407,8 @@ class ComparePerf:
                             "compare it to the source value. Specify the "
                             "weight of this model. Note the weight might be "
                             "adjusted based on the number of builds "
-                            "(when no builds < 8)", type=float, default=1)
+                            "(when no builds < 8) [%(default)s]", type=float,
+                            default=1)
         parser.add_argument("--model-linear-regression", "-l", help="Use "
                             "linear regression model for matching results",
                             nargs='+', default=[])
@@ -535,9 +539,9 @@ class AnalyzePerf:
         parser.add_argument("-s", "--stddev-linear-regression", help="Generate"
                             " per-test linear regression model mapping "
                             "avg (+/-)3x stddev as (min/max). Recomended "
-                            "tolerance values are -5; +5.")
+                            "tolerance values are -4; +4.")
         parser.add_argument("-t", "--tolerance", help="Tolerance (-x,+x) used "
-                            "by models, by default (%(default)s",
+                            "by models, by default (%(default)s)",
                             default=4, type=float)
         parser.add_argument("--verbose", "-v", action="count", default=0,
                             help="Increase the verbosity level")

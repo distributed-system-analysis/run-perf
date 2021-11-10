@@ -129,6 +129,17 @@ class PBenchTest(BaseTest):
                 extra[key] = value
         # Using sorted to always use the same cmdline
         for key, value in sorted(extra.items()):
+            # Replace special values
+            # __PER_WORKER_CPUS__ == no cpus perf worker
+            if value == "__PER_WORKER_CPUS__":
+                for _workers in self.workers:
+                    if len(_workers):
+                        value = int(int(self.host.params["guest_cpus"]) /
+                                    len(_workers))
+                        break
+                else:
+                    raise RuntimeError("Unable to get number of workers from "
+                                       f" {self.workers!r}")
             self.args += " --%s=%s" % (key, value)
         self._cmd = ("pbench-%s %s --clients=%s" %
                      (self.test, self.args,
@@ -195,15 +206,15 @@ class PBenchTest(BaseTest):
         try:
             with self.host.get_session_cont() as session:
                 session.cmd("true")
-                # FIXME: Return this when https://github.com/distributed
-                # -system-analysis/pbench/issues/1743 is resolved
-                session.cmd(". /opt/pbench-agent/base")
-                # And now run the test
                 benchmark_bin = utils.shell_find_command(session, self.test)
                 if benchmark_bin:
                     prefix = "benchmark_bin=%s " % benchmark_bin
                 else:
                     prefix = ""
+                # FIXME: Return this when https://github.com/distributed
+                # -system-analysis/pbench/issues/1743 is resolved
+                session.cmd(". /opt/pbench-agent/base")
+                # And now run the test
                 session.cmd_output(prefix + self._cmd,
                                    timeout=self.timeout)
                 # Let the system to rest a bit after heavy load

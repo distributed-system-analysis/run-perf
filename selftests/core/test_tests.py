@@ -83,7 +83,14 @@ class PBenchTest(Selftest):
         self.check_calls(host.mock_session.method_calls, calls)
 
     def test_fio_default(self):
-        self.check(tests.PBenchFio, {}, {}, 'pbench-fio  --ramptime=10 '
+        self.check(tests.PBenchFio, {}, {},
+                   'pbench-fio  --ramptime=10 '
+                   '--runtime=180 --samples=3 --test-types=read,write,rw '
+                   '--clients=addr2')
+
+    def test_fio_numjobs(self):
+        self.check(tests.PBenchFio, {}, {"numjobs": "__PER_WORKER_CPUS__"},
+                   'pbench-fio  --numjobs=8 --ramptime=10 '
                    '--runtime=180 --samples=3 --test-types=read,write,rw '
                    '--clients=addr2')
 
