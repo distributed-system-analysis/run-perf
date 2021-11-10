@@ -132,6 +132,11 @@ default is set/overridden by `run-perf` the value is specified at the end
 of the description using `[]` brackets. Note the supported arguments might
 vary based on pbench/tool versions.
 
+In case you want to use the number of cpus per worker you can supply
+``__PER_WORKER_CPUS__`` value which will be calculated and replaced
+with the expected value (eg. with 8 CPUs and 2 workers the value will
+be 4).
+
 .. _test-fio:
 
 Fio

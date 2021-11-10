@@ -129,6 +129,17 @@ class PBenchTest(BaseTest):
                 extra[key] = value
         # Using sorted to always use the same cmdline
         for key, value in sorted(extra.items()):
+            # Replace special values
+            # __PER_WORKER_CPUS__ == no cpus perf worker
+            if value == "__PER_WORKER_CPUS__":
+                for _workers in self.workers:
+                    if len(_workers):
+                        value = int(int(self.host.params["guest_cpus"]) /
+                                    len(_workers))
+                        break
+                else:
+                    raise RuntimeError("Unable to get number of workers from "
+                                       f" {self.workers!r}")
             self.args += " --%s=%s" % (key, value)
         self._cmd = ("pbench-%s %s --clients=%s" %
                      (self.test, self.args,
