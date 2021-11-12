@@ -229,7 +229,7 @@ class PersistentProfile(BaseProfile):
             "persistent_setup_finished")
         if self._grub_args is None:
             self._grub_args = set()
-        for arg in extra.get("grub_args", "").split(" "):
+        for arg in extra.get("grub_args", []):
             self._grub_args.add(arg)
         # TODO: Add extra handling of our arguments in Baseclass similarly to
         # DefaultLibvirt
@@ -634,9 +634,9 @@ class TunedLibvirt(DefaultLibvirt):
         total_hp = int(host.params["guest_mem_m"] * 1024 /
                        host.params["hugepage_kb"])
         if "grub_args" not in extra:
-            extra["grub_args"] = ("default_hugepagesz=1G hugepagesz=1G "
-                                  "nosoftlockup nohz=on "
-                                  f"hugepages={total_hp}")
+            extra["grub_args"] = ["default_hugepagesz=1G", "hugepagesz=1G",
+                                  "nosoftlockup", "nohz=on",
+                                  f"hugepages={total_hp}"]
         if "tuned_adm_profile" not in extra:
             extra["tuned_adm_profile"] = "virtual-host"
         if "rc_local_file" not in extra:
