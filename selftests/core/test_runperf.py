@@ -105,8 +105,11 @@ class RunPerfTest(Selftest):
                     with mock.patch("runperf.machine.BaseMachine.copy_from",
                                     lambda _, src, dst: shutil.copy(src, dst)):
                         with mock.patch("runperf.machine.BaseMachine.copy_to",
-                                        lambda _, src, dst: shutil.copy(src, dst)):
-                            main()
+                                        lambda _, src, dst: shutil.copy(src,
+                                                                        dst)):
+                            with mock.patch("runperf.machine.Controller."
+                                            "fetch_logs"):
+                                main()
         # Check only for test dirs, metadata are checked in other tests
         self.assertTrue(os.path.exists(os.path.join(self.tmpdir, "result")))
         for serial in ["0000", "0001"]:
