@@ -276,19 +276,25 @@ def generate_report(path, results, with_charts=False, small_file=False):
         for res in reversed(results):
             build = process_metadata(res.metadata, known_items, dst_env,
                                      small_file)
-            failures = grouped_failures = non_primary_failures = 0
+            failures = grouped_failures = non_primary_failures = errors = 0
             for record in res.records:
                 if record.status < 0:
-                    if record.primary:
+                    if record.is_error():
+                        errors += 1
+                    elif record.primary:
                         failures += 1
                     else:
                         non_primary_failures += 1
             for record in res.grouped_records:
                 if record.status < 0:
-                    grouped_failures += 1
+                    if record.status == result.ERROR:
+                        errors += 1
+                    else:
+                        grouped_failures += 1
             build["failures"] = failures
             build["group_failures"] = grouped_failures
             build["non_primary_failures"] = non_primary_failures
+            build["errors"] = errors
             build["total"] = len(res.records) + len(res.grouped_records)
             build["score"] = int(build["failures"] +
                                  5 * build["group_failures"] +

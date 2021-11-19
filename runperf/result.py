@@ -301,6 +301,10 @@ class Result:
         """Whether this result is "stddev" result (or mean)"""
         return self.testname.endswith("stddev")
 
+    def is_error(self):
+        """Whether this result is a runtime error"""
+        return self.testname.endswith("error")
+
     @property
     def name(self):
         """Full test name"""

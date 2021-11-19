@@ -18,6 +18,7 @@ builds: [src, reference1, reference2, ..., dst]     # List of all involved build
         environment_diff_sections: {'world': [1], 'profile': [5], ...}  # How many sections contain non-empty diff (per machine)
         failures: 3     # Number of failures in this build
         group_failures: 0   # Number of group failures in this build
+        errors: 3	# Number of errors (provisioning/runtime/... issues)
         total: 357      # Overall number of checks
         score: 31       # Overall build score (calculated from failures, group_failures, ...
         relative_score: 2   # Relative score to other builds (sorted list 0-n), multiple same entries possible
