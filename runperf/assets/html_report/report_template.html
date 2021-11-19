@@ -10558,6 +10558,10 @@ a {font-family: monospace;}
         <td>Non-primary failures</td>{% for build in builds %}
         <td style='{{ relative_score_color(build) }}'>{{build.non_primary_failures}}</td>{% endfor %}
     <tr>
+        <td>Runtime errors</td>{% for build in builds %}
+        <td style='{{ relative_score_color(build) }}'>{{build.errors}}</td>{% endfor %}
+    </tr>
+    <tr>
         <td>Total checks</td>{% for build in builds %}
         <td style='{{ relative_score_color(build) }}'>{{build.total}}</td>{% endfor %}
     </tr>
