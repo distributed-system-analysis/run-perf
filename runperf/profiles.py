@@ -118,6 +118,9 @@ class BaseProfile:
     def apply(self, setup_script):
         """
         Apply the profile and create the workers
+
+        :returns: True - when reboot is required;
+                  [worker1, worker2, ...] - on success
         """
         # First check whether we have persistent setup set
         _profile = self._get("set_profile")
@@ -138,6 +141,9 @@ class BaseProfile:
     def revert(self):
         """
         Revert the profile
+
+        :return: True - when the machine needs to be rebooted
+                 False - when everything is reverted properly
         """
         if not self.session:  # Avoid cleaning twice... (cleanup on error)
             return None
