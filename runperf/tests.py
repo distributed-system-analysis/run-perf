@@ -176,7 +176,7 @@ class PBenchTest(BaseTest):
             thread.join()
         failed = [thread for thread in threads if thread.completed is not True]
         if failed:
-            for thread in threads:
+            for thread in failed:
                 if thread.exc:
                     raise RuntimeError("Failed to install pbench on %s"
                                        % failed) from thread.exc
