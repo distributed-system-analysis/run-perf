@@ -118,6 +118,9 @@ class BaseProfile:
     def apply(self, setup_script):
         """
         Apply the profile and create the workers
+
+        :returns: True - when reboot is required;
+                  [worker1, worker2, ...] - on success
         """
         # First check whether we have persistent setup set
         _profile = self._get("set_profile")
@@ -138,12 +141,18 @@ class BaseProfile:
     def revert(self):
         """
         Revert the profile
+
+        :return: True - when the machine needs to be rebooted
+                 False - when everything is reverted properly
         """
         if not self.session:  # Avoid cleaning twice... (cleanup on error)
             return None
         _profile = self._get("set_profile")
         if _profile == -1:
-            return False
+            # Profile might not be fully set, just applied
+            _profile = self._get("applied_profile")
+            if _profile == -1:
+                return False
         _profile = _profile.strip()
         if _profile != self.name:
             raise NotImplementedError("Reverting non-matching profiles not "
@@ -272,6 +281,8 @@ class PersistentProfile(BaseProfile):
 
     def _persistent_rc_local(self, rc_local):
         self.host.reboot_request = True
+        # set_profile has to be set by the rc_local script
+        self._remove("set_profile")
         self._append("persistent_setup_expected", "rc_local")
         rc_local_content = self._read_file("/etc/rc.d/rc.local", -1)
         if rc_local_content == -1:
@@ -315,7 +326,6 @@ class PersistentProfile(BaseProfile):
         Perfrom persistent setup
         """
         # set_profile will be set on the next boot (if succeeds)
-        self._remove("set_profile")
         self._set("persistent_profile_expected", "")
         if self._rc_local:
             self._persistent_rc_local(self._rc_local)
@@ -331,13 +341,14 @@ class PersistentProfile(BaseProfile):
         return self.host.reboot_request
 
     def _revert(self):
+        reboot = False
         irqbalance = self._get("persistent_setup/irqbalance", -1)
         if irqbalance != -1:
             self._persistent_irqbalance(int(irqbalance))
             self._remove("persistent_setup/irqbalance")
         cmdline = self._get("persistent_setup/grub_args", -1)
         if cmdline != -1:
-            self.host.reboot_request = True
+            reboot = True
             self.session.cmd('grubby --remove-args="%s" --update-kernel='
                              '"$(grubby --default-kernel)"' % cmdline)
             self._remove("persistent_setup/grub_args")
@@ -354,7 +365,7 @@ class PersistentProfile(BaseProfile):
         self.session.cmd("rm -Rf %s" % self.performed_setup_path)
         self._remove("persistent_setup_expected")
         self._remove("profile/TunedLibvirt/persistent")
-        return True
+        return reboot
 
     def get_info(self):
         info = BaseProfile.get_info(self)
