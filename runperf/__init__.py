@@ -350,7 +350,6 @@ def main():
                             threading.enumerate())
                 aexpect.kill_tail_threads()
                 os.kill(0, 15)
-        aexpect.kill_tail_threads()
         raise
 
 
