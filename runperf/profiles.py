@@ -341,13 +341,14 @@ class PersistentProfile(BaseProfile):
         return self.host.reboot_request
 
     def _revert(self):
+        reboot = False
         irqbalance = self._get("persistent_setup/irqbalance", -1)
         if irqbalance != -1:
             self._persistent_irqbalance(int(irqbalance))
             self._remove("persistent_setup/irqbalance")
         cmdline = self._get("persistent_setup/grub_args", -1)
         if cmdline != -1:
-            self.host.reboot_request = True
+            reboot = True
             self.session.cmd('grubby --remove-args="%s" --update-kernel='
                              '"$(grubby --default-kernel)"' % cmdline)
             self._remove("persistent_setup/grub_args")
@@ -364,7 +365,7 @@ class PersistentProfile(BaseProfile):
         self.session.cmd("rm -Rf %s" % self.performed_setup_path)
         self._remove("persistent_setup_expected")
         self._remove("profile/TunedLibvirt/persistent")
-        return True
+        return reboot
 
     def get_info(self):
         info = BaseProfile.get_info(self)
