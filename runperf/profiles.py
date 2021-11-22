@@ -281,6 +281,8 @@ class PersistentProfile(BaseProfile):
 
     def _persistent_rc_local(self, rc_local):
         self.host.reboot_request = True
+        # set_profile has to be set by the rc_local script
+        self._remove("set_profile")
         self._append("persistent_setup_expected", "rc_local")
         rc_local_content = self._read_file("/etc/rc.d/rc.local", -1)
         if rc_local_content == -1:
@@ -324,7 +326,6 @@ class PersistentProfile(BaseProfile):
         Perfrom persistent setup
         """
         # set_profile will be set on the next boot (if succeeds)
-        self._remove("set_profile")
         self._set("persistent_profile_expected", "")
         if self._rc_local:
             self._persistent_rc_local(self._rc_local)
