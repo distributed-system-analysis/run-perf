@@ -149,7 +149,10 @@ class BaseProfile:
             return None
         _profile = self._get("set_profile")
         if _profile == -1:
-            return False
+            # Profile might not be fully set, just applied
+            _profile = self._get("applied_profile")
+            if _profile == -1:
+                return False
         _profile = _profile.strip()
         if _profile != self.name:
             raise NotImplementedError("Reverting non-matching profiles not "
