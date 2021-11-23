@@ -130,7 +130,10 @@ class BaseProfile:
             raise RuntimeError("Trying to apply profile but there is already "
                                "'%s' persistent profile applied.")
         self._set("set_profile", self.name)
-        return self._apply(setup_script)
+        reboot = self._apply(setup_script)
+        if reboot:
+            self._remove("set_profile")
+        return reboot
 
     def _apply(self, setup_script):
         """
@@ -273,8 +276,6 @@ class PersistentProfile(BaseProfile):
             if exp_setup.issuperset(performed_setup.splitlines()):
                 break
         else:
-            # Setup failed, let's try to reboot again
-            self._remove("set_profile")
             return True
         # Persistent setup applied and are already applied
         return False
@@ -282,7 +283,6 @@ class PersistentProfile(BaseProfile):
     def _persistent_rc_local(self, rc_local):
         self.host.reboot_request = True
         # set_profile has to be set by the rc_local script
-        self._remove("set_profile")
         self._append("persistent_setup_expected", "rc_local")
         rc_local_content = self._read_file("/etc/rc.d/rc.local", -1)
         if rc_local_content == -1:
