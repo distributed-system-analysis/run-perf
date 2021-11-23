@@ -163,7 +163,11 @@ class BaseMachine:
                             return session
                         except (aexpect.ExpectError, aexpect.ShellError):
                             pass
-                    raise aexpect.ExpectError  # Session not ready
+                    # Session not ready, let's try it again
+                    session.close()
+                    self.log.debug("Session is not responsive, trying another "
+                                   "round")
+                    continue
                 except (aexpect.ExpectError, aexpect.ShellError) as err:
                     if session:
                         session.close()
