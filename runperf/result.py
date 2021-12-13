@@ -271,15 +271,16 @@ class ModelStdev(ModelLinearRegression):
 class Result:
     """XUnitResult object"""
 
-    __slots__ = ("score", "primary", "status", "details", "classname",
-                 "testname", "src", "dst", "params")
+    __slots__ = ("_score", "primary", "_status", "_details", "classname",
+                 "testname", "srcs", "dst", "params", "good", "small", "big",
+                 "error", "agg_diffs", "agg_weights", "tolerance")
     _re_name = re.compile(r'([^/]+)/([^/]+)/([^:]+):'
                           r'./([^/]+)/([^/]+)/([^\.]+)\.(.+)')
 
-    def __init__(self, status, score, test, src, dst, details=None,
-                 primary=False, params=None):
-        self.status = status
-        self.score = score
+    def __init__(self, test, dst, tolerance, primary=False, params=None):
+        self._status = None
+        self._score = None
+        self._details = None
         name = test.rsplit('/', 1)
         if len(name) == 2:
             self.classname, self.testname = name
@@ -288,14 +289,85 @@ class Result:
             self.testname = name[0]
         else:
             raise ValueError("No test specified %s" % test)
-        self.details = details
+        self.tolerance = tolerance
         self.primary = primary
-        self.src = src
-        self.dst = dst
         if params is None:
             self.params = {}
         else:
             self.params = params
+        self.srcs = []
+        self.dst = dst
+        self.good = []
+        self.small = []
+        self.big = []
+        self.error = []
+        self.agg_diffs = 0
+        self.agg_weights = 0
+
+    def _recalculate(self):
+        """Recalculate this result status"""
+        if not self.agg_weights:
+            if not self.error:
+                self._score = -100
+                self._status = ERROR
+                self._details = "No results yet"
+                return
+            score = -100
+        else:
+            score = self.agg_diffs / self.agg_weights
+        if abs(score) <= self.tolerance:
+            report = ["good", "big", "small"]
+            minor_tolerance = self.tolerance / 2
+            if score > minor_tolerance:
+                status = MINOR_GAIN
+            elif score < minor_tolerance:
+                status = MINOR_LOSS
+            else:
+                status = PASS
+        else:
+            if score > 0:
+                report = ["big", "good", "small"]
+                status = FAIL_GAIN
+            else:
+                report = ["small", "good", "big"]
+                status = FAIL_LOSS
+        if self.error:
+            report = ["error"] + report
+            status = ERROR
+        out = []
+        for section in report:
+            values = getattr(self, section)
+            if values:
+                out.append("%s %s" % (section.upper(),
+                                      ", ".join(values)))
+        srcs = "/".join(("%.2f" if isinstance(_, float) else "%s") % _
+                        for _ in self.srcs)
+        out.append("(%s; %s)" % (srcs, self.dst))
+        out.append("+-%s%% tolerance" % self.tolerance)
+        self._score = score
+        self._status = status
+        self._details = " ".join(out)
+
+    @property
+    def status(self):
+        """Result status"""
+        if self._status is None:
+            self._recalculate()
+        return self._status
+
+    @property
+    def score(self):
+        """Result score"""
+        if self._status is None:
+            self._recalculate()
+        return self._score
+
+    @property
+    def details(self):
+        """Description of the result status"""
+        if self._status is None:
+            self._recalculate()
+        return self._details
 
     def is_stddev(self):
         """Whether this result is "stddev" result (or mean)"""
@@ -340,6 +412,30 @@ class Result:
         out.append('*' if "workflow_type" in merge else split_name[6])
         out.append('*' if "check_type" in merge else split_name[7])
         return "%s/%s/%s:./%s-%s/%s/%s.%s" % tuple(out)
+
+    def _add(self, difference, weight, src):
+        self.agg_diffs += difference * weight
+        self.agg_weights += weight
+        if src is not None:
+            self.srcs.append(src)
+
+    def add(self, suffix, name, difference, weight, src=None):
+        """Add individual result"""
+        # Reset status to re-calculate on next query
+        self._status = None
+        self._add(difference, weight, src)
+        msg = "%s%s %.2F%%" % (name, suffix, difference)
+        if abs(difference) > self.tolerance:
+            if difference > 0:
+                self.big.append(msg)
+            else:
+                self.small.append(msg)
+        else:
+            self.good.append(msg)
+
+    def add_bad(self, suffix, name, details, difference, weight, src=None):
+        self._add(difference, weight, src)
+        self.error.append(f"{name}{suffix} {details}")
 
 
 def iter_results_jsons(path, skip_incorrect=False):
@@ -583,8 +679,9 @@ class RelativeResults:
 
     def record_broken(self, test_name, details=None, primary=True, params=None):
         """Insert broken/corrupted result"""
-        self.record(Result(ERROR, -100, test_name, 0, -100, details=details,
-                           primary=primary, params=params))
+        result = Result(test_name, -100, 1, primary, params)
+        result.add_bad("", "", details, -100, 0, 0)
+        self.record(result)
 
     def _calculate_test_difference(self, test_name, src, dst):
         """
@@ -607,89 +704,21 @@ class RelativeResults:
         """
         Process result and insert it into database
         """
-
-        class WeightedResult:
-
-            """Generated class to calculate all-model's results with weights"""
-
-            def __init__(self, dst, tolerance):
-                self.srcs = []
-                self.dst = dst
-                self.tolerance = tolerance
-                self.good = []
-                self.small = []
-                self.big = []
-                self.agg_diffs = 0
-                self.agg_weights = 0
-
-            def add(self, model_idx, name, difference, weight, src=None):
-                """Add individual result"""
-                self.agg_diffs += difference * weight
-                self.agg_weights += weight
-                msg = "%s%s %.2F%%" % (name, model_idx, difference)
-                if src is not None:
-                    self.srcs.append(src)
-                if abs(difference) > tolerance:
-                    if difference > 0:
-                        self.big.append(msg)
-                    else:
-                        self.small.append(msg)
-                else:
-                    self.good.append(msg)
-
-            def score(self):
-                """Calculate the current weighted score"""
-                return self.agg_diffs / self.agg_weights
-
-            def report(self):
-                """Process all results and generate the Result object"""
-                diff = self.score()
-                if abs(diff) <= self.tolerance:
-                    report = ["good", "big", "small"]
-                    minor_tolerance = self.tolerance / 2
-                    if diff > minor_tolerance:
-                        status = MINOR_GAIN
-                    elif diff < minor_tolerance:
-                        status = MINOR_LOSS
-                    else:
-                        status = PASS
-                else:
-                    if diff > 0:
-                        report = ["big", "good", "small"]
-                        status = FAIL_GAIN
-                    else:
-                        report = ["small", "good", "big"]
-                        status = FAIL_LOSS
-                out = []
-                for section in report:
-                    values = getattr(self, section)
-                    if values:
-                        out.append("%s %s" % (section.upper(),
-                                              ", ".join(values)))
-                srcs = "/".join(("%.2f" if isinstance(_, float) else "%s") % _
-                                for _ in self.srcs)
-                out.append("(%s; %s)" % (srcs, self.dst))
-                out.append("+-%s%% tolerance" % self.tolerance)
-                return Result(status, diff, test_name, self.srcs[-1],
-                              self.dst, " ".join(out), primary, params)
-
         if difference is None:
             difference, tolerance = self._calculate_test_difference(test_name,
                                                                     src, dst)
 
-        msg = WeightedResult(dst, tolerance)
-        # Only use raw_weight when no model value is available
-        raw_weight = 0
+        result = Result(test_name, dst, tolerance, primary, params)
+        raw_weight = 1
         for i, model in enumerate(self.models):
-            for result in model.check_result(test_name, src, dst):
-                msg.add(i, *result)
-        if msg.agg_weights == 0:    # Raw is the only value available
-            raw_weight = 1
-        msg.add("", "raw", difference, raw_weight, src)
+            for mresult in model.check_result(test_name, src, dst):
+                raw_weight = 0
+                result.add(i, *mresult)
+        result.add("", "raw", difference, raw_weight, src)
         # Append and/or check the averages
-        for result in self.averages.check_result(test_name, msg.score()):
-            msg.add("", *result)
-        return self.record(msg.report(), grouped=grouped)
+        for avg_result in self.averages.check_result(test_name, result.score):
+            result.add("", *avg_result)
+        return self.record(result, grouped=grouped)
 
     def get_xunit(self):
         """

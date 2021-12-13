@@ -9,15 +9,15 @@
 	</testcase>
 	<testcase classname="Localhost/fio/0000:./read-64KiB/throughput" name="iops_sec.stddev" time="0.000"/>
 	<testcase classname="Localhost2/fio/0000:./read-4KiB/throughput" name="iops_sec.mean" time="0.000">
-		<error type="error" message="Not present in target results (-100)"/>
+		<error type="error" message="ERROR  Not present in target results (-100) (0; -100) +-1% tolerance"/>
 	</testcase>
 	<testcase classname="Localhost2/fio/0000:./read-4KiB/throughput" name="iops_sec.stddev" time="0.000">
-		<error type="error" message="Not present in target results (-100)"/>
+		<error type="error" message="ERROR  Not present in target results (-100) (0; -100) +-1% tolerance"/>
 	</testcase>
 	<testcase classname="Localhost2/fio/0000:./read-64KiB/throughput" name="iops_sec.mean" time="0.000">
-		<error type="error" message="Not present in target results (-100)"/>
+		<error type="error" message="ERROR  Not present in target results (-100) (0; -100) +-1% tolerance"/>
 	</testcase>
 	<testcase classname="Localhost2/fio/0000:./read-64KiB/throughput" name="iops_sec.stddev" time="0.000">
-		<error type="error" message="Not present in target results (-100)"/>
+		<error type="error" message="ERROR  Not present in target results (-100) (0; -100) +-1% tolerance"/>
 	</testcase>
 </testsuite>
