@@ -425,17 +425,22 @@ class ComparePerf:
         args = parser.parse_args()
         setup_logging(args.verbose, "%(levelname)-5s| %(message)s")
         models = []
+        modifiers = []
         for path in args.model_linear_regression:
             model = result.ModelLinearRegression(args.tolerance,
                                                  args.stddev_tolerance,
                                                  path)
             models.append(model)
+        if args.model_builds_average:
+            modifiers.append(result.AveragesModifier(
+                args.model_builds_average))
         results = result.ResultsContainer(self.log, args.tolerance,
                                           args.stddev_tolerance,
                                           args.model_builds_average,
                                           models,
                                           args.results[0][0],
-                                          args.results[0][1])
+                                          args.results[0][1],
+                                          modifiers)
         skip_incorrect = not args.include_incorrect_results
         for name, path in args.results[1:-1]:
             res = results.add_result_by_path(name, path,

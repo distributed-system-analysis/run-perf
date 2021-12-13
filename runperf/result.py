@@ -545,7 +545,7 @@ def iter_results(path, skip_incorrect=False):
               utils.list_dir_hashes(src_path))
 
 
-class AveragesModel:
+class AveragesModifier:
 
     """
     Model that calculates averages of all builds
@@ -558,17 +558,21 @@ class AveragesModel:
         self.weight = weight
         self.last = False
 
-    def check_result(self, name, score):
+    def add_result(self, result):
         """
-        Appends value per name and when this is the last build it returns
-        the average along with weight using the `Model` format.
+        Add reference result
         """
-        self.averages[name][0] += score
-        self.averages[name][1] += 1
-        if not self.last:
-            return []
-        if name in self.averages:
-            entry = self.averages[name]
+        self.averages[result.name][0] += result.score
+        self.averages[result.name][1] += 1
+        return []
+
+    def check_result(self, result):
+        """
+        Returns the average along with weight using the `Model` format.
+        """
+        self.add_result(result)
+        if result.name in self.averages:
+            entry = self.averages[result.name]
             score = entry[0] / entry[1] * self.COEFFICIENT
             if entry[1] < 8:
                 weight = self.weight / get_uncertainty(entry[1])
@@ -585,17 +589,17 @@ class ResultsContainer:
     """
 
     def __init__(self, log, tolerance, stddev_tolerance, averages, models,
-                 src_name, src_path):
+                 src_name, src_path, modifiers):
         self.log = log
         self.tolerance = tolerance
         self.stddev_tolerance = stddev_tolerance
-        self.averages = AveragesModel(averages)
         self.models = models
         self.results = collections.OrderedDict()
         self.src_name = src_name
         self.src_results = {test: (score, primary, params)
                             for test, score, primary, params in iter_results(src_path, True)}
         self.src_metadata = self._parse_metadata(src_name, src_path)
+        self.modifiers = modifiers
 
     def __iter__(self):
         return iter(self.results.values())
@@ -627,16 +631,14 @@ class ResultsContainer:
         """
         Insert test result according to path hierarchy
         """
-        if last:
-            self.averages.last = True
         metadata = self._parse_metadata(name, path)
         res = RelativeResults(self.log, self.tolerance, self.stddev_tolerance,
-                              self.models, metadata, self.averages)
+                              self.models, self.modifiers, metadata)
         src_tests = list(self.src_results.keys())
         for test, score, primary, params in iter_results(path, skip_incorrect):
             if test in src_tests:
                 res.record_result(test, self.src_results[test][0],
-                                  score, primary, params=params)
+                                  score, primary, params=params, last=last)
                 src_tests.remove(test)
             else:
                 res.record_broken(test, "Not present in source results (%s)."
@@ -655,15 +657,15 @@ class RelativeResults:
     """
 
     def __init__(self, log, mean_tolerance, stddev_tolerance, models,
-                 metadata, averages):
+                 modifiers, metadata):
         self.log = log
         self.mean_tolerance = mean_tolerance
         self.stddev_tolerance = stddev_tolerance
         self.records = []
         self.grouped_records = []
         self.models = models
+        self.modifiers = modifiers
         self.metadata = metadata
-        self.averages = averages
 
     def record(self, result, grouped=False):
         """Insert result into database"""
@@ -700,7 +702,8 @@ class RelativeResults:
         return 0 if src == dst else 1, 0
 
     def record_result(self, test_name, src, dst, primary=False, grouped=False,
-                      difference=None, tolerance=None, params=None):
+                      difference=None, tolerance=None, params=None,
+                      last=False):
         """
         Process result and insert it into database
         """
@@ -715,9 +718,15 @@ class RelativeResults:
                 raw_weight = 0
                 result.add(i, *mresult)
         result.add("", "raw", difference, raw_weight, src)
-        # Append and/or check the averages
-        for avg_result in self.averages.check_result(test_name, result.score):
-            result.add("", *avg_result)
+        score = result.score
+        if last:
+            for i, modifier in enumerate(self.modifiers):
+                for mresult in modifier.check_result(result):
+                    result.add("", *mresult)
+        else:
+            for i, modifier in enumerate(self.modifiers):
+                for mresult in modifier.add_result(result):
+                    result.add("", *mresult)
         return self.record(result, grouped=grouped)
 
     def get_xunit(self):
@@ -882,7 +891,7 @@ class RelativeResults:
         matrix.append(["Errors", errors] + ([''] * (len(header) - 2)))
         self.log.info("\n\n%s\n\n", utils.tabular_output(matrix, header))
 
-    def _expand_grouped_result(self, records, merge):
+    def _expand_grouped_result(self, records, merge, last):
         """
         Calculate result entries as averages per group of results
 
@@ -897,9 +906,9 @@ class RelativeResults:
             # Use half of mean_tolerance * uncertainty
             tolerance = self.mean_tolerance * get_uncertainty(len(values)) / 2
             self.record_result(test_name, value, value, True, True,
-                               value, tolerance)
+                               value, tolerance, last=last)
 
-    def expand_grouped_results(self):
+    def expand_grouped_results(self, last=False):
         """
         Calculate pre-defined grouped results
         """
@@ -907,21 +916,21 @@ class RelativeResults:
                    if record.primary and record.status != ERROR and
                    not record.is_stddev()]
         # iteration_name_extra only
-        self._expand_grouped_result(records, ["iteration_name_extra"])
+        self._expand_grouped_result(records, ["iteration_name_extra"], last)
         # iteration_name_extra and profile
         self._expand_grouped_result(records, ["iteration_name_extra",
-                                              "profile"])
+                                              "profile"], last)
         # everything but profile
         self._expand_grouped_result(records,
                                     ["test", "serial", "iteration_name",
                                      "iteration_name_extra", "workflow",
-                                     "workflow_type"])
+                                     "workflow_type"], last)
 
     def evaluate(self):
         """
         Process a default set of statistic on the results
         """
-        self.expand_grouped_results()
+        self.expand_grouped_results(True)
         self.per_type_stats(["iteration_name_extra"])
         self.per_type_stats(["serial", "iteration_name",
                              "iteration_name_extra", "workflow"])
