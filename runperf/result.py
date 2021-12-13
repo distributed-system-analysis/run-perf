@@ -271,15 +271,16 @@ class ModelStdev(ModelLinearRegression):
 class Result:
     """XUnitResult object"""
 
-    __slots__ = ("score", "primary", "status", "details", "classname",
-                 "testname", "src", "dst", "params")
+    __slots__ = ("_score", "primary", "_status", "_details", "classname",
+                 "testname", "srcs", "dst", "params", "good", "small", "big",
+                 "error", "agg_diffs", "agg_weights", "tolerance")
     _re_name = re.compile(r'([^/]+)/([^/]+)/([^:]+):'
                           r'./([^/]+)/([^/]+)/([^\.]+)\.(.+)')
 
-    def __init__(self, status, score, test, src, dst, details=None,
-                 primary=False, params=None):
-        self.status = status
-        self.score = score
+    def __init__(self, test, dst, tolerance, primary=False, params=None):
+        self._status = None
+        self._score = None
+        self._details = None
         name = test.rsplit('/', 1)
         if len(name) == 2:
             self.classname, self.testname = name
@@ -288,14 +289,85 @@ class Result:
             self.testname = name[0]
         else:
             raise ValueError("No test specified %s" % test)
-        self.details = details
+        self.tolerance = tolerance
         self.primary = primary
-        self.src = src
-        self.dst = dst
         if params is None:
             self.params = {}
         else:
             self.params = params
+        self.srcs = []
+        self.dst = dst
+        self.good = []
+        self.small = []
+        self.big = []
+        self.error = []
+        self.agg_diffs = 0
+        self.agg_weights = 0
+
+    def _recalculate(self):
+        """Recalculate this result status"""
+        if not self.agg_weights:
+            if not self.error:
+                self._score = -100
+                self._status = ERROR
+                self._details = "No results yet"
+                return
+            score = -100
+        else:
+            score = self.agg_diffs / self.agg_weights
+        if abs(score) <= self.tolerance:
+            report = ["good", "big", "small"]
+            minor_tolerance = self.tolerance / 2
+            if score > minor_tolerance:
+                status = MINOR_GAIN
+            elif score < minor_tolerance:
+                status = MINOR_LOSS
+            else:
+                status = PASS
+        else:
+            if score > 0:
+                report = ["big", "good", "small"]
+                status = FAIL_GAIN
+            else:
+                report = ["small", "good", "big"]
+                status = FAIL_LOSS
+        if self.error:
+            report = ["error"] + report
+            status = ERROR
+        out = []
+        for section in report:
+            values = getattr(self, section)
+            if values:
+                out.append("%s %s" % (section.upper(),
+                                      ", ".join(values)))
+        srcs = "/".join(("%.2f" if isinstance(_, float) else "%s") % _
+                        for _ in self.srcs)
+        out.append("(%s; %s)" % (srcs, self.dst))
+        out.append("+-%s%% tolerance" % self.tolerance)
+        self._score = score
+        self._status = status
+        self._details = " ".join(out)
+
+    @property
+    def status(self):
+        """Result status"""
+        if self._status is None:
+            self._recalculate()
+        return self._status
+
+    @property
+    def score(self):
+        """Result score"""
+        if self._status is None:
+            self._recalculate()
+        return self._score
+
+    @property
+    def details(self):
+        """Description of the result status"""
+        if self._status is None:
+            self._recalculate()
+        return self._details
 
     def is_stddev(self):
         """Whether this result is "stddev" result (or mean)"""
@@ -340,6 +412,30 @@ class Result:
         out.append('*' if "workflow_type" in merge else split_name[6])
         out.append('*' if "check_type" in merge else split_name[7])
         return "%s/%s/%s:./%s-%s/%s/%s.%s" % tuple(out)
+
+    def _add(self, difference, weight, src):
+        self.agg_diffs += difference * weight
+        self.agg_weights += weight
+        if src is not None:
+            self.srcs.append(src)
+
+    def add(self, suffix, name, difference, weight, src=None):
+        """Add individual result"""
+        # Reset status to re-calculate on next query
+        self._status = None
+        self._add(difference, weight, src)
+        msg = "%s%s %.2F%%" % (name, suffix, difference)
+        if abs(difference) > self.tolerance:
+            if difference > 0:
+                self.big.append(msg)
+            else:
+                self.small.append(msg)
+        else:
+            self.good.append(msg)
+
+    def add_bad(self, suffix, name, details, difference, weight, src=None):
+        self._add(difference, weight, src)
+        self.error.append(f"{name}{suffix} {details}")
 
 
 def iter_results_jsons(path, skip_incorrect=False):
@@ -449,7 +545,39 @@ def iter_results(path, skip_incorrect=False):
               utils.list_dir_hashes(src_path))
 
 
-class AveragesModel:
+class Modifier:
+    # Weight of this modifier
+    weight = 0
+
+    def add_result(self, result):
+        """
+        Add reference result
+
+        :param result: `result.Result` result to be processed
+        """
+        raise NotImplementedError
+
+    def check_result(self, result):
+        """
+        Add this result and perform additional checks, reporting the findings
+
+        :param result: `result.Result` result to be processed
+        :return: [(check_name, difference, weight, source value), ...]
+                 where source_value is an optional value correcting the source
+                 value
+        """
+        raise NotImplementedError
+
+    def _adjust_weight(self, count):
+        """
+        Adjust the weight based on the number of items
+        """
+        if count < 8:
+            return self.weight / get_uncertainty(count)
+        return self.weight
+
+
+class AveragesModifier(Modifier):
 
     """
     Model that calculates averages of all builds
@@ -462,24 +590,50 @@ class AveragesModel:
         self.weight = weight
         self.last = False
 
-    def check_result(self, name, score):
-        """
-        Appends value per name and when this is the last build it returns
-        the average along with weight using the `Model` format.
-        """
-        self.averages[name][0] += score
-        self.averages[name][1] += 1
-        if not self.last:
-            return []
-        if name in self.averages:
-            entry = self.averages[name]
-            score = entry[0] / entry[1] * self.COEFFICIENT
-            if entry[1] < 8:
-                weight = self.weight / get_uncertainty(entry[1])
-            else:
-                weight = self.weight
-            return [("avg", score, weight)]
+    def add_result(self, result):
+        self.averages[result.name][0] += result.score
+        self.averages[result.name][1] += 1
         return []
+
+    def check_result(self, result):
+        self.add_result(result)
+        if result.name in self.averages:
+            entry = self.averages[result.name]
+            score = entry[0] / entry[1] * self.COEFFICIENT
+            return [("avg", score, self._adjust_weight(entry[1]))]
+        return []
+
+
+class NOutOfResultsModifier(Modifier):
+
+    """
+    A model that allows N out of reference builds to fail
+
+    It uses the `allowed_failures` to scale the current result's `tolerance`
+    values to indicate in how many builds the current result failed.
+    """
+
+    def __init__(self, weight, allowed_failures):
+        self.failures = collections.defaultdict(lambda: [0, 0])
+        self.weight = weight
+        self.allowed_failures = allowed_failures + 1
+        if self.allowed_failures <= 0:
+            self.allowed_failures = 1
+
+    def add_result(self, result):
+        entry = self.failures[result.name]
+        entry[1] += 1
+        if result.status < 0:
+            entry[0] += 1
+        return []
+
+    def check_result(self, result):
+        self.add_result(result)
+        entry = self.failures[result.name]
+        score = (entry[0] / self.allowed_failures *
+                 result.tolerance * 1.1)
+        return [("n_of", score if result.score > 0 else -score,
+                 self._adjust_weight(entry[1]))]
 
 
 class ResultsContainer:
@@ -489,17 +643,17 @@ class ResultsContainer:
     """
 
     def __init__(self, log, tolerance, stddev_tolerance, averages, models,
-                 src_name, src_path):
+                 src_name, src_path, modifiers):
         self.log = log
         self.tolerance = tolerance
         self.stddev_tolerance = stddev_tolerance
-        self.averages = AveragesModel(averages)
         self.models = models
         self.results = collections.OrderedDict()
         self.src_name = src_name
         self.src_results = {test: (score, primary, params)
                             for test, score, primary, params in iter_results(src_path, True)}
         self.src_metadata = self._parse_metadata(src_name, src_path)
+        self.modifiers = modifiers
 
     def __iter__(self):
         return iter(self.results.values())
@@ -531,16 +685,14 @@ class ResultsContainer:
         """
         Insert test result according to path hierarchy
         """
-        if last:
-            self.averages.last = True
         metadata = self._parse_metadata(name, path)
         res = RelativeResults(self.log, self.tolerance, self.stddev_tolerance,
-                              self.models, metadata, self.averages)
+                              self.models, self.modifiers, metadata)
         src_tests = list(self.src_results.keys())
         for test, score, primary, params in iter_results(path, skip_incorrect):
             if test in src_tests:
                 res.record_result(test, self.src_results[test][0],
-                                  score, primary, params=params)
+                                  score, primary, params=params, last=last)
                 src_tests.remove(test)
             else:
                 res.record_broken(test, "Not present in source results (%s)."
@@ -559,15 +711,15 @@ class RelativeResults:
     """
 
     def __init__(self, log, mean_tolerance, stddev_tolerance, models,
-                 metadata, averages):
+                 modifiers, metadata):
         self.log = log
         self.mean_tolerance = mean_tolerance
         self.stddev_tolerance = stddev_tolerance
         self.records = []
         self.grouped_records = []
         self.models = models
+        self.modifiers = modifiers
         self.metadata = metadata
-        self.averages = averages
 
     def record(self, result, grouped=False):
         """Insert result into database"""
@@ -583,8 +735,9 @@ class RelativeResults:
 
     def record_broken(self, test_name, details=None, primary=True, params=None):
         """Insert broken/corrupted result"""
-        self.record(Result(ERROR, -100, test_name, 0, -100, details=details,
-                           primary=primary, params=params))
+        result = Result(test_name, -100, 1, primary, params)
+        result.add_bad("", "", details, -100, 0, 0)
+        self.record(result)
 
     def _calculate_test_difference(self, test_name, src, dst):
         """
@@ -603,93 +756,31 @@ class RelativeResults:
         return 0 if src == dst else 1, 0
 
     def record_result(self, test_name, src, dst, primary=False, grouped=False,
-                      difference=None, tolerance=None, params=None):
+                      difference=None, tolerance=None, params=None,
+                      last=False):
         """
         Process result and insert it into database
         """
-
-        class WeightedResult:
-
-            """Generated class to calculate all-model's results with weights"""
-
-            def __init__(self, dst, tolerance):
-                self.srcs = []
-                self.dst = dst
-                self.tolerance = tolerance
-                self.good = []
-                self.small = []
-                self.big = []
-                self.agg_diffs = 0
-                self.agg_weights = 0
-
-            def add(self, model_idx, name, difference, weight, src=None):
-                """Add individual result"""
-                self.agg_diffs += difference * weight
-                self.agg_weights += weight
-                msg = "%s%s %.2F%%" % (name, model_idx, difference)
-                if src is not None:
-                    self.srcs.append(src)
-                if abs(difference) > tolerance:
-                    if difference > 0:
-                        self.big.append(msg)
-                    else:
-                        self.small.append(msg)
-                else:
-                    self.good.append(msg)
-
-            def score(self):
-                """Calculate the current weighted score"""
-                return self.agg_diffs / self.agg_weights
-
-            def report(self):
-                """Process all results and generate the Result object"""
-                diff = self.score()
-                if abs(diff) <= self.tolerance:
-                    report = ["good", "big", "small"]
-                    minor_tolerance = self.tolerance / 2
-                    if diff > minor_tolerance:
-                        status = MINOR_GAIN
-                    elif diff < minor_tolerance:
-                        status = MINOR_LOSS
-                    else:
-                        status = PASS
-                else:
-                    if diff > 0:
-                        report = ["big", "good", "small"]
-                        status = FAIL_GAIN
-                    else:
-                        report = ["small", "good", "big"]
-                        status = FAIL_LOSS
-                out = []
-                for section in report:
-                    values = getattr(self, section)
-                    if values:
-                        out.append("%s %s" % (section.upper(),
-                                              ", ".join(values)))
-                srcs = "/".join(("%.2f" if isinstance(_, float) else "%s") % _
-                                for _ in self.srcs)
-                out.append("(%s; %s)" % (srcs, self.dst))
-                out.append("+-%s%% tolerance" % self.tolerance)
-                return Result(status, diff, test_name, self.srcs[-1],
-                              self.dst, " ".join(out), primary, params)
-
         if difference is None:
             difference, tolerance = self._calculate_test_difference(test_name,
                                                                     src, dst)
 
-        msg = WeightedResult(dst, tolerance)
-        # Only use raw_weight when no model value is available
-        raw_weight = 0
+        result = Result(test_name, dst, tolerance, primary, params)
+        raw_weight = 1
         for i, model in enumerate(self.models):
-            for result in model.check_result(test_name, src, dst):
-                msg.add(i, *result)
-        if msg.agg_weights == 0:    # Raw is the only value available
-            raw_weight = 1
-        msg.add("", "raw", difference, raw_weight, src)
-        # Append and/or check the averages
-        for result in self.averages.check_result(test_name, msg.score()):
-            msg.add("", *result)
-        return self.record(msg.report(), grouped=grouped)
+            for mresult in model.check_result(test_name, src, dst):
+                raw_weight = 0
+                result.add(i, *mresult)
+        result.add("", "raw", difference, raw_weight, src)
+        if last:
+            for i, modifier in enumerate(self.modifiers):
+                for mresult in modifier.check_result(result):
+                    result.add("", *mresult)
+        else:
+            for i, modifier in enumerate(self.modifiers):
+                for mresult in modifier.add_result(result):
+                    result.add("", *mresult)
+        return self.record(result, grouped=grouped)
 
     def get_xunit(self):
         """
@@ -853,7 +944,7 @@ class RelativeResults:
         matrix.append(["Errors", errors] + ([''] * (len(header) - 2)))
         self.log.info("\n\n%s\n\n", utils.tabular_output(matrix, header))
 
-    def _expand_grouped_result(self, records, merge):
+    def _expand_grouped_result(self, records, merge, last):
         """
         Calculate result entries as averages per group of results
 
@@ -868,9 +959,9 @@ class RelativeResults:
             # Use half of mean_tolerance * uncertainty
             tolerance = self.mean_tolerance * get_uncertainty(len(values)) / 2
             self.record_result(test_name, value, value, True, True,
-                               value, tolerance)
+                               value, tolerance, last=last)
 
-    def expand_grouped_results(self):
+    def expand_grouped_results(self, last=False):
         """
         Calculate pre-defined grouped results
         """
@@ -878,21 +969,21 @@ class RelativeResults:
                    if record.primary and record.status != ERROR and
                    not record.is_stddev()]
         # iteration_name_extra only
-        self._expand_grouped_result(records, ["iteration_name_extra"])
+        self._expand_grouped_result(records, ["iteration_name_extra"], last)
         # iteration_name_extra and profile
         self._expand_grouped_result(records, ["iteration_name_extra",
-                                              "profile"])
+                                              "profile"], last)
         # everything but profile
         self._expand_grouped_result(records,
                                     ["test", "serial", "iteration_name",
                                      "iteration_name_extra", "workflow",
-                                     "workflow_type"])
+                                     "workflow_type"], last)
 
     def evaluate(self):
         """
         Process a default set of statistic on the results
         """
-        self.expand_grouped_results()
+        self.expand_grouped_results(True)
         self.per_type_stats(["iteration_name_extra"])
         self.per_type_stats(["serial", "iteration_name",
                              "iteration_name_extra", "workflow"])

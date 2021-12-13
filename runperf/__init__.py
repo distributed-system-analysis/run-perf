@@ -407,10 +407,16 @@ class ComparePerf:
                             "weight of this model. Note the weight might be "
                             "adjusted based on the number of builds "
                             "(when no builds < 8) [%(default)s]", type=float,
-                            default=1)
+                            default=0)
         parser.add_argument("--model-linear-regression", "-l", help="Use "
                             "linear regression model for matching results",
                             nargs='+', default=[])
+        parser.add_argument("--n-out-of-results", help="Weight of the "
+                            "check that looks at how many times each test "
+                            "failed within reference builds.",
+                            type=float, default=0)
+        parser.add_argument("--n-out-of-results-n", help="How many builds "
+                            "can fail to report PASS", type=int, default=2)
         parser.add_argument("--html", help="Create a single-file HTML report "
                             "in the provided path.")
         parser.add_argument("--html-with-charts", action="store_true",
@@ -425,17 +431,26 @@ class ComparePerf:
         args = parser.parse_args()
         setup_logging(args.verbose, "%(levelname)-5s| %(message)s")
         models = []
+        modifiers = []
         for path in args.model_linear_regression:
             model = result.ModelLinearRegression(args.tolerance,
                                                  args.stddev_tolerance,
                                                  path)
             models.append(model)
+        if args.model_builds_average:
+            modifiers.append(result.AveragesModifier(
+                args.model_builds_average))
+        if args.n_out_of_results:
+            modifiers.append(result.NOutOfResultsModifier(
+                args.n_out_of_results,
+                args.n_out_of_results_n))
         results = result.ResultsContainer(self.log, args.tolerance,
                                           args.stddev_tolerance,
                                           args.model_builds_average,
                                           models,
                                           args.results[0][0],
-                                          args.results[0][1])
+                                          args.results[0][1],
+                                          modifiers)
         skip_incorrect = not args.include_incorrect_results
         for name, path in args.results[1:-1]:
             res = results.add_result_by_path(name, path,
