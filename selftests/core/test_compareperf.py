@@ -61,8 +61,8 @@ class RunPerfTest(Selftest):
         args = ["compare-perf", "--html-with-charts",
                 "--tolerance", "5", "--stddev-tolerance", "10",
                 "--model-linear-regression", model_path,
-                "--html", html_path, "--xunit", xunit_path,
-                "--"]
+                "--model-builds-average", "1", "--html", html_path,
+                "--xunit", xunit_path, "--"]
         self.assertEqual(self._run(args + results, self.base_dir), 2)
         with open(os.path.join(self.base_dir, "docs", "source", "_static",
                                "html_result.html")) as exp:
