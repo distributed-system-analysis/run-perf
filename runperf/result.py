@@ -545,7 +545,39 @@ def iter_results(path, skip_incorrect=False):
               utils.list_dir_hashes(src_path))
 
 
-class AveragesModifier:
+class Modifier:
+    # Weight of this modifier
+    weight = 0
+
+    def add_result(self, result):
+        """
+        Add reference result
+
+        :param result: `result.Result` result to be processed
+        """
+        raise NotImplementedError
+
+    def check_result(self, result):
+        """
+        Add this result and perform additional checks, reporting the findings
+
+        :param result: `result.Result` result to be processed
+        :return: [(check_name, difference, weight, source value), ...]
+                 where source_value is an optional value correcting the source
+                 value
+        """
+        raise NotImplementedError
+
+    def _adjust_weight(self, count):
+        """
+        Adjust the weight based on the number of items
+        """
+        if count < 8:
+            return self.weight / get_uncertainty(count)
+        return self.weight
+
+
+class AveragesModifier(Modifier):
 
     """
     Model that calculates averages of all builds
@@ -559,27 +591,49 @@ class AveragesModifier:
         self.last = False
 
     def add_result(self, result):
-        """
-        Add reference result
-        """
         self.averages[result.name][0] += result.score
         self.averages[result.name][1] += 1
         return []
 
     def check_result(self, result):
-        """
-        Returns the average along with weight using the `Model` format.
-        """
         self.add_result(result)
         if result.name in self.averages:
             entry = self.averages[result.name]
             score = entry[0] / entry[1] * self.COEFFICIENT
-            if entry[1] < 8:
-                weight = self.weight / get_uncertainty(entry[1])
-            else:
-                weight = self.weight
-            return [("avg", score, weight)]
+            return [("avg", score, self._adjust_weight(entry[1]))]
         return []
+
+
+class NOutOfResultsModifier(Modifier):
+
+    """
+    A model that allows N out of reference builds to fail
+
+    It uses the `allowed_failures` to scale the current result's `tolerance`
+    values to indicate in how many builds the current result failed.
+    """
+
+    def __init__(self, weight, allowed_failures):
+        self.failures = collections.defaultdict(lambda: [0, 0])
+        self.weight = weight
+        self.allowed_failures = allowed_failures + 1
+        if self.allowed_failures <= 0:
+            self.allowed_failures = 1
+
+    def add_result(self, result):
+        entry = self.failures[result.name]
+        entry[1] += 1
+        if result.status < 0:
+            entry[0] += 1
+        return []
+
+    def check_result(self, result):
+        self.add_result(result)
+        entry = self.failures[result.name]
+        score = (entry[0] / self.allowed_failures *
+                 result.tolerance * 1.1)
+        return [("n_of", score if result.score > 0 else -score,
+                 self._adjust_weight(entry[1]))]
 
 
 class ResultsContainer:
@@ -718,7 +772,6 @@ class RelativeResults:
                 raw_weight = 0
                 result.add(i, *mresult)
         result.add("", "raw", difference, raw_weight, src)
-        score = result.score
         if last:
             for i, modifier in enumerate(self.modifiers):
                 for mresult in modifier.check_result(result):

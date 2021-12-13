@@ -411,6 +411,12 @@ class ComparePerf:
         parser.add_argument("--model-linear-regression", "-l", help="Use "
                             "linear regression model for matching results",
                             nargs='+', default=[])
+        parser.add_argument("--n-out-of-results", help="Weight of the "
+                            "check that looks at how many times each test "
+                            "failed within reference builds.",
+                            type=float, default=0)
+        parser.add_argument("--n-out-of-results-n", help="How many builds "
+                            "can fail to report PASS", type=int, default=2)
         parser.add_argument("--html", help="Create a single-file HTML report "
                             "in the provided path.")
         parser.add_argument("--html-with-charts", action="store_true",
@@ -434,6 +440,10 @@ class ComparePerf:
         if args.model_builds_average:
             modifiers.append(result.AveragesModifier(
                 args.model_builds_average))
+        if args.n_out_of_results:
+            modifiers.append(result.NOutOfResultsModifier(
+                args.n_out_of_results,
+                args.n_out_of_results_n))
         results = result.ResultsContainer(self.log, args.tolerance,
                                           args.stddev_tolerance,
                                           args.model_builds_average,

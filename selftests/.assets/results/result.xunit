@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuite name="runperf" timestamp="FILTERED" tests="32" errors="4" failures="1" skipped="1" time="0.000">
 	<testcase classname="Localhost/fio/0000:./read-4KiB/throughput" name="iops_sec.mean" time="0.000">
-		<failure type="failure" message="SMALL raw -6.83%, avg -16.23% GOOD model0 -4.88%, mraw0 -4.54% (179348.46/183743.17; 171197.389830508) +-5.0% tolerance"/>
+		<failure type="failure" message="SMALL raw -6.83%, avg -16.23%, n_of -5.50% GOOD model0 -4.88%, mraw0 -4.54% (179348.46/183743.17; 171197.389830508) +-5.0% tolerance"/>
 	</testcase>
 	<testcase classname="Localhost/fio/0000:./read-4KiB/throughput" name="iops_sec.stddev" time="0.000"/>
 	<testcase classname="Localhost/fio/0000:./read-64KiB/throughput" name="iops_sec.mean" time="0.000">
-		<skipped type="skipped" message="BIG model0 21.78%, mraw0 19.80%, raw 16.53%, avg 10.94% (100482.88/103308.03; 120381.830508475) +-5.0% tolerance"/>
+		<skipped type="skipped" message="BIG model0 21.78%, mraw0 19.80%, raw 16.53%, avg 10.94% GOOD n_of 3.67% (100482.88/103308.03; 120381.830508475) +-5.0% tolerance"/>
 	</testcase>
 	<testcase classname="Localhost/fio/0000:./read-64KiB/throughput" name="iops_sec.stddev" time="0.000"/>
 	<testcase classname="Localhost2/fio/0000:./read-4KiB/throughput" name="iops_sec.mean" time="0.000">
