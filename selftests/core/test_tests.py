@@ -52,6 +52,7 @@ class PBenchTest(Selftest):
                          args)
         mock_args = {'cmd_status.return_value': 0,
                      'cmd_output.side_effect': (
+                         [0] +
                          prepend_host_cmd_output_side_effect +
                          ["prefix+self._cmd", "0", result_path]),
                      'cmd_status_output.return_value': [1, ""]}
@@ -81,6 +82,7 @@ class PBenchTest(Selftest):
         if "pbench_server_publish" in metadata:
             calls.append('pbench-copy-results --user asdf --prefix fdsa')
         self.check_calls(host.mock_session.method_calls, calls)
+        return test
 
     def test_fio_default(self):
         self.check(tests.PBenchFio, {}, {},
@@ -100,6 +102,28 @@ class PBenchTest(Selftest):
                    {"test-types": "randomrw", "runtime": "10", "foo": "bar"},
                    'pbench-fio  --foo=bar --ramptime=10 --runtime=10 '
                    '--samples=3 --test-types=randomrw --clients=addr2')
+
+    def test_fio_params(self):
+        extra = {}
+        metadata = {}
+        # Default
+        cmdline = ('pbench-fio  --ramptime=10 --runtime=180 --samples=3 '
+                   '--test-types=read,write,rw --clients=addr2')
+        tst = self.check(tests.PBenchFio, metadata, extra, cmdline)
+        self.assertEqual(tst.pbench_tools,
+                         ["sar:--interval=3", "iostat:--interval=3",
+                          "mpstat:--interval=3","proc-interrupts:--interval=3",
+                          "proc-vmstat:--interval=3"])
+        # Metadata-params
+        metadata["pbench_tools"] = '["base", "set"]'
+        tst = self.check(tests.PBenchFio, metadata, extra, cmdline)
+        self.assertEqual(tst.pbench_tools, ["base", "set"])
+        # Extra-params
+        extra["pbench_tools"] = ["extra", "set"]
+        tst = self.check(tests.PBenchFio, metadata, extra, cmdline)
+        self.assertEqual(tst.pbench_tools, ["extra", "set"])
+        # Check the extra is not modified by the test initialization
+        self.assertEqual({"pbench_tools": ["extra", "set"]}, extra)
 
     def test_uperf(self):
         self.check(tests.UPerf, {}, {}, 'PERL5LIB=/opt/pbench-agent/tool-'

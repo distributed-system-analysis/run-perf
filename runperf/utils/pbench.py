@@ -39,18 +39,17 @@ class Dnf:  # pylint: disable=R0903
         session = self.session
         session.cmd_status("mkdir -p /var/lib/pbench-agent")
         if session.cmd_status("which pbench-register-tool-set"):
+            # Pbench is not installed yet
             if session.cmd_status("which dnf"):
                 return "The 'dnf' binary not found"
             self._install_pbench()
         elif session.cmd_status("[ -e /var/lib/pbench-agent/tools-default ]"):
+            # Pbench was installed but tools were not registered, update cfgs
             self._update_pbench()
         else:
-            # We're all set
+            # We're all set, pbench was previously configured
             return self._install_test()
         session.cmd(". /etc/profile.d/pbench-agent.sh")
-        if session.cmd_status("pbench-register-tool-set"):
-            return ("pbench-register-tool-set failed to be executed after "
-                    "install")
         return self._install_test()
 
     def _update_pbench(self):
@@ -137,3 +136,23 @@ def install_on(session, extra=None, test=None):
             errs.append("%s: %s" % (plugin, details))
     raise RuntimeError("Failed to install pbench:\n  %s"
                        % "  \n".join(errs))
+
+
+def register_tools(session, tools, clients):
+    """
+    Unregister all tools and then register the provided ones
+    """
+    # Cleanup previous tools configuration
+    for client in clients:
+        with client.get_session_cont() as csession:
+            csession.cmd_output("rm -rf /var/lib/libvirt/pbench-agent/"
+                                "tools-default")
+    # Register tools on all clients
+    addrs = ','.join(_.get_addr() for _ in clients)
+    for tool in tools:
+        if ':' in tool:
+            tool, params = tool.split(':', 1)
+        else:
+            params = ''
+        session.cmd(f"pbench-register-tool --name={tool} "
+                    f"--remotes={addrs} -- {params}")
