@@ -124,6 +124,19 @@ class PBenchTest(BaseTest):
             self.pbench_publish = True
         else:
             self.pbench_publish = False
+        # Copy the extra dict to preserve it for the following profiles
+        extra = extra.copy()
+        pbench_tools = extra.pop("pbench_tools", None)
+        if not pbench_tools:
+            pbench_tools = metadata.get("pbench_tools", None)
+            if pbench_tools:
+                pbench_tools = json.loads(pbench_tools)
+            else:
+                pbench_tools = ["sar:--interval=3", "iostat:--interval=3",
+                                "mpstat:--interval=3",
+                                "proc-interrupts:--interval=3",
+                                "proc-vmstat:--interval=3"]
+        self.pbench_tools = pbench_tools
         for key, value in self.default_args:
             if key not in extra:
                 extra[key] = value
@@ -149,7 +162,9 @@ class PBenchTest(BaseTest):
         def install_pbench(host, metadata, test):
             with host.get_session_cont() as session:
                 pbench.install_on(session, metadata, test=test)
+
         threads = []
+        remotes = set()
         for host_workers in self.workers:
             if self.host in host_workers:
                 # When host is also in workers, perform install first on host
@@ -157,6 +172,7 @@ class PBenchTest(BaseTest):
                 break
         else:
             name = "host %s" % self.host.name
+            remotes.add(self.host)
             threads.append(utils.ThreadWithStatus(target=install_pbench,
                                                   name=name,
                                                   args=(self.host,
@@ -164,6 +180,7 @@ class PBenchTest(BaseTest):
                                                         self.test)))
         for workers in self.workers:
             for worker in workers:
+                remotes.add(worker)
                 name = "worker %s" % worker.name
                 threads.append(utils.ThreadWithStatus(target=install_pbench,
                                                       name=name,
@@ -181,6 +198,9 @@ class PBenchTest(BaseTest):
                     raise RuntimeError("Failed to install pbench on %s"
                                        % failed) from thread.exc
                 raise RuntimeError("Failed to install pbench on %s" % failed)
+        # Register the tools for all workers
+        with self.host.get_session_cont() as session:
+            pbench.register_tools(session, self.pbench_tools, remotes)
         self._wait_for_workers_calm_down()
 
     def _wait_for_workers_calm_down(self):

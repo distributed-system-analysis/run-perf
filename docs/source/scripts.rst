@@ -127,15 +127,19 @@ Tests
 
 Test runners are implemented under :mod:`runperf.tests` and currently consists
 of a few `pbench-based <https://distributed-system-analysis.github.io/pbench/pbench-agent.html>`_
-tests. Below you can find all/most arguments that can be tweaked. In case the
-default is set/overridden by `run-perf` the value is specified at the end
-of the description using `[]` brackets. Note the supported arguments might
-vary based on pbench/tool versions.
+tests. These tests accept any extra argument (specified via
+'TestName:{"arg": "val"}') on the cmdline and pass it directly to the
+pbench-$test command. Below you can find all/most arguments that can be tweaked.
 
 In case you want to use the number of cpus per worker you can supply
 ``__PER_WORKER_CPUS__`` value which will be calculated and replaced
 with the expected value (eg. with 8 CPUs and 2 workers the value will
 be 4).
+
+It's also possible for the pbench-based tests to tweak the ``pbench_tools``
+globally via ``--metadata pbench_tools`` or per-test via
+``test:{"pbench_tools": ["sar", "iostat:--interval 3"]}``. The tools
+are run on all workers as well as on the main host.
 
 .. _test-fio:
 
