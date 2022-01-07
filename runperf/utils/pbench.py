@@ -145,8 +145,7 @@ def register_tools(session, tools, clients):
     # Cleanup previous tools configuration
     for client in clients:
         with client.get_session_cont() as csession:
-            csession.cmd_output("rm -rf /var/lib/libvirt/pbench-agent/"
-                                "tools-default")
+            csession.cmd_output("rm -rf /var/lib/pbench-agent/tools-default")
     # Register tools on all clients
     addrs = ','.join(_.get_addr() for _ in clients)
     for tool in tools:
