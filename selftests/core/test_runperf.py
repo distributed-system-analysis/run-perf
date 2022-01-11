@@ -109,7 +109,9 @@ class RunPerfTest(Selftest):
                                                                         dst)):
                             with mock.patch("runperf.machine.Controller."
                                             "fetch_logs"):
-                                main()
+                                with mock.patch("runperf.tests.BaseTest"
+                                                "._all_machines_kmsg"):
+                                    main()
         # Check only for test dirs, metadata are checked in other tests
         self.assertTrue(os.path.exists(os.path.join(self.tmpdir, "result")))
         for serial in ["0000", "0001"]:

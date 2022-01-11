@@ -43,6 +43,19 @@ class BaseTest:
         Allow extra steps before test execution
         """
 
+    def _all_machines_kmsg(self, msg):
+        """
+        Log a message on all workers' as well as host's kmsg
+        """
+        msg = f"runperf: {time.time():.0f}: {self.host.profile.name}: {msg}"
+        for workers in self.workers:
+            for worker in workers:
+                with worker.get_session_cont(hop=self.host) as session:
+                    session.cmd(utils.shell_write_content_cmd("/dev/kmsg",
+                                                              msg))
+        with self.host.get_session_cont(hop=self.host) as session:
+            session.cmd(utils.shell_write_content_cmd("/dev/kmsg", msg))
+
     def run(self):
         """Run the testing"""
         if len(self.workers) < self.min_groups:
@@ -51,6 +64,7 @@ class BaseTest:
             with open(os.path.join(self.output, "SKIP"), 'w') as skip:
                 skip.write(msg)
             raise exceptions.TestSkip("msg")
+        self._all_machines_kmsg(f"Starting test {self.name}")
         return self._run()
 
     def _run(self):
