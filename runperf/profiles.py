@@ -53,6 +53,21 @@ class BaseProfile:
         self.log_fetcher = utils.LogFetcher()
         self.workers_log_fetcher = utils.LogFetcher()
 
+    def _refresh_session(self):
+        """
+        Refresh session (to prevent using stalled sessions)
+        """
+        if self.session:
+            try:
+                is_responsive = self.session.is_responsive()
+            except TypeError:
+                # Using closed session on old aexpect
+                is_responsive = False
+            if is_responsive:
+                return
+            self.session.close()
+        self.session = self.host.get_session()
+
     def _write_file(self, path, content, append=False):
         """
         Write/append to file on libvirt host
@@ -122,6 +137,7 @@ class BaseProfile:
         :returns: True - when reboot is required;
                   [worker1, worker2, ...] - on success
         """
+        self._refresh_session()
         # First check whether we have persistent setup set
         _profile = self._get("set_profile")
         if _profile == -1:
@@ -150,6 +166,7 @@ class BaseProfile:
         """
         if not self.session:  # Avoid cleaning twice... (cleanup on error)
             return None
+        self._refresh_session()
         _profile = self._get("set_profile")
         if _profile == -1:
             # Profile might not be fully set, just applied
@@ -187,6 +204,7 @@ class BaseProfile:
         :return: dict of per-category information about how this profile
                  affected the machine.
         """
+        self._refresh_session()
         return self.host.get_info()
 
     def _revert(self):
@@ -196,6 +214,7 @@ class BaseProfile:
         raise NotImplementedError
 
     def fetch_logs(self, path):
+        self._refresh_session()
         self.log_fetcher.collect(path, self.host)
         for worker in self.workers:
             self.workers_log_fetcher.collect(path, worker)
