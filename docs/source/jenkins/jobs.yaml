@@ -479,6 +479,10 @@
             default: false
             description: "Status of the comparison (GOOD=true/BAD=false)"
         - string:
+            name: NOTES
+            default: ""
+            description: "Notes to be added as description to the result entry"
+        - string:
             name: PROJECT
             default: ""
             description: "Owner of the results (usually a group/company name + project/machine)"

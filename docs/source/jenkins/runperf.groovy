@@ -295,6 +295,7 @@ node(workerNode) {
                    parameters: [string(name: 'JOB', value: env.JOB_NAME),
                                 string(name: 'BUILD', value: env.BUILD_NUMBER),
                                 booleanParam(name: 'STATUS', value: status == 0),
+                                string(name: 'NOTES', value: descriptionPrefix),
                                 string(name: 'PROJECT', value: githubPublisherProject),
                                 string(name: 'TAG', value: githubPublisherTag),
                                 booleanParam(name: 'STRIP_RESULTS', value: true)],

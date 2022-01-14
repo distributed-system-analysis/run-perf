@@ -9,6 +9,8 @@ job = params.JOB
 build = params.BUILD
 // Status of the comparison (GOOD/BAD)
 status = params.STATUS
+// Notes to the result status
+notes = params.NOTES
 // Owner of the results (usually a group/company name + project/machine)
 project = params.PROJECT
 // Tag of the current qemu (used to split results into multiple pages)
@@ -257,7 +259,7 @@ node('runperf-slave') {
     entry += '\\n      <td>' + date + '</td>'
     entry += "\\n      <td>$osVersion</td>"
     entry += "\\n      <td>${i}</td>"
-    entry += "\\n      <td></td>"
+    entry += "\\n      <td>${notes}</td>"
     entry += "\\n      <td><a href=\"${thisResult}.html\">HTML</a>, <a href=\"${thisResult}.tar.xz\">XZ</a></td>"
     entry += '\\n    </tr>'
     sh "sed -i '0,\\|</tbody>|{s|</tbody>|  $entry\\n  </tbody>|}' '$resultHtmlPath'"
