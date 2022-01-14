@@ -186,6 +186,15 @@ node('runperf-slave') {
         sh "[ -e '.$buildArtifacts/html' ] && mv '.$buildArtifacts/html' '$buildArtifacts/html'"
         sh "rm -Rf '.$buildArtifacts'"
     }
+    // Rename internal DIR/FILE names inside buildArtifacts
+    sh "rm -Rf '.$buildArtifacts'"
+    sh "mv '$buildArtifacts' '.$buildArtifacts'"
+    dir(".$buildArtifacts") {
+        sh('find -not -type d | while read PTH; ' +
+            "do SAFE_PTH=../$buildArtifacts/\$(echo \$PTH | sed $sedFilters); " +
+            'SAFE_PTH_DIR=$(dirname "$SAFE_PTH"); mkdir -p "$SAFE_PTH_DIR"; ' +
+            '\\mv -f "$PTH" "$SAFE_PTH"; done')
+    }
     // Get versions
     (osVersion, qemuVersion) = getVersions(runperfResults)
     // Get current serial id
