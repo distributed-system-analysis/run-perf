@@ -153,7 +153,7 @@ node(workerNode) {
             hostScript += 'libaio-devel git ninja-build'
             hostScript += '\ncd /root'
             hostScript += '\n[ -e "qemu" ] || { mkdir qemu; cd qemu; git init; git remote add origin '
-            hostScript += 'https://github.com/qemu/qemu; cd ..; }'
+            hostScript += 'https://gitlab.com/qemu-project/qemu.git; cd ..; }'
             hostScript += '\ncd qemu'
             hostScript += "\ngit fetch --depth=1 origin ${upstreamQemuCommit}"
             hostScript += "\ngit checkout -f ${upstreamQemuCommit}"

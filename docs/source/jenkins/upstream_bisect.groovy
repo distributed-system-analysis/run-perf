@@ -138,7 +138,7 @@ node(workerNode) {
         lock(machine) {
             // Make sure we have the full upstream_qemu cloned (we don't need submodules, thought)
             sh 'rm -Rf upstream_qemu/'
-            sh 'git clone https://github.com/qemu/qemu upstream_qemu/'
+            sh 'git clone https://gitlab.com/qemu-project/qemu.git upstream_qemu/'
             sh '$KINIT'
             sh("DIFFPERF='python3 scripts/diff-perf' contrib/upstream_qemu_bisect.sh upstream_qemu/ " +
                "${upstreamQemuGood} ${upstreamQemuBad} python3 scripts/run-perf ${extraArgs} " +
