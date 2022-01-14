@@ -78,16 +78,15 @@ String getBkrInstallCmd(String hostBkrLinks, String hostBkrLinksFilter, String a
 
 node(workerNode) {
     stage('Preprocess') {
-        // User-defined distro or use bkr to get latest RHEL-8.0*
-        if (distro) {
-            echo "Using distro ${distro} from params"
-        } else {
+        distro = distro ?: 'latest-RHEL-8.0%.n.%'
+        if (distro.startsWith('latest-')) {
             distro = sh(returnStdout: true,
-                        script: ('echo -n $(bkr distro-trees-list --arch x86_64 --name="%8.0%.n.%" '
-                                 '--family RedHatEnterpriseLinux8 --limit 1 --labcontroller '
-                                 '$ENTER_LAB_CONTROLLER_URL | grep Name: | cut -d":" -f2 | xargs | '
-                                 'cut -d" " -f1)'))
+                        script: ('echo -n $(bkr distro-trees-list --arch x86_64 --name="' +
+                                 distro[7..-1] + '" --limit 1 --labcontroller $ENTER_LAB_CONTROLLER_URL' +
+                                 '| grep Name:  | cut -d":" -f2 | xargs | cut -d" " -f1)'))
             echo "Using latest distro ${distro} from bkr"
+        } else {
+            echo "Using distro ${distro} from params"
         }
         if (!guestDistro) {
             guestDistro == distro
