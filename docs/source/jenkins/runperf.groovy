@@ -89,7 +89,7 @@ node(workerNode) {
                                  'cut -d" " -f1)'))
             echo "Using latest distro ${distro} from bkr"
         }
-        if (! guestDistro) {
+        if (!guestDistro) {
             guestDistro == distro
         }
         if (guestDistro == distro) {
@@ -278,7 +278,7 @@ node(workerNode) {
         sh '\\rm -Rf result* src_result* reference_builds'
         // Publish the results
         if (githubPublisherProject) {
-            build (job: 'rp-publish-results-git',
+            build(job: 'rp-publish-results-git',
                    parameters: [string(name: 'JOB', value: env.JOB_NAME),
                                 string(name: 'BUILD', value: env.BUILD_NUMBER),
                                 booleanParam(name: 'STATUS', value: status == 0),

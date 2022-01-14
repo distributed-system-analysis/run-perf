@@ -76,7 +76,7 @@ node(workerNode) {
                                  'cut -d" " -f1)'))
             echo "Using latest distro ${distro} from bkr"
         }
-        if (! guestDistro) {
+        if (!guestDistro) {
             guestDistro == distro
         }
         if (guestDistro == distro) {
@@ -140,15 +140,15 @@ node(workerNode) {
             sh 'rm -Rf upstream_qemu/'
             sh 'git clone https://github.com/qemu/qemu upstream_qemu/'
             sh '$KINIT'
-            sh ("DIFFPERF='python3 scripts/diff-perf' contrib/upstream_qemu_bisect.sh upstream_qemu/ " +
-                "${upstreamQemuGood} ${upstreamQemuBad} python3 scripts/run-perf ${extraArgs} " +
-                "-vvv --hosts ${machine} --distro ${distro} --provisioner Beaker " +
-                "--default-password YOUR_DEFAULT_PASSWORD --profiles ${profiles} " +
-                "--paths ./downstream_config --metadata 'url=${currentBuild.absoluteUrl}' " +
-                "'project=virt-perf-ci ${currentBuild.projectName}' " +
-                "'pbench_server=YOUR_PBENCH_SERVER_URL' " +
-                "'machine_url_base=https://YOUR_BEAKER_URL/view/%(machine)s' " +
-                "${metadata} -- ${tests}")
+            sh("DIFFPERF='python3 scripts/diff-perf' contrib/upstream_qemu_bisect.sh upstream_qemu/ " +
+               "${upstreamQemuGood} ${upstreamQemuBad} python3 scripts/run-perf ${extraArgs} " +
+               "-vvv --hosts ${machine} --distro ${distro} --provisioner Beaker " +
+               "--default-password YOUR_DEFAULT_PASSWORD --profiles ${profiles} " +
+               "--paths ./downstream_config --metadata 'url=${currentBuild.absoluteUrl}' " +
+               "'project=virt-perf-ci ${currentBuild.projectName}' " +
+               "'pbench_server=YOUR_PBENCH_SERVER_URL' " +
+               "'machine_url_base=https://YOUR_BEAKER_URL/view/%(machine)s' " +
+               "${metadata} -- ${tests}")
         }
     }
 

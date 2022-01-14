@@ -75,7 +75,7 @@ List getDistroRange(String[] range, String workerNode) {
     } else if (first.contains('d')) {
         common += '%d'
     }
-    node (workerNode) {
+    node(workerNode) {
         distroRange = sh(returnStdout: true,
                           script: ('echo -n $(bkr distro-trees-list --arch x86_64 ' +
                                    '--name=' + common + '% --family RedHatEnterpriseLinux8 ' +
