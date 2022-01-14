@@ -287,6 +287,10 @@
             name: PBENCH_PUBLISH
             description: 'Push the pbench results to company pbench server'
             default: "{param-pbench-publish}"
+        - string:
+            name: GITHUB_PUBLISHER_PROJECT
+            description: 'Github publisher project ID (when you want to publish your results)'
+            default: ""
 
         - string:
             name: NO_ITERATIONS

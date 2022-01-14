@@ -25,6 +25,8 @@ fioNbdSetup = params.FIO_NBD_SETUP
 descriptionPrefix = params.DESCRIPTION_PREFIX
 // Pbench-publish related options
 pbenchPublish = params.PBENCH_PUBLISH
+// Github-publisher project ID
+githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT
 
 // LIST OF VALUES
 // Iterations of each combination
@@ -154,7 +156,8 @@ for (params in paramTypes.combinations()) {
         new StringParameterValue('CMP_MODEL_JOB', cmpModelJob),
         new StringParameterValue('CMP_MODEL_BUILD', cmpModelBuild),
         new StringParameterValue('CMP_TOLERANCE', cmpTolerance),
-        new StringParameterValue('CMP_STDDEV_TOLERANCE', cmpStddevTolerance)
+        new StringParameterValue('CMP_STDDEV_TOLERANCE', cmpStddevTolerance),
+        new StringParameterValue('GITHUB_PUBLISHER_PROJECT', githubPublisherProject)
         ]
     srcBuild = triggerJob(parameters, srcBuild, jobName)
     referenceBuilds += 1
