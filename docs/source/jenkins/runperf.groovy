@@ -47,6 +47,7 @@ noReferenceBuilds = params.NO_REFERENCE_BUILDS.toInteger()
 pbenchPublish = params.PBENCH_PUBLISH
 // Github-publisher project ID
 githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT
+githubPublisherTag = ''
 
 // Extra variables
 // Provisioner machine
@@ -145,6 +146,18 @@ node(workerNode) {
         }
         // Build custom qemu
         if (upstreamQemuCommit) {
+            // Always translate the user input into the actual commit and also get the description
+            sh 'rm -Rf upstream_qemu'
+            dir('upstream_qemu') {
+                sh 'git clone --filter=tree:0 https://gitlab.com/qemu-project/qemu.git .'
+                upstreamQemuVersion = sh(returnStdout: true,
+                                         script: "git rev-parse ${upstreamQemuCommit}").trim()
+                githubPublisherTag = sh(returnStdout: true,
+                                        script: "git describe --tags --always ${upstreamQemuCommit}"
+                                       ).trim().split('-')[0]
+                println("Using qemu $githubPublisherTag commit $upstreamQemuVersion")
+            }
+            sh '\\rm -Rf upstream_qemu'
             hostScript += '\n\n# UPSTREAM_QEMU_SETUP'
             hostScript += '\nOLD_PWD="$PWD"'
             hostScript += '\ndnf install --skip-broken -y python3-devel zlib-devel gtk3-devel glib2-static '
@@ -154,8 +167,8 @@ node(workerNode) {
             hostScript += '\n[ -e "qemu" ] || { mkdir qemu; cd qemu; git init; git remote add origin '
             hostScript += 'https://gitlab.com/qemu-project/qemu.git; cd ..; }'
             hostScript += '\ncd qemu'
-            hostScript += "\ngit fetch --depth=1 origin ${upstreamQemuCommit}"
-            hostScript += "\ngit checkout -f ${upstreamQemuCommit}"
+            hostScript += "\ngit fetch --depth=1 origin ${upstreamQemuVersion}"
+            hostScript += "\ngit checkout -f ${upstreamQemuVersion}"
             hostScript += '\ngit submodule update --init'
             hostScript += '\nVERSION=$(git rev-parse HEAD)'
             hostScript += '\ngit diff --quiet || VERSION+="-dirty"'
