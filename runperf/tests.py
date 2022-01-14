@@ -51,10 +51,10 @@ class BaseTest:
         for workers in self.workers:
             for worker in workers:
                 with worker.get_session_cont(hop=self.host) as session:
-                    session.cmd(utils.shell_write_content_cmd("/dev/kmsg",
-                                                              msg))
+                    session.cmd_status(
+                        utils.shell_write_content_cmd("/dev/kmsg", msg))
         with self.host.get_session_cont(hop=self.host) as session:
-            session.cmd(utils.shell_write_content_cmd("/dev/kmsg", msg))
+            session.cmd_status(utils.shell_write_content_cmd("/dev/kmsg", msg))
 
     def run(self):
         """Run the testing"""
