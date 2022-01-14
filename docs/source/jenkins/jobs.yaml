@@ -449,7 +449,7 @@
             description: How old results should be pruned
     builders:
         - python:
-            !include-raw-escape ../scripts/prune_artifacts.py
+            !include-raw-escape: ../scripts/prune_artifacts.py
 
 
 ##############################################################################
