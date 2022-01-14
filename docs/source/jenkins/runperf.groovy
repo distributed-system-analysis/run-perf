@@ -161,7 +161,8 @@ node(workerNode) {
             hostScript += '\ngit diff --quiet || VERSION+="-dirty"'
             hostScript += '\n./configure --target-list="$(uname -m)"-softmmu --disable-werror --enable-kvm '
             hostScript += '--enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp '
-            hostScript += '--enable-spice --enable-usb-redir --with-pkgversion="$VERSION"'
+            hostScript += '--enable-usb-redir --disable-opengl --disable-virglrenderer '
+            hostScript += '--with-pkgversion="$VERSION"'
             hostScript += makeInstallCmd
             hostScript += '\nchcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"'
             hostScript += '\n\\cp -f build/config.status /usr/local/share/qemu/'
