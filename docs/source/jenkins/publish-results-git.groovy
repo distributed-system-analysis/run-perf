@@ -31,7 +31,8 @@ cssPath = resultGit + '/style.css'
 htmlIndex = 'html/index.html'
 modelJson = 'model.json'
 buildArtifacts = 'internal'
-runperfResultsFilter = 'result*/*/*/*/*.json,result*/RUNPERF_METADATA,html/index.html'
+runperfResultsFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,html/index.html,' +
+                        'result*/**/__error*__/**,result*/**/__sysinfo*__/**')
 pythonDeployCmd = 'python3 setup.py develop --user'
 int i = 0
 
