@@ -482,6 +482,10 @@
             name: PROJECT
             default: ""
             description: "Owner of the results (usually a group/company name + project/machine)"
+        - string:
+            name: TAG
+            default: "all"
+            description: "Version tag used to split results of different versions/tags"
         - bool:
             name: STRIP_RESULTS
             default: true

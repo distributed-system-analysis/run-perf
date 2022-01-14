@@ -11,6 +11,8 @@ build = params.BUILD
 status = params.STATUS
 // Owner of the results (usually a group/company name + project/machine)
 project = params.PROJECT
+// Tag of the current qemu (used to split results into multiple pages)
+qemuTag = params.TAG
 // Publish stripped results (MB->KB)
 stripResults = params.STRIP_RESULTS
 
@@ -36,15 +38,35 @@ runperfResultsFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,html/inde
 pythonDeployCmd = 'python3 setup.py develop --user'
 int i = 0
 
-projectTemplate = '''<html>
-<head>
-<script src="sorttable.js"></script>
-<link rel="stylesheet" href="style.css">
+indexTemplate = '''<html>
+<body>
+<p>Index of CI projects, use the links to explore the results</p>
 
+<ul>
+</ul>
+</body>
+</html>
+'''
+
+projectTemplate = '''<html>
+<body>
+<p>Describe the purpose of those results and provide contact information.</p>
+
+<ul>
+</ul>
+</body>
+</html>
+'''
+
+resultTemplate = '''<html>
+<head>
+<script src="../../sorttable.js"></script>
+<link rel="stylesheet" href="../../style.css">
 </head>
 
 <body>
-<p>Describe the purpose of those results and provide contact information.</p>
+<h1>Results for %s</h1>
+<p>To go back to the main project click <a href="%s">here</a></p>
 
 <table class="sortable" style="table-layout: fixed;">
   <thead>
@@ -63,15 +85,6 @@ projectTemplate = '''<html>
     <th><!--Links to reports or useful assets-->URL</th>
   </thead>
   <tbody>
-    <tr>
-      <td>&#10060;</td>
-      <td><div class="tooltip">HA<span class="tooltiptext">SH</span></div></td>
-      <td>DATE</td>
-      <td>DISTRO</td>
-      <td>0</td>
-      <td>First entry, to be removed...</td>
-      <td><a href="PROJECT-HASH-DISTRO-0.html">HTML</a>, <a href="PROJECT-HASH-DISTRO-0.tar.xz">XZ</a></td>
-    </tr>
   </tbody>
 </table>
 </body>
@@ -132,14 +145,14 @@ List getVersionsNonCPS(String runperfMetadata) {
     regex = Pattern.compile('"custom_qemu_details" *: *"[^\\("]*\\(([^\\)"]*)', Pattern.MULTILINE)
     regexMatcher = regex.matcher(runperfMetadata)
     if (regexMatcher.find()) {
-        qemuVersion = regexMatcher.group(1)
-        if (qemuVersion.length() < 7) {
-            qemuVersion = "ERROR qemuVersion too short ($qemuVersion)"
+        qemuSHA = regexMatcher.group(1)
+        if (qemuSHA.length() < 7) {
+            qemuSHA = "ERROR qemuSHA too short ($qemuSHA)"
         }
     } else {
-        qemuVersion = 'ERROR obtaining it from METADATA'
+        qemuSHA = 'ERROR obtaining it from METADATA'
     }
-    return [osVersion, qemuVersion]
+    return [osVersion, qemuSHA]
 }
 
 List getVersions(String runperfResults) {
@@ -154,6 +167,15 @@ String getJobDate(String jobName, String buildName) {
     return build.time.format('yyyy-MM-dd')
 }
 
+void updateLinkFile(String path, String link, String missingTemplate) {
+    if (!fileExists(path)) {
+        writeFile(file: path, text: missingTemplate)
+    }
+    if (!readFile(path).contains("<a href=\"$link\">")) {
+        sh "sed -i '0,\\|</ul>|{s|</ul>|  <li><a href=\"$link\">$link</a></li>\\n</ul>|}' '$path'"
+    }
+}
+
 node('runperf-slave') {
     sh "rm -rf $buildArtifacts/"
     copyArtifacts(filter: runperfResultsFilter, optional: false,
@@ -161,16 +183,6 @@ node('runperf-slave') {
                   target: buildArtifacts)
     dir(resultGit) {
         git branch: gitBranch, url: gitUrl
-    }
-    // In case project page does not exists, provide a template
-    if (! fileExists(resultGit + "/${project}.html")) {
-        writeFile(file: resultGit + "/${project}.html", text: projectTemplate)
-        if (! fileExists(cssPath)) {
-            writeFile(file: cssPath, text: projectTemplateStyle)
-        }
-        if (! fileExists(sortablePath)) {
-            sh "curl '$projectTemplateSortableUrl' > '$sortablePath'"
-        }
     }
     runperfResults = sh(returnStdout: true, script: "res=($buildArtifacts/result*); echo \${res[0]}").trim()
     // Strip results if asked for
@@ -196,25 +208,39 @@ node('runperf-slave') {
             '\\mv -f "$PTH" "$SAFE_PTH"; done')
     }
     // Get versions
-    (osVersion, qemuVersion) = getVersions(runperfResults)
+    (osVersion, qemuSHA) = getVersions(runperfResults)
+    // In case project page does not exists, provide a template
+    updateLinkFile("$resultGit/index.html", project, indexTemplate)
+    updateLinkFile("$resultGit/${project}.html", "$project/$qemuTag", projectTemplate)
+    resultHtmlPath = "$resultGit/$project/$qemuTag/index.html"
+    if (!fileExists(resultHtmlPath)) {
+        writeFile(file: resultHtmlPath,
+                  text: String.format(resultTemplate, qemuTag, "../../${project}.html"))
+    }
+    if (!fileExists(cssPath)) {
+        writeFile(file: cssPath, text: projectTemplateStyle)
+    }
+    if (!fileExists(sortablePath)) {
+        sh "curl '$projectTemplateSortableUrl' > '$sortablePath'"
+    }
     // Get current serial id
-    thisResult = "$project-$qemuVersion-$osVersion-"
+    thisResult = "$project-$qemuSHA-$osVersion-"
     for (i = 0; i <= 1000; i++) {
-        if (! fileExists(resultGit + "/${thisResult}${i}.html")) {
+        if (!fileExists(resultGit + "/$project/$qemuTag/${thisResult}${i}.html")) {
             thisResult = "${thisResult}${i}"
             break
         }
     }
-    // Attach the files into resultGit
-    if (fileExists("$buildArtifacts/html/index.html")) {
-        sh "mv $buildArtifacts/html/index.html ${resultGit}/${thisResult}.html"
-    } else {
-        writeFile(file: resultGit + "/${thisResult}.html", text: 'Missing file')
-    }
     // Filter internal values
     sh "find $buildArtifacts -type f -exec sed -i $sedFilters {} +"
+    // Attach the files into resultGit
+    if (fileExists("$buildArtifacts/html/index.html")) {
+        sh "mv $buildArtifacts/html/index.html ${resultGit}/$project/$qemuTag/${thisResult}.html"
+    } else {
+        writeFile(file: resultGit + "/$project/$qemuTag/${thisResult}.html", text: 'Missing file')
+    }
     dir(runperfResults) {
-        sh "tar -cf ../../${resultGit}/${thisResult}.tar.xz *"
+        sh "tar -cf ../../${resultGit}/$project/$qemuTag/${thisResult}.tar.xz *"
     }
     // Add the result by replacing the last </tr>
     // We are using 'tac' so we need to reverse the order
@@ -224,18 +250,17 @@ node('runperf-slave') {
         statusIcon = '\\&#10060;'
     }
     String date = getJobDate(job, build)
-    reverseEntry = "\\n      <td><a href=\"${thisResult}.html\">HTML</a>, <a href=\"${thisResult}.tar.xz\">XZ</a></td>"
-    reverseEntry += '\\n      <td></td>'
-    reverseEntry += "\\n      <td>${i}</td>"
-    reverseEntry += "\\n      <td>$osVersion</td>"
-    reverseEntry += '\\n      <td>' + date + '</td>'
-    reverseEntry += ('\\n      <td><div class="tooltip">' + qemuVersion[0..5] + '<span class="tooltiptext">'
-                     + qemuVersion[6..-1] + '</span></div></td>')
-    reverseEntry += "\\n      <td>${statusIcon}</td>"
-    reverseEntry += '\\n    <tr>'
-    reverseEntry += '\\n    </tr>'
-    sh "tac '${resultGit}/${project}.html' | sed '0,\\|</tr>|{s|</tr>|</tr>${reverseEntry}|}' | tac > '${project}.html'"
-    sh "cp '${project}.html' '${resultGit}/${project}.html'"
+    entry = '<tr>'
+    entry += "\\n      <td>${statusIcon}</td>"
+    entry += ('\\n      <td><div class="tooltip">' + qemuSHA[0..5] + '<span class="tooltiptext">'
+                     + qemuSHA[6..-1] + '</span></div></td>')
+    entry += '\\n      <td>' + date + '</td>'
+    entry += "\\n      <td>$osVersion</td>"
+    entry += "\\n      <td>${i}</td>"
+    entry += "\\n      <td></td>"
+    entry += "\\n      <td><a href=\"${thisResult}.html\">HTML</a>, <a href=\"${thisResult}.tar.xz\">XZ</a></td>"
+    entry += '\\n    </tr>'
+    sh "sed -i '0,\\|</tbody>|{s|</tbody>|  $entry\\n  </tbody>|}' '$resultHtmlPath'"
     dir(resultGit) {
         sh "git config user.name '$gitName'"
         sh "git config user.email '$gitEmail'"

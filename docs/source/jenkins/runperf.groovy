@@ -296,6 +296,7 @@ node(workerNode) {
                                 string(name: 'BUILD', value: env.BUILD_NUMBER),
                                 booleanParam(name: 'STATUS', value: status == 0),
                                 string(name: 'PROJECT', value: githubPublisherProject),
+                                string(name: 'TAG', value: githubPublisherTag),
                                 booleanParam(name: 'STRIP_RESULTS', value: true)],
                    quietPeriod: 0,
                    wait: false)
