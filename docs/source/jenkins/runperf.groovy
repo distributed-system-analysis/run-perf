@@ -133,11 +133,11 @@ node(workerNode) {
         // Install deps and compile custom fio with nbd ioengine
         if (fioNbdSetup) {
             nbdSetupScript = ('\n\n# FIO_NBD_SETUP' +
-                              '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img ' +
-                              'libaio-devel tar' +
+                              '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make ' +
+                              'qemu-img libaio-devel tar' +
                               '\ncd /tmp' +
-                              '\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz' +
-                              '\ncd fio-fio-3.19' +
+                              '\ncurl -L https://github.com/axboe/fio/archive/fio-3.27.tar.gz | tar xz' +
+                              '\ncd fio-fio-3.27' +
                               '\n./configure --enable-libnbd' +
                               makeInstallCmd)
             hostScript += nbdSetupScript
