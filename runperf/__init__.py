@@ -446,7 +446,6 @@ class ComparePerf:
                 args.n_out_of_results_n))
         results = result.ResultsContainer(self.log, args.tolerance,
                                           args.stddev_tolerance,
-                                          args.model_builds_average,
                                           models,
                                           args.results[0][0],
                                           args.results[0][1],

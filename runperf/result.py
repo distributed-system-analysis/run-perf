@@ -642,7 +642,7 @@ class ResultsContainer:
     Container to store multiple RelativeResults and provide various stats
     """
 
-    def __init__(self, log, tolerance, stddev_tolerance, averages, models,
+    def __init__(self, log, tolerance, stddev_tolerance, models,
                  src_name, src_path, modifiers):
         self.log = log
         self.tolerance = tolerance
