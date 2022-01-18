@@ -38,8 +38,7 @@ HOST_KEYS = {'hugepage_kb', 'numa_nodes', 'host_cpus',
 
 def get_distro_info(machine):
     """Various basic sysinfo"""
-    out = {"general": "Name:%s\nDistro:%s" % (machine.name,
-                                              machine.distro)}
+    out = {"general": f"Name:{machine.name}\nDistro:{machine.distro}"}
     with machine.get_session_cont() as session:
         # Get basic kernel info
         kernel = session.cmd("uname -r; uname -v; uname -m; uname -o",
@@ -85,8 +84,7 @@ class BaseMachine:
         return self.name
 
     def __repr__(self):
-        return ("%s(%s, %s)"
-                % (self.__class__.__name__, self.name, self.distro))
+        return f"{self.__class__.__name__}({self.name}, {self.distro})"
 
     def get_fullname(self):
         """
@@ -117,14 +115,12 @@ class BaseMachine:
                     " -A -t ssh -o BatchMode=yes "
                     "-o StrictHostKeyChecking=no "
                     "-o UserKnownHostsFile=/dev/null -o ControlMaster=auto "
-                    "-o ControlPath='/var/tmp/%%r@%%h-%%p' "
-                    "-o ControlPersist=60 root@%s"
-                    % self.get_addr())
+                    "-o ControlPath='/var/tmp/%r@%h-%p' "
+                    f"-o ControlPersist=60 root@{self.get_addr()}")
         return ("ssh -o BatchMode=yes -o StrictHostKeyChecking=no"
                 " -o UserKnownHostsFile=/dev/null -o ControlMaster=auto "
-                "-o ControlPath='/var/tmp/%%r@%%h-%%p' "
-                "-o ControlPersist=60 root@%s"
-                % self.get_addr())
+                "-o ControlPath='/var/tmp/%r@%h-%p' "
+                f"-o ControlPersist=60 root@{self.get_addr()}")
 
     def ssh_copy_id(self, hop=None):
         """
@@ -175,15 +171,15 @@ class BaseMachine:
                         if not self.default_passwords:
                             raise RuntimeError("Permission denied and no "
                                                "default passwords specified:\n"
-                                               "%s" % err) from err
+                                               f"{err}") from err
                         self.ssh_copy_id(hop)
                     time.sleep(1)
         except Exception as err:
             if session:
                 session.close()
-            raise RuntimeError("Unable to get ssh session: %s" % err) from err
-        raise RuntimeError("Timeout while getting ssh session (%s)"
-                           % self.get_ssh_cmd(hop))
+            raise RuntimeError(f"Unable to get ssh session: {err}") from err
+        raise RuntimeError("Timeout while getting ssh session "
+                           f"({self.get_ssh_cmd(hop)})")
 
     @contextlib.contextmanager
     def get_session_cont(self, timeout=60, hop=None):
@@ -212,7 +208,7 @@ class BaseMachine:
         cmd = ["rsync", "-amrh", "-e", "ssh -o StrictHostKeyChecking=no " +
                "-o UserKnownHostsFile=/dev/null -o ControlMaster=auto " +
                "-o ControlPath='/var/tmp/%r@%h-%p' -o ControlPersist=60" +
-               " -o BatchMode=yes", "root@%s:%s" % (self.get_addr(), src),
+               " -o BatchMode=yes", f"root@{self.get_addr()}:{src}",
                dst]
         utils.check_output(cmd)
 
@@ -225,7 +221,7 @@ class BaseMachine:
         cmd = ["rsync", "-amrh", "-e", "ssh -o StrictHostKeyChecking=no " +
                "-o UserKnownHostsFile=/dev/null -o ControlMaster=auto " +
                "-o ControlPath='/var/tmp/%r@%h-%p' -o ControlPersist=60" +
-               " -o BatchMode=yes", src, "root@%s:%s" % (self.get_addr(), dst)]
+               " -o BatchMode=yes", src, f"root@{self.get_addr()}:{dst}"]
         utils.check_output(cmd)
 
     def get_info(self):
@@ -291,7 +287,7 @@ class Controller:
         if kwargs is None:
             kwargs = {}
         threads = [utils.ThreadWithStatus(target=getattr(host, method),
-                                          name="%s-%s" % (host.name, method),
+                                          name=f"{host.name}-{method}",
                                           args=args, kwargs=kwargs)
                    for host in hosts]
         for thread in threads:
@@ -301,9 +297,9 @@ class Controller:
         for thread in threads:
             if thread.completed is not True:
                 if thread.exc:
-                    raise RuntimeError("Thread %s failed"
-                                       % thread) from thread.exc
-                raise RuntimeError("Thread %s failed" % thread)
+                    raise RuntimeError(f"Thread {thread} "
+                                       "failed") from thread.exc
+                raise RuntimeError(f"Thread {thread} failed")
         reboot_request = [host for host in hosts if host.reboot_request]
         if reboot_request:
             raise exceptions.RebootRequest(reboot_request, method)
@@ -339,10 +335,10 @@ class Controller:
                     host.reboot()
             i += 1
             if i >= attempts:
-                raise RuntimeError("Failed to %s on %s (%s) in %s attempts"
-                                   % (method, ','.join(str(_) for _ in hosts),
-                                      ','.join(str(_) for _ in all_hosts),
-                                      attempts))
+                raise RuntimeError(f"Failed to {method} on "
+                                   f"{','.join(str(_) for _ in hosts)} "
+                                   f"({','.join(str(_) for _ in all_hosts)}) "
+                                   f"in {attempts} attempts")
 
     def setup(self):
         """Basic setup like ssh keys, pbench installation and such"""
@@ -374,7 +370,7 @@ class Controller:
         """Append the key:value to the RUNPERF_METADATA file"""
         with open(os.path.join(self._output_dir, "RUNPERF_METADATA"),
                   'a') as out:
-            out.write("\n%s:" % key)
+            out.write(f"\n{key}:")
             out.write(value)
 
     def fetch_logs(self, path):
@@ -430,8 +426,8 @@ class Controller:
                 try:
                     env.append(host.profile.get_info())
                 except Exception as details:    # pylint: disable=W0703
-                    env.append({"failure": "Failed to get info: %s" % details})
-            self.write_metadata("environment_profile_%s" % self.profile,
+                    env.append({"failure": f"Failed to get info: {details}"})
+            self.write_metadata(f"environment_profile_{self.profile}",
                                 json.dumps(env))
         # Allow 3 attempts, one to revert previous profile, one to apply
         # and one extra in case one boot fails to get resources (eg. hugepages)
@@ -447,13 +443,13 @@ class Controller:
         base_path = os.path.dirname(tmp_path)
         for i in range(10000):
             try:
-                path = os.path.join(base_path, "%04d" % i)
+                path = os.path.join(base_path, f"{i:04d}")
                 os.rename(tmp_path, path)
                 return
             except IOError:
                 pass
-        raise RuntimeError("Failed to create test output dir in %s "
-                           "in 10000 iterations." % base_path)
+        raise RuntimeError(f"Failed to create test output dir in {base_path} "
+                           "in 10000 iterations.")
 
     def run_test(self, test_class, workers, extra):
         """
@@ -464,7 +460,7 @@ class Controller:
         :param workers: list of workers to be made available for execution
         """
         name = test_class.name
-        self.log.info("  RUN test %s" % name)
+        self.log.info(f"  RUN test {name}")
         test = test_class(self.main_host, workers,
                           os.path.join(self._output_dir, self.profile,
                                        name), self.metadata, extra)
@@ -472,18 +468,18 @@ class Controller:
             test.setup()
             test.run()
             self._move_results(test.output)
-            self.log.info("  SUCCESS test %s" % name)
+            self.log.info(f"  SUCCESS test {name}")
         except exceptions.TestSkip as exc:
-            self.log.warning("  SKIP test %s: %s" % (name, exc))
+            self.log.warning(f"  SKIP test {name}: {exc}")
         except Exception as exc:
-            self.log.error("  FAILURE test %s: %s" % (name, exc))
+            self.log.error(f"  FAILURE test {name}: {exc}")
             raise
         finally:
             test.cleanup()
 
     def cleanup(self):
         """Post-testing cleanup"""
-        self.log.info("CLEANUP hosts %s" % self.hosts)
+        self.log.info(f"CLEANUP hosts {self.hosts}")
         self.for_each_host_retry(2, self.hosts, 'cleanup')
 
 
@@ -572,9 +568,8 @@ class Host(BaseMachine):
         return params
 
     def __repr__(self):
-        return ("%s(%s, %s, %s, %s)"
-                % (self.__class__.__name__, self.name, self.addr, self.distro,
-                   self.profile))
+        return (f"{self.__class__.__name__}({self.name}, {self.addr}, "
+                f"{self.distro}, {self.profile})")
 
     def generate_ssh_key(self):
         """
@@ -597,7 +592,7 @@ class Host(BaseMachine):
         with self.get_session_cont() as session:
             tmp = session.cmd_output("mktemp").strip()
             session.cmd(utils.shell_write_content_cmd(tmp, script, False))
-            session.cmd("sh -x %s" % tmp, timeout)
+            session.cmd(f"sh -x {tmp}", timeout)
 
     def reboot(self):
         """Gracefully reboot the machine"""
@@ -655,7 +650,7 @@ class Host(BaseMachine):
 
     def get_info(self):
         out = BaseMachine.get_info(self)
-        out["params"] = "\n".join("%s: %s" % _
+        out["params"] = "\n".join(f"{_[0]}: {_[1]}"
                                   for _ in sorted(self.params.items()))
         return out
 
@@ -695,7 +690,7 @@ class LibvirtGuest(BaseMachine):
         """
         if extra_params is None:
             extra_params = {}
-        _name = "%s.%s" % (host.name, name)
+        _name = f"{host.name}.{name}"
         super().__init__(host.log.getChild(name), _name, distro,
                          default_passwords)
         self.host = host
@@ -704,7 +699,7 @@ class LibvirtGuest(BaseMachine):
         self.smp = smp
         self.mem = mem
         self.extra_params = extra_params
-        self._re_running = re.compile(r'\d+ +%s +running' % self.name)
+        self._re_running = re.compile(fr'\d+ +{self.name} +running')
         self._addr = None
         self._started = False
         self.image = None
@@ -733,7 +728,7 @@ class LibvirtGuest(BaseMachine):
     def _get_os_variant_rhel(lower, oss):
         out = "".join("".join(lower).split('-', 2)[:-1])
         while True:
-            if re.search(r"%s$" % out, oss, re.MULTILINE):
+            if re.search(fr"{out}$", oss, re.MULTILINE):
                 return out
             if '.' not in out:
                 break
@@ -742,7 +737,7 @@ class LibvirtGuest(BaseMachine):
 
     def _get_os_variant(self, session):
         if not self.distro:
-            raise ValueError("No distro specified %s" % self.distro)
+            raise ValueError(f"No distro specified {self.distro}")
         lower = self.distro.lower()
         oss = session.cmd("osinfo-query os -f short-id", print_func="mute")
         if lower in oss:
@@ -752,13 +747,13 @@ class LibvirtGuest(BaseMachine):
         no_underscore = lower.replace('-', '')
         if no_underscore in oss:
             return no_underscore
-        raise NotImplementedError("Unknown os_variant: %s" % self.distro)
+        raise NotImplementedError(f"Unknown os_variant: {self.distro}")
 
     def get_info(self):
         out = BaseMachine.get_info(self)
-        xml = self.get_host_session().cmd(
-            "virsh dumpxml '%s'" % self.name, print_func="mute",
-            ignore_all_errors=True)
+        xml = self.get_host_session().cmd(f"virsh dumpxml '{self.name}'",
+                                          print_func="mute",
+                                          ignore_all_errors=True)
         out["libvirt_xml_raw"] = xml
         for reg, repl in self.XML_FILTERS:
             xml = reg.sub(repl, xml)
@@ -766,29 +761,27 @@ class LibvirtGuest(BaseMachine):
         return out
 
     def _log_path(self, suffix):
-        return "/var/log/libvirt/%s_%s" % (os.path.basename(self.image),
-                                           suffix)
+        return f"/var/log/libvirt/{os.path.basename(self.image)}_{suffix}"
 
     def start(self):
         """
         Define and start the VM
         """
         if self.is_defined():
-            raise RuntimeError("VM %s already running" % self.name)
+            raise RuntimeError(f"VM {self.name} already running")
         self._started = True
 
         # Always re-create image from base
         session = self.get_host_session()
         fmt = self.extra_params.get("image_format", "qcow2")
         src_fmt = self.base_image.rsplit('.', 1)[-1]
-        image = "%s-%s.%s" % (self.base_image[:-(len(src_fmt) + 1)],
-                              self.name, fmt)
+        image = f"{self.base_image[:-(len(src_fmt) + 1)]}-{self.name}.{fmt}"
         if fmt == src_fmt:
-            session.cmd("\\cp -f %s %s" % (self.base_image, image),
+            session.cmd(f"\\cp -f {self.base_image} {image}",
                         timeout=600)
         else:
-            session.cmd("qemu-img convert -f %s -O %s %s %s"
-                        % (src_fmt, fmt, self.base_image, image),
+            session.cmd(f"qemu-img convert -f {src_fmt} -O {fmt} "
+                        f"{self.base_image} {image}",
                         timeout=600)
         # System might get a bit laggy after huge-file copy, use sync to
         # avoid unresponsive system
@@ -797,31 +790,27 @@ class LibvirtGuest(BaseMachine):
 
         xml = self.extra_params.get("xml", None)
         if xml:
-            session.cmd("cat << \\EOF | virt-xml --edit --disk path=%s | "
+            session.cmd("cat << \\EOF | "
+                        f"virt-xml --edit --disk path={image} | "
                         "virt-xml --edit --disk driver_type=raw | "
-                        "virt-xml --edit --metadata name=%s | "
-                        "virt-xml --edit --metadata uuid=%s > "
-                        "'%s'\n%s\nEOF"
-                        % (image, self.name, uuid.uuid1(),
-                           self._log_path(".xml"), xml))
+                        f"virt-xml --edit --metadata name={self.name} | "
+                        f"virt-xml --edit --metadata uuid={uuid.uuid1()} > "
+                        f"'{self._log_path('.xml')}'\n{xml}\nEOF")
         else:
-            session.cmd("virt-install --import --disk '%s' --memory '%s' "
-                        "--name '%s' --os-variant '%s' --vcpus '%s' --serial "
-                        "file,path='%s' %s --dry-run --print-xml > '%s'"
-                        % (self.image, self.mem, self.name,
-                           self._get_os_variant(session), self.smp,
-                           self._log_path("_serial.log"),
-                           self.extra_params.get('virt-install-extra', ''),
-                           self._log_path(".xml")))
+            session.cmd(f"virt-install --import --disk '{self.image}' "
+                        f"--memory '{self.mem}' --name '{self.name}' "
+                        f"--os-variant '{self._get_os_variant(session)}' "
+                        f"--vcpus '{self.smp}' --serial "
+                        f"file,path='{self._log_path('_serial.log')}' "
+                        f"{self.extra_params.get('virt-install-extra', '')} "
+                        f"--dry-run --print-xml > '{self._log_path('.xml')}'")
         if "qemu_bin" in self.extra_params:
-            session.cmd("echo -e 'cd /domain/devices/emulator\nset %s\nsave' "
-                        "| xmllint --shell '%s'"
-                        % (self.extra_params['qemu_bin'],
-                           self._log_path('.xml')))
+            session.cmd(f"echo -e 'cd /domain/devices/emulator\nset {self.extra_params['qemu_bin']}\n"
+                        f"save' | xmllint --shell '{self._log_path('.xml')}'")
 
         # Finally start the machine
         session.cmd("chown -R qemu:qemu /dev/hugepages/")
-        session.cmd("virsh create '%s'" % self._log_path('.xml'))
+        session.cmd(f"virsh create '{self._log_path('.xml')}'")
 
     def is_running(self):
         """Whether VM is running"""
@@ -831,7 +820,7 @@ class LibvirtGuest(BaseMachine):
     def is_defined(self):
         """Whether VM is defined (not necessary running)"""
         out = self.get_host_session().cmd_output("virsh list --all")
-        return bool(" %s " % self.name in out)
+        return f" {self.name} " in out
 
     def get_addr(self):
         if self._addr is not None:
@@ -841,15 +830,14 @@ class LibvirtGuest(BaseMachine):
         session = self.get_host_session()
         out = ""
         while time.time() < end:
-            out = session.cmd_output("virsh domifaddr %s" % self.name,
+            out = session.cmd_output(f"virsh domifaddr {self.name}",
                                      print_func='mute')
             addrs = self._RE_IPADDR.findall(out)
             if addrs:
                 self.log.debug(out)
                 self._addr = addrs[-1]
                 return self._addr
-        raise RuntimeError("Failed to get %s IP addr in 240s: %s"
-                           % (self.name, out))
+        raise RuntimeError(f"Failed to get {self.name} IP addr in 240s: {out}")
 
     def get_host_addr(self):
         return self.host.get_addr()
@@ -867,25 +855,24 @@ class LibvirtGuest(BaseMachine):
             session = self.get_host_session()
             # Try graceful shutdown first
             if (self.is_defined() and
-                    session.cmd_status("virsh destroy '%s' --graceful"
-                                       % self.name)):
+                    session.cmd_status(f"virsh destroy '{self.name}' "
+                                       "--graceful")):
                 time.sleep(5)
                 # Double-check it does not exists and nuke it
                 if (self.is_defined() and
-                        session.cmd_status("virsh destroy '%s'"
-                                           % self.name)):
+                        session.cmd_status(f"virsh destroy '{self.name}'")):
                     errs.append("destroy")
             if (self.is_defined() and
-                    session.cmd_status("virsh undefine '%s'" % self.name)):
+                    session.cmd_status(f"virsh undefine '{self.name}'")):
                 errs.append("undefine")
             if self.image:
-                session.cmd_status("rm -f '%s' '%s.xml' '/var/log/libvirt/"
-                                   "%s_serial.log'"
-                                   % (self.image, self.image,
-                                      os.path.basename(self.image)))
+                session.cmd_status(f"rm -f '{self.image}' '{self.image}.xml' "
+                                   "'/var/log/libvirt/"
+                                   f"{os.path.basename(self.image)}"
+                                   "_serial.log'")
             self._started = False
             if errs:
-                raise RuntimeError("Cleanup of %s failed" % errs)
+                raise RuntimeError(f"Cleanup of {errs} failed")
         finally:
             if session:
                 session.close()

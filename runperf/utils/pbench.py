@@ -97,11 +97,11 @@ class Dnf:  # pylint: disable=R0903
 
     def _check_test_installed(self):
         """Report whether test pkg is installed"""
-        if not self.session.cmd_status("which %s" % self.test):
+        if not self.session.cmd_status(f"which {self.test}"):
             return True
-        if not self.session.cmd_status("rpm -q %s" % self.test):
+        if not self.session.cmd_status(f"rpm -q {self.test}"):
             return True
-        if not self.session.cmd_status("rpm -q pbench-%s" % self.test):
+        if not self.session.cmd_status(f"rpm -q pbench-{self.test}"):
             return True
         return False
 
@@ -111,12 +111,12 @@ class Dnf:  # pylint: disable=R0903
             return ""
         if self._check_test_installed():
             return ""
-        if self.session.cmd_status("dnf install -y --skip-broken --nobest %s "
-                                   "pbench-%s" % (self.test, self.test)):
-            return "Failed to install %s" % self.test
+        if self.session.cmd_status("dnf install -y --skip-broken --nobest "
+                                   f"{self.test} pbench-{self.test}"):
+            return f"Failed to install {self.test}"
         if self._check_test_installed():
             return ""
-        return "Faled to install %s" % self.test
+        return f"Faled to install {self.test}"
 
 
 def install_on(session, extra=None, test=None):
@@ -130,10 +130,10 @@ def install_on(session, extra=None, test=None):
             out = plugin.install()
             if not out:
                 return
-            errs.append("%s: %s" % (plugin, out))
+            errs.append(f"{plugin}: {out}")
         # We do want to skip unknown failures and proceed with the next plugin
         except Exception as details:  # pylint: disable=W0703
-            errs.append("%s: %s" % (plugin, details))
+            errs.append(f"{plugin}: {details}")
     raise RuntimeError("Failed to install pbench:\n  %s"
                        % "  \n".join(errs))
 

@@ -54,20 +54,20 @@ class BaseProvider:
         :param base_path: Basic path to store images (/var/lib/libvirt/images)
         :return: None when up to date, explanation why not otherwise
         """
-        image_exists = self.session.cmd_status("[ -e '%s' ]" % self.image) == 0
+        image_exists = self.session.cmd_status(f"[ -e '{self.image}' ]") == 0
         if not image_exists:
             return "does not exists"
-        img_pubkey = self.session.cmd_output("[ -e '%s' ] && cat '%s'"
-                                             % (self.pubkey, self.pubkey))
+        img_pubkey = self.session.cmd_output(f"[ -e '{self.pubkey}' ] && "
+                                             f"cat '{self.pubkey}'")
         if img_pubkey.strip() != self.pubkey_content.strip():
             return "has wrong public key"
         if self.setup_script_content:
-            if self.session.cmd_status("[ -e '%s' ]" % self.setup_script):
+            if self.session.cmd_status(f"[ -e '{self.setup_script}' ]"):
                 return "not created with setup script"
-            act = self.session.cmd_output("cat '%s'" % self.setup_script)
+            act = self.session.cmd_output(f"cat '{self.setup_script}'")
             if act.strip() != self.setup_script_content.strip():
                 return "created with a different setup script"
-        elif not self.session.cmd_status("[ -e '%s' ]" % self.setup_script):
+        elif not self.session.cmd_status(f"[ -e '{self.setup_script}' ]"):
             return "created with setup script"
         return ""
 
@@ -91,37 +91,37 @@ class BaseProvider:
         Prepare the image for use
         """
         # To be sure remove image and per-vm images as well
-        self.session.cmd("rm -f %s"
-                         % " ".join(pipes.quote(_) for _ in self.paths))
+        self.session.cmd("rm -f " +
+                         ' '.join(pipes.quote(_) for _ in self.paths))
         # Store shared ssh key to allow checking for the same pub ssh key
         # when reusing the image.
-        self.session.cmd("cat > '%s' << \\EOF\n%s\nEOF"
-                         % (self.pubkey, self.pubkey_content))
+        self.session.cmd(f"cat > '{self.pubkey}' << \\EOF\n"
+                         f"{self.pubkey_content}\nEOF")
         url = self.get_url()
         if not url:
             return "Failed to get download URL"
-        self.session.cmd("curl -L '%s' -o '%s'" % (url, self.image),
+        self.session.cmd(f"curl -L '{url}' -o '{self.image}'",
                          timeout=360)
-        self.session.cmd("chmod 666 '%s'" % self.image)
-        self.session.cmd("truncate -s 20G %s.tmp" % self.image)
-        self.session.cmd("virt-resize --expand $(virt-filesystems --long -a %s"
-                         " | sort -n -k 5 | tail -n 1 | "
-                         "cut -f1 -d' ') %s %s.tmp"
-                         % (self.image, self.image, self.image), timeout=600)
+        self.session.cmd(f"chmod 666 '{self.image}'")
+        self.session.cmd(f"truncate -s 20G {self.image}.tmp")
+        self.session.cmd("virt-resize --expand $(virt-filesystems --long -a "
+                         f"{self.image} | sort -n -k 5 | tail -n 1 | "
+                         f"cut -f1 -d' ') {self.image} {self.image}.tmp",
+                         timeout=600)
         self.session.cmd("qemu-img convert -o preallocation=full -f raw "
-                         "-O qcow2 %s.tmp %s"
-                         % (self.image, self.image), timeout=600)
-        self.session.cmd("rm -Rf %s.tmp" % self.image)
+                         f"-O qcow2 {self.image}.tmp {self.image}",
+                         timeout=600)
+        self.session.cmd(f"rm -Rf {self.image}.tmp")
         # Use "yum -y update" instead of "--update", because of the order the
         # commands are executed (we need repos uploaded)
-        cloudinit = ("virt-customize -v -x -a '%s' --root-password "
-                     "password:%s --ssh-inject 'root:file:%s' "
-                     % (self.image, default_password, self.pubkey))
+        cloudinit = (f"virt-customize -v -x -a '{self.image}' --root-password "
+                     f"password:{default_password} --ssh-inject "
+                     f"'root:file:{self.pubkey}' ")
         cloudinit = self._extend_cloudinit_cmd(cloudinit)
         if self.setup_script_content:
             self.session.cmd(utils.shell_write_content_cmd(
                 self.setup_script, self.setup_script_content))
-            cloudinit += " --run '%s'" % self.setup_script
+            cloudinit += f" --run '{self.setup_script}'"
         self.session.cmd(cloudinit, timeout=720)
         return ""
 
@@ -142,7 +142,7 @@ class Fedora(BaseProvider):
         try:
             release = self.distro.split('-')[-1]
             url = ("https://download.fedoraproject.org/pub/fedora/linux/"
-                   "releases/%s/Cloud/%s/images/" % (release, self.arch))
+                   f"releases/{release}/Cloud/{self.arch}/images/")
             with urlopen(url) as page:
                 imgs = re.findall(br'href="([^"]+\.qcow2)"', page.read())
             if not imgs:

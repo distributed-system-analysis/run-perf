@@ -137,7 +137,7 @@ def comma_separated_ranges_to_list(text):
 def list_of_threads(cpus):
     """How many threads to use depending on no cpus"""
     if cpus < 1:
-        raise ValueError("Cpus needs to be a positive number >=1 (%s)" % cpus)
+        raise ValueError(f"Cpus needs to be a positive number >=1 ({cpus})")
     step = int(cpus / 4)
     if step <= 1:
         step = 1
@@ -145,7 +145,7 @@ def list_of_threads(cpus):
     else:
         out = "1,"
     return (out + ",".join(str(_) for _ in range(step, cpus + 1, step)) +
-            (",%s" % cpus if cpus % step else ""))
+            (f",{cpus}" if cpus % step else ''))
 
 
 def random_string(length):
@@ -184,7 +184,7 @@ def check_output(*args, **kwargs):
         try:
             return subprocess.check_output(*args, **kwargs).decode("utf-8")  # nosec
         except subprocess.CalledProcessError as exc:
-            raise RuntimeError("%s\n%s" % (exc, exc.output)) from exc
+            raise RuntimeError(f"{exc}\n{exc.output}") from exc
 
 
 def wait_for(func, timeout, step=1.0, args=None, kwargs=None):
@@ -265,7 +265,7 @@ def iter_tabular_output(matrix, header=None):
         out = []
         padding = [" " * (lengths[i] - row_lens[i])
                    for i in range(len(row_lens))]
-        out = ["%s%s" % line for line in zip(row, padding)]
+        out = ["".join(line) for line in zip(row, padding)]
         try:
             out.append(row[-1])
         except IndexError:
@@ -318,9 +318,9 @@ def ssh_copy_id(log, addr, passwords, hop=None):
     session = None
     try:
         cmd = ("ssh-copy-id -o StrictHostKeyChecking=no -o ControlMaster=auto "
-               "-o ControlPath='/var/tmp/%%r@%%h-%%p' "
+               "-o ControlPath='/var/tmp/%r@%h-%p' "
                "-o ControlPersist=60 -o UserKnownHostsFile=/dev/null "
-               "root@%s" % addr)
+               f"root@{addr}")
         if hop:
             cmd = hop.get_ssh_cmd() + " -t " + cmd
         session = aexpect.Expect(cmd, output_func=log.debug,
@@ -355,9 +355,8 @@ def shell_write_content_cmd(path, content, append=False):
         eof = random_string(6)
         if eof + '\n' not in content:
             break
-    return ("cat %s %s << \\%s\n%s\n%s" % (">>" if append else ">",
-                                           pipes.quote(path), eof, content,
-                                           eof))
+    return (f"cat {'>>' if append else '>'} {pipes.quote(path)} << "
+            f"\\{eof}\n{content}\n{eof}")
 
 
 def shell_find_command(session, command):
@@ -369,7 +368,7 @@ def shell_find_command(session, command):
     :return: path or empty string when not found
     """
     stat, out = session.cmd_status_output("which --skip-alias --skip-functions"
-                                          " %s 2>/dev/null" % command)
+                                          f" {command} 2>/dev/null")
     if stat == 0:
         return out.strip()
     return ''
@@ -385,12 +384,12 @@ def wait_for_machine_calms_down(session, timeout=600):
     """
     # wait until the machine settles down
     try:
-        if not session.cmd_status('( END="$(expr $(date \'+%%s\') + %s)"; '
-                                  'while [ "$(date \'+%%s\')" -lt "$END" ]; '
-                                  'do [ "$(cat /proc/loadavg | cut -d\' \' -f1'
-                                  ' | cut -d\'.\' -f1)" -eq 0 ] && exit 0; '
-                                  'sleep 5; done; exit 1 )' % timeout,
-                                  timeout=timeout + 11):
+        if not session.cmd_status(
+                f'( END="$(expr $(date \'+%s\') + {timeout})"; '
+                'while [ "$(date \'+%s\')" -lt "$END" ]; '
+                'do [ "$(cat /proc/loadavg | cut -d\' \' -f1'
+                ' | cut -d\'.\' -f1)" -eq 0 ] && exit 0; '
+                'sleep 5; done; exit 1 )', timeout=timeout + 11):
             return True
     except aexpect.ShellTimeoutError:
         pass
@@ -419,9 +418,8 @@ def named_entry_point(group, loaded_name):
         plugin = entry.load()
         if plugin.name == loaded_name:
             return plugin
-    raise KeyError("No plugin provider for %s:%s (%s)"
-                   % (group, loaded_name,
-                      ",".join(str(_) for _ in sorted_entry_points(group))))
+    raise KeyError(f"No plugin provider for {group}:{loaded_name} "
+                   f"({','.join(str(_) for _ in sorted_entry_points(group))})")
 
 
 def record_failure(path, exc, paths=None, details=None):
@@ -437,7 +435,7 @@ def record_failure(path, exc, paths=None, details=None):
                   path)
     for i in range(1000):
         try:
-            errpath = os.path.join(path, '__error%d__' % i)
+            errpath = os.path.join(path, f'__error{i}__')
             os.makedirs(errpath)
             break
         except FileExistsError:

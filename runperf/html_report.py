@@ -39,8 +39,7 @@ def anonymize_test_params(lines):
     out = []
     for line in lines:
         if line.startswith("clients:"):
-            out.append("clients:<anonymized-count-only>%s"
-                       % (line.count(',') + 1))
+            out.append(f"clients:<anonymized-count-only>{line.count(',') + 1}")
         else:
             out.append(line)
     return out
@@ -63,7 +62,7 @@ class KnownItems:
         self.add(value)
         num = self.items.index(value)
         if num < 0:
-            raise ValueError("Positive numbers only (%s)" % num)
+            raise ValueError(f"Positive numbers only ({num})")
         out = []
         while True:
             if num <= 25:
@@ -133,17 +132,16 @@ def generate_report(path, results, with_charts=False, small_file=False):
                     continue
                 if inner_diff:
                     diff_section_cnt += 1
-                    diff.append("\n%s\n%s\n%s"
-                                % (section, "=" * len(section),
-                                   inner_diff))
+                    diff.append(f"\n{section}\n{'=' * len(section)}"
+                                f"\n{inner_diff}")
 
             missing_dst = set(src.keys()).difference(environment.keys())
             if any((missing_src, missing_dst)):
                 diff_section_cnt += len(missing_src)
                 diff_section_cnt += len(missing_dst)
                 diff.append("\nList of missing keys\n=====================")
-                diff.extend("+%s MISSING IN SRC" % _ for _ in missing_src)
-                diff.extend("-%s MISSING IN DST" % _ for _ in missing_dst)
+                diff.extend(f"+{_} MISSING IN SRC" for _ in missing_src)
+                diff.extend(f"-{_} MISSING IN DST" for _ in missing_dst)
             return raw_value, "\n".join(diff), diff_section_cnt
 
         def process_diff_environemnt(env, dst_env):
@@ -164,7 +162,7 @@ def generate_report(path, results, with_charts=False, small_file=False):
                         _build_diff = generate_build_diff(this_env, src)
                         this_env, this_diff, diff_section_cnt = _build_diff
                     else:
-                        this_diff = "+%s PROFILE MISSING IN SRC" % profile
+                        this_diff = f"+{profile} PROFILE MISSING IN SRC"
                         diff_section_cnt = -1
                     build_env[profile].append(this_env)
                     build_diff[profile].append(this_diff)
@@ -188,8 +186,8 @@ def generate_report(path, results, with_charts=False, small_file=False):
                 if key.startswith("environment_profile_"):
                     profile = key[20:]
                     if profile in env:
-                        raise ValueError("Profile clashes with other env: %s"
-                                         % json.dumps(metadata))
+                        raise ValueError("Profile clashes with other env: "
+                                         f"{json.dumps(metadata)}")
                     env[profile] = json.loads(value)
                     profiles.append(profile)
             return env, profiles
@@ -230,7 +228,7 @@ def generate_report(path, results, with_charts=False, small_file=False):
             for profile, per_machine_diffs in build["environment_diff"].items():
                 build["environment_short"][profile] = []
                 for diff in per_machine_diffs:
-                    known_item = known_items["env %s" % profile]
+                    known_item = known_items[f"env {profile}"]
                     build["environment_short"][profile].append(
                         known_item.get_short(diff))
             return build
@@ -250,13 +248,13 @@ def generate_report(path, results, with_charts=False, small_file=False):
             facts = []
             total = len(results)
             if failures:
-                facts.append("Failed in %s out of %s reference builds"
-                             % (failures, total))
+                facts.append(f"Failed in {failures} out of {total} reference "
+                             "builds")
             if missing:
-                facts.append("Not present in %s out of %s reference builds"
-                             % (missing, total))
+                facts.append(f"Not present in {missing} out of {total} "
+                             "reference builds")
             if not (failures or missing):
-                facts.append("Passed in all %s reference builds" % total)
+                facts.append(f"Passed in all {total} reference builds")
             return facts
 
         def anonymize_test_params_dict(params):
@@ -301,7 +299,7 @@ def generate_report(path, results, with_charts=False, small_file=False):
                                  0.1 * build["non_primary_failures"])
             builds.append(build)
         if build is None:
-            raise ValueError("No results in %s" % results)
+            raise ValueError(f"No results in {results}")
 
         # DST
         dst = builds[0]
@@ -310,8 +308,7 @@ def generate_report(path, results, with_charts=False, small_file=False):
         list_of_stddev_failures = []
         for record in dst_res.records:
             if record.status < 0 and record.primary:
-                failure = {"summary": "%s -> %s" % (record.name,
-                                                    record.details),
+                failure = {"summary": f"{record.name} -> {record.details}",
                            "facts": get_failed_facts(record, results)}
                 if not record.is_stddev():
                     list_of_failures.append(failure)
@@ -322,8 +319,7 @@ def generate_report(path, results, with_charts=False, small_file=False):
         list_of_group_stddev_results = []
         for record in dst_res.grouped_records:
             if record.status < 0:
-                failure = {"summary": "%s -> %s" % (record.name,
-                                                    record.details),
+                failure = {"summary": f"{record.name} -> {record.details}",
                            "facts": get_failed_facts(record, results,
                                                      "grouped_records")}
                 if not record.is_stddev():
@@ -363,11 +359,11 @@ def generate_report(path, results, with_charts=False, small_file=False):
 
         def generate_data_serie(data):
             """Generate min/1st/median/3rd/max values for a data serie"""
-            return [[float("%.2f" % numpy.min(_)),
-                     float("%.2f" % numpy.percentile(_, 25)),
-                     float("%.2f" % numpy.median(_)),
-                     float("%.2f" % numpy.percentile(_, 75)),
-                     float("%.2f" % numpy.max(_))]
+            return [[float(f"{numpy.min(_):.2f}"),
+                     float(f"{numpy.percentile(_, 25):.2f}"),
+                     float(f"{numpy.median(_):.2f}"),
+                     float(f"{numpy.percentile(_, 75):.2f}"),
+                     float(f"{numpy.max(_):.2f}")]
                     if _ else [0, 0, 0, 0, 0]
                     for _ in data]
 
@@ -418,15 +414,15 @@ def generate_report(path, results, with_charts=False, small_file=False):
         #######################################################################
         # Counts
         for i, check in enumerate(("mean", "stddev")):
-            charts.append("Overall %s" % check)
-            chart = {"id": "counts_%s" % check,
+            charts.append(f"Overall {check}")
+            chart = {"id": f"counts_{check}",
                      "type": "area",
-                     "description": "Displays number of %s checks per result "
-                                    "status" % check,
+                     "description": (f"Displays number of {check} checks per "
+                                     "result status"),
                      "xAxis": list(results.results.keys()),
                      "xAxisDescription": "Builds",
-                     "yAxisDescription": ("Number of %s results per category"
-                                          % check),
+                     "yAxisDescription": (f"Number of {check} results per "
+                                          "category"),
                      "stacked": True,
                      "backgroundColor": C_BG_STDDEV if i else C_BG_MEAN,
                      "series": [{"name": "improvements",
@@ -452,10 +448,10 @@ def generate_report(path, results, with_charts=False, small_file=False):
             # Overall
             all_equals = [equals[i][_] + m_improvements[i][_] +
                           m_regressions[i][_] for _ in range(len(equals[i]))]
-            chart = {"id": "overall_%s_cont" % check,
+            chart = {"id": f"overall_{check}_cont",
                      "type": "boxplot",
-                     "description": "Displays min/max/avg values per each %s "
-                                    "result status" % check,
+                     "description": "Displays min/max/avg values per each "
+                                    f"{check} result status",
                      "xAxis": list(results.results.keys()),
                      "xAxisDescription": "Builds",
                      "yAxisDescription": "Percentage gain/loss",
@@ -511,10 +507,11 @@ def generate_report(path, results, with_charts=False, small_file=False):
                 regressions.append(_regressions)
                 errors.append(_errors)
             for name in sorted(names):
-                chart = {"id": "%s_counts" % re.sub(r"[^A-Za-z_]+", '_', name),
+                safe_name = re.sub(r"[^A-Za-z_]+", '_', name)
+                chart = {"id": f"{safe_name}_counts",
                          "type": "area",
                          "description": "Displays number of checks per result "
-                                        "status of %s tests" % name,
+                                        f"status of {name} tests",
                          "xAxis": list(results.results.keys()),
                          "xAxisDescription": "Builds",
                          "yAxisDescription": "Number of results per category",
@@ -533,10 +530,10 @@ def generate_report(path, results, with_charts=False, small_file=False):
                                      "color": "lightpink",
                                      "data": [_[name] for _ in errors]}]}
                 charts.append(chart)
-                chart = {"id": "%s_overall_cont" % re.sub(r"[^A-Za-z_]+", '_', name),
+                chart = {"id": f"{safe_name}_overall_cont",
                          "type": "boxplot",
                          "description": "Displays min/max/avg values per "
-                                        "result status of %s test" % name,
+                                        f"result status of {name} test",
                          "xAxis": list(results.results.keys()),
                          "xAxisDescription": "Builds",
                          "yAxisDescription": "Percentage gain/loss",
@@ -573,16 +570,15 @@ def generate_report(path, results, with_charts=False, small_file=False):
             else:
                 diff = "+MISSING IN SRC"
             if diff:
-                params_diff.append("%s\n%s\n%s"
-                                   % (key, "=" * len(str(key)), diff))
+                params_diff.append(f"{key}\n{'=' * len(str(key))}\n{diff}")
         for key, value in src_params.items():
             if key in record.params:
                 continue
             if not value:
                 continue
             params_raw[key] = ""
-            params_diff.append("%s\n%s\n-MISSING IN THIS PARAMS"
-                               % (key, "=" * len(str(key))))
+            params_diff.append(f"{key}\n{'=' * len(str(key))}\n"
+                               "-MISSING IN THIS PARAMS")
         return params_raw, "\n".join(params_diff)
 
     def generate_builds_statuses(results, values, small_file):
@@ -613,14 +609,14 @@ def generate_report(path, results, with_charts=False, small_file=False):
                 param_diff = get_build_param_diff(src_params, record)
                 this_result_diff[record.name] = param_diff[1]
                 statuses[record.name][i] = (record.status, record.details,
-                                            "%.1f" % record.score, param_diff)
+                                            f"{record.score:.1f}", param_diff)
             for record in res.grouped_records:
                 if not record.primary:
                     continue
                 if record.name not in grp_statuses:
                     grp_statuses[record.name] = {}
                 grp_statuses[record.name][i] = (record.status, record.details,
-                                                "%.1f" % record.score)
+                                                f"{record.score:.1f}")
             if small_file:
                 _values = ""
             else:

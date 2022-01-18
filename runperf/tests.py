@@ -59,8 +59,8 @@ class BaseTest:
     def run(self):
         """Run the testing"""
         if len(self.workers) < self.min_groups:
-            msg = ("Not enough groups of workers (%s < %s)"
-                   % len(self.workers), self.min_groups)
+            msg = (f"Not enough groups of workers ({len(self.workers)} < "
+                   "{self.min_groups})")
             with open(os.path.join(self.output, "SKIP"), 'w') as skip:
                 skip.write(msg)
             raise exceptions.TestSkip("msg")
@@ -92,7 +92,7 @@ class BaseTest:
                               for worker in workers}
         meta['workers'] = str_workers
         dir_path = os.path.dirname(path)
-        if session.cmd_status("[ -d '%s' ]" % dir_path) == 0:
+        if session.cmd_status(f"[ -d '{dir_path}' ]") == 0:
             result_path = os.path.join(dir_path, "RUNPERF_METADATA.json")
             results_json = json.dumps(meta, indent=4, sort_keys=True)
             session.cmd(utils.shell_write_content_cmd(result_path,
@@ -120,6 +120,7 @@ class DummyTest(BaseTest):
                 result.write(src.read() % {"hostname": self.host.get_addr()})
         with self.host.get_session_cont() as session:
             self.inject_metadata(session, result_path)
+
 
 class PBenchTest(BaseTest):
     """
@@ -170,10 +171,9 @@ class PBenchTest(BaseTest):
                 else:
                     raise RuntimeError("Unable to get number of workers from "
                                        f" {self.workers!r}")
-            self.args += " --%s=%s" % (key, value)
-        self._cmd = ("pbench-%s %s --clients=%s" %
-                     (self.test, self.args,
-                      ",".join(_.get_addr() for _ in self.workers[0])))
+            self.args += f" --{key}={value}"
+        self._cmd = (f"pbench-{self.test} {self.args} "
+                     f"--clients={','.join(_.get_addr() for _ in self.workers[0])}")
 
     def setup(self):
         def install_pbench(host, metadata, test):
@@ -188,7 +188,7 @@ class PBenchTest(BaseTest):
                 install_pbench(self.host, self.metadata, self.test)
                 break
         else:
-            name = "host %s" % self.host.name
+            name = f"host {self.host.name}"
             remotes.add(self.host)
             threads.append(utils.ThreadWithStatus(target=install_pbench,
                                                   name=name,
@@ -198,7 +198,7 @@ class PBenchTest(BaseTest):
         for workers in self.workers:
             for worker in workers:
                 remotes.add(worker)
-                name = "worker %s" % worker.name
+                name = f"worker {worker.name}"
                 threads.append(utils.ThreadWithStatus(target=install_pbench,
                                                       name=name,
                                                       args=(worker,
@@ -212,9 +212,9 @@ class PBenchTest(BaseTest):
         if failed:
             for thread in failed:
                 if thread.exc:
-                    raise RuntimeError("Failed to install pbench on %s"
-                                       % failed) from thread.exc
-                raise RuntimeError("Failed to install pbench on %s" % failed)
+                    raise RuntimeError("Failed to install pbench on "
+                                       f"{failed}") from thread.exc
+                raise RuntimeError(f"Failed to install pbench on {failed}")
         # Register the tools for all workers
         with self.host.get_session_cont() as session:
             pbench.register_tools(session, self.pbench_tools, remotes)
@@ -245,7 +245,7 @@ class PBenchTest(BaseTest):
                 session.cmd("true")
                 benchmark_bin = utils.shell_find_command(session, self.test)
                 if benchmark_bin:
-                    prefix = "benchmark_bin=%s " % benchmark_bin
+                    prefix = f"benchmark_bin={benchmark_bin} "
                 else:
                     prefix = ""
                 # FIXME: Return this when https://github.com/distributed
@@ -261,23 +261,23 @@ class PBenchTest(BaseTest):
                                if line.strip().isdigit()]
                 if digit_lines:
                     if int(digit_lines[0].strip()) != 0:
-                        raise RuntimeError("Execution failed %s" % digit_lines)
+                        raise RuntimeError(f"Execution failed {digit_lines}")
                 else:
                     raise RuntimeError("Failed to get status")
                 src = session.cmd_output("echo $(ls -dt /var/lib/pbench-agent/"
-                                         "%s__*/ | head -n 1)"
-                                         % self.test).strip()
+                                         f"{self.test}__*/ | "
+                                         "head -n 1)").strip()
                 self.inject_metadata(session, os.path.join(src, "result.json"))
                 if self.pbench_publish:
                     extra_args = []
                     user = self.metadata.get("project")
                     if user:
-                        extra_args.append("--user %s" % user)
+                        extra_args.append(f"--user {user}")
                     prefix = self.metadata.get("build")
                     if prefix:
-                        extra_args.append("--prefix %s" % prefix)
-                    session.cmd("pbench-copy-results %s"
-                                % " ".join(extra_args), timeout=600)
+                        extra_args.append(f"--prefix {prefix}")
+                    session.cmd(f"pbench-copy-results {' '.join(extra_args)}",
+                                timeout=600)
                 self.host.copy_from(src, self.output)
         except Exception:
             if src:
@@ -317,8 +317,8 @@ class Linpack(PBenchTest):
         # pbench-run-benchmark as pbench-linpack does not provides json results
         self._cmd = ("ANSIBLE_HOST_KEY_CHECKING=false "
                      "ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3 "
-                     "pbench-run-benchmark %s %s"
-                     % (self.test, self._cmd.split(' ', 1)[1]))
+                     f"pbench-run-benchmark {self.test} "
+                     f"{self._cmd.split(' ', 1)[1]}")
 
     def _run(self):
         if self.__detect_linpack_bin:
@@ -338,7 +338,7 @@ class Linpack(PBenchTest):
                         raise exceptions.TestSkip("No linpack binary found on "
                                                   "host")
                     linpack_bin = linpack_bin.splitlines()[0]
-                self._cmd += " --linpack-binary='%s'" % linpack_bin
+                self._cmd += f" --linpack-binary='{linpack_bin}'"
         PBenchTest._run(self)
 
 
@@ -363,8 +363,8 @@ class UPerf(PBenchTest):
         super().__init__(host, workers, base_output_path, metadata, extra)
         # FIXME: Workaround missing perl paths
         self._cmd = ("PERL5LIB=/opt/pbench-agent/tool-scripts/postprocess/:"
-                     "/opt/pbench-agent/bench-scripts/postprocess/ %s"
-                     % self._cmd)
+                     "/opt/pbench-agent/bench-scripts/postprocess/ "
+                     f"{self._cmd}")
         # FIXME: Ugly IPv4-libvirt-bridge-only hack to use main host
         addrs = []
         for worker in self.workers[0]:
@@ -372,7 +372,7 @@ class UPerf(PBenchTest):
             utils.ssh_copy_id(self.host.log, addr, host.default_passwords,
                               self.host)
             addrs.append(addr)
-        self._cmd += (" --servers %s" % (",".join(addrs)))
+        self._cmd += (f" --servers {','.join(addrs)}")
 
 
 class PBenchNBD(PBenchFio):
@@ -409,22 +409,20 @@ class PBenchNBD(PBenchFio):
                 with worker.get_session_cont() as session:
                     session.cmd("mkdir -p " + self.base_path)
                     session.cmd(fio_check_tpl)
-                    ret = session.cmd_status("fio --parse-only %s/"
-                                             "nbd-check.fio" % self.base_path)
+                    ret = session.cmd_status(
+                        f"fio --parse-only {self.base_path}/nbd-check.fio")
                     if ret:
-                        raise exceptions.TestSkip("Fio %s does not support "
-                                                  "ioengine=nbd on worker %s"
-                                                  % (session.cmd("which fio"),
-                                                     worker))
-                    session.cmd("truncate -s 256M %s/disk.img" % self.base_path)
-                    session.cmd("nohup qemu-nbd -t -k %s/socket"
-                                " -f raw %s/disk.img &> "
-                                "$(mktemp %s/qemu_nbd_XXXX.log)"
-                                " & echo $! >> %s/kill_pids"
-                                % ((self.base_path,) * 4))
+                        raise exceptions.TestSkip(
+                            f"Fio {session.cmd('which fio')} does not support "
+                            f"ioengine=nbd on worker {worker}")
+                    session.cmd(f"truncate -s 256M {self.base_path}/disk.img")
+                    session.cmd(f"nohup qemu-nbd -t -k {self.base_path}/socket"
+                                f" -f raw {self.base_path}/disk.img &> "
+                                f"$(mktemp {self.base_path}/qemu_nbd_XXXX.log)"
+                                f" & echo $! >> {self.base_path}/kill_pids")
                     # Sometimes nohup is not enough, use disown
-                    session.cmd("for PID in $(cat %s/kill_pids); do "
-                                "disown -h $PID; done" % self.base_path)
+                    session.cmd(f"for PID in $(cat {self.base_path}/kill_pids)"
+                                "; do disown -h $PID; done")
         with self.host.get_session_cont(hop=self.host) as session:
             session.cmd("mkdir -p " + self.base_path)
             session.cmd(fio_tpl)
@@ -433,14 +431,15 @@ class PBenchNBD(PBenchFio):
         for workers in self.workers:
             for worker in workers:
                 with worker.get_session_cont() as session:
-                    pids = session.cmd("cat %s/kill_pids 2>/dev/null || true"
-                                       % self.base_path)
+                    pids = session.cmd(f"cat {self.base_path}/kill_pids "
+                                       "2>/dev/null || true")
                     for pid in pids.splitlines():
-                        session.cmd_status("kill -9 '%s'" % pid)
+                        session.cmd_status(f"kill -9 '{pid}'")
                     session.cmd("rm -Rf " + self.base_path)
         with self.host.get_session_cont(hop=self.host) as session:
-            session.cmd("rm -Rf %s" % self.base_path)
+            session.cmd(f"rm -Rf {self.base_path}")
         PBenchFio.cleanup(self)
+
 
 def get(name, extra):
     """
