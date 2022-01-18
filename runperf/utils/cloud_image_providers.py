@@ -95,8 +95,8 @@ class BaseProvider:
                          ' '.join(pipes.quote(_) for _ in self.paths))
         # Store shared ssh key to allow checking for the same pub ssh key
         # when reusing the image.
-        self.session.cmd(f"cat > '{self.pubkey}' << \\EOF\n"
-                         f"{self.pubkey_content}\nEOF")
+        self.session.cmd(utils.shell_write_content_cmd(self.pubkey,
+                                                       self.pubkey_content))
         url = self.get_url()
         if not url:
             return "Failed to get download URL"
