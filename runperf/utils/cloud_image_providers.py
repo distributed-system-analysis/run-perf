@@ -90,7 +90,6 @@ class BaseProvider:
         """
         Prepare the image for use
         """
-        # TODO: Treat exceptions
         # To be sure remove image and per-vm images as well
         self.session.cmd("rm -f %s"
                          % " ".join(pipes.quote(_) for _ in self.paths))
@@ -144,7 +143,8 @@ class Fedora(BaseProvider):
             release = self.distro.split('-')[-1]
             url = ("https://download.fedoraproject.org/pub/fedora/linux/"
                    "releases/%s/Cloud/%s/images/" % (release, self.arch))
-            imgs = re.findall(br'href="([^"]+\.qcow2)"', urlopen(url).read())
+            with urlopen(url) as page:
+                imgs = re.findall(br'href="([^"]+\.qcow2)"', page.read())
             if not imgs:
                 return False
             img = imgs[-1].decode('utf-8')

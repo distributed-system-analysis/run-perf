@@ -214,6 +214,9 @@ class BaseProfile:
         raise NotImplementedError
 
     def fetch_logs(self, path):
+        """
+        Fetch useful data from all workers as well as host.
+        """
         self._refresh_session()
         self.log_fetcher.collect(path, self.host)
         for worker in self.workers:
@@ -262,8 +265,6 @@ class PersistentProfile(BaseProfile):
             self._grub_args = set()
         for arg in extra.get("grub_args", []):
             self._grub_args.add(arg)
-        # TODO: Add extra handling of our arguments in Baseclass similarly to
-        # DefaultLibvirt
         if 'irqbalance' in extra:
             self._irqbalance = extra['irqbalance']
         if 'tuned_adm_profile' in extra:
@@ -532,7 +533,7 @@ class DefaultLibvirt(PersistentProfile):
                            % (self._guest["distro"], providers))
 
     def _start_vms(self):
-        from . import machine
+        from . import machine   # py2 issue pylint: disable=C0415
         if not self._guest.get('guest_mem'):
             self._guest['guest_mem'] = int(self.host.params['guest_mem_m'] /
                                            self._guest['no_vms'])

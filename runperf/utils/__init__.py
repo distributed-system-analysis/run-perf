@@ -15,22 +15,22 @@
 # Some of the methods are inspired by https://github.com/avocado-framework/
 #     avocado/tree/master/avocado/utils
 import errno
+import hashlib
 import itertools
 import logging
 import os
 import pipes
 import random
+import shutil
 import string
 import subprocess  # nosec
 import sys
 import threading
 import time
+import traceback
+import pkg_resources
 
 import aexpect
-import pkg_resources
-import traceback
-import hashlib
-import shutil
 
 
 # : String containing all fs-unfriendly chars (Windows-fat/Linux-ext3)
@@ -54,7 +54,7 @@ class ThreadWithStatus(threading.Thread):
         try:
             super().run()
             self.completed = True
-        except BaseException as exc:  # lgtm [py/catch-base-exception]
+        except BaseException as exc:  # lgtm [py/catch-base-exception] pylint: disable=W0703
             self.exc = exc
 
 
@@ -423,6 +423,7 @@ def named_entry_point(group, loaded_name):
                    % (group, loaded_name,
                       ",".join(str(_) for _ in sorted_entry_points(group))))
 
+
 def record_failure(path, exc, paths=None, details=None):
     """
     Record details about exception in a dir structure
@@ -460,6 +461,7 @@ def record_failure(path, exc, paths=None, details=None):
             fd_details.write(details)
     return errpath
 
+
 def list_dir_hashes(path):
     """
     Recursively hashes all files inside the path and reports them as a dict
@@ -477,9 +479,10 @@ def list_dir_hashes(path):
                     for chunk in iter(lambda: fd_curfile.read(4096), b""):
                         sha.update(chunk)
                 entries[os.path.relpath(curpath, path)] = sha.hexdigest()
-            except Exception:
+            except Exception:  # pylint: disable=W0703
                 entries[os.path.relpath(curpath, path)] = 'ERROR READING'
     return entries
+
 
 class LogFetcher:
     """
@@ -495,7 +498,8 @@ class LogFetcher:
         self.cmds = set(cmds) if cmds else set(["journalctl --no-pager "
                                                 "--since=@%(since)s"])
 
-    def collect_files(self, out_path, host, paths):
+    @staticmethod
+    def collect_files(out_path, host, paths):
         """Fetch files from `host`"""
         for path in paths:
             try:
@@ -508,7 +512,7 @@ class LogFetcher:
                 except FileExistsError:
                     pass
                 host.copy_from(path, dst)
-            except Exception:
+            except Exception:  # pylint: disable=W0703
                 pass
 
     def collect_cmds(self, out_path, host, cmds):
@@ -533,9 +537,9 @@ class LogFetcher:
                         with open(path, 'w') as out_fd:
                             out_fd.write(session.cmd_output(cmd % self.params,
                                                             print_func='mute'))
-                    except Exception:
+                    except Exception:  # pylint: disable=W0703
                         pass
-        except Exception:
+        except Exception:  # pylint: disable=W0703
             pass
         self.params["since"] = since
 

@@ -28,10 +28,9 @@ import time
 
 import aexpect
 
-from . import exceptions, tests, result
+from . import exceptions, tests, result, utils
 from .machine import Controller
 from .version import __version__
-from runperf import utils
 
 PROG = 'run-perf'
 DESCRIPTION = ("A tool to execute the same tasks on pre-defined scenarios/"
@@ -278,7 +277,7 @@ def main():
         hosts.setup()
         try:
             hosts.fetch_logs(os.path.join(args.output, '__sysinfo_before__'))
-        except Exception as exc:
+        except Exception as exc:    # pylint: disable=W0703
             utils.record_failure(os.path.join(args.output,
                                               '__sysinfo_before__'), exc)
         for profile, profile_args in args.profiles:
@@ -293,7 +292,7 @@ def main():
                 except exceptions.StepFailed:
                     try:
                         hosts.revert_profile()
-                    except Exception:
+                    except Exception:   # pylint: disable=W0703
                         pass
             else:
                 log.error("ERROR applying profile %s, all tests will be "
@@ -321,7 +320,7 @@ def main():
             try:
                 hosts.fetch_logs(os.path.join(args.output, profile,
                                               '__sysinfo__'))
-            except Exception as exc:
+            except Exception as exc:    # pylint: disable=W0703
                 utils.record_failure(os.path.join(args.output, profile), exc)
             # Revert profile changes. In case manual reboot is required return
             # non-zero.
@@ -338,7 +337,6 @@ def main():
             log.error("Exception %s, cleaning up resources", exc)
             if hosts:
                 hosts.cleanup()
-        # TODO: Treat hanging background threads
         if len(threading.enumerate()) > 1:
             threads = threading.enumerate()
             if any("pydevd.Reader" in str(_) for _ in threads):
@@ -578,11 +576,11 @@ class AnalyzePerf:
         stddev_regression = None
         try:
             if args.csv:
-                csv = open(args.csv, 'w')
+                csv = open(args.csv, 'w')  # pylint: disable=R1732
             if args.linear_regression:
-                linear_regression = open(args.linear_regression, 'w')
+                linear_regression = open(args.linear_regression, 'w')  # pylint: disable=R1732
             if args.stddev_linear_regression:
-                stddev_regression = open(args.stddev_linear_regression, 'w')
+                stddev_regression = open(args.stddev_linear_regression, 'w')  # pylint: disable=R1732
             result_names = sorted(result_names)
             if csv:
                 csv.write("test,%s" % ",".join(csv_safe_str(_)

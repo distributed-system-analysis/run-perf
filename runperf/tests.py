@@ -106,6 +106,9 @@ class BaseTest:
 
 
 class DummyTest(BaseTest):
+    """
+    Dummy test intended for selftesting
+    """
     name = "DummyTest"
 
     def _run(self):

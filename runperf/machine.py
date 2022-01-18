@@ -36,7 +36,6 @@ HOST_KEYS = {'hugepage_kb', 'numa_nodes', 'host_cpus',
              'guest_cpus', 'guest_mem_m', 'arch'}
 
 
-# TODO: Move this to `runperf.machine.distro_info` namespace
 def get_distro_info(machine):
     """Various basic sysinfo"""
     out = {"general": "Name:%s\nDistro:%s" % (machine.name,
@@ -373,7 +372,6 @@ class Controller:
 
     def write_metadata(self, key, value):
         """Append the key:value to the RUNPERF_METADATA file"""
-        # TODO: Consider replacing previously existing entries
         with open(os.path.join(self._output_dir, "RUNPERF_METADATA"),
                   'a') as out:
             out.write("\n%s:" % key)
@@ -397,7 +395,7 @@ class Controller:
                     err_path = utils.record_failure(self._output_dir, exc)
                     try:
                         self.fetch_logs(err_path)
-                    except Exception:
+                    except Exception:   # pylint: disable=W0703
                         pass
                     raise exceptions.StepFailed from exc
             return wrapper
@@ -428,7 +426,6 @@ class Controller:
         # Collect information about the profile in case it was applied
         if self.profile is not None:
             env = []
-            # TODO: Consider doing this in parallel
             for host in self.hosts:
                 try:
                     env.append(host.profile.get_info())
@@ -609,7 +606,8 @@ class Host(BaseMachine):
             session.sendline("reboot")
         time.sleep(10)
         with self.get_session_cont(360):
-            """Just checking whether it's obtainable"""
+            # Just checking whether it's obtainable
+            pass
         self.log.debug("  Reboot DONE")
         self.reboot_request = False
 

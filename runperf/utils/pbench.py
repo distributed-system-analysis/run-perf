@@ -12,11 +12,11 @@
 #
 # Copyright: Red Hat Inc. 2020
 # Author: Lukas Doktor <ldoktor@redhat.com>
+import collections
 import os
 
 from . import shell_write_content_cmd
-import collections
-from runperf.utils import sorted_entry_points
+from ..utils import sorted_entry_points
 
 
 class Dnf:  # pylint: disable=R0903

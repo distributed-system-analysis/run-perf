@@ -434,6 +434,7 @@ class Result:
             self.good.append(msg)
 
     def add_bad(self, suffix, name, details, difference, weight, src=None):
+        """Add a bad result"""
         self._add(difference, weight, src)
         self.error.append(f"{name}{suffix} {details}")
 
@@ -546,6 +547,13 @@ def iter_results(path, skip_incorrect=False):
 
 
 class Modifier:
+    """
+    Base class for post-analysis modification of results.
+
+    For every reference build the `add_result` is called and the final result
+    is then checked using the `check_result` method and appended as a new
+    metrics to the test result.
+    """
     # Weight of this modifier
     weight = 0
 
@@ -1039,7 +1047,7 @@ def closest_result(src_path, dst_paths):
     :param src_path: Path to the src result
     :param dst_paths: List of paths to results we are comparing to
     """
-    def norm_normpdf(x, mean, sd):
+    def norm_normpdf(x, mean, sd):  # Using math symbols pylint: disable=C0103
         """
         Normalized normal probability density function
 
