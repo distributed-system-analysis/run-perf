@@ -96,7 +96,7 @@ def read_file(path):
     """
     if not os.path.exists(path):
         return -1
-    with open(path, 'r') as fd_path:
+    with open(path, 'r', encoding="utf-8") as fd_path:
         return fd_path.read()
 
 
@@ -112,7 +112,7 @@ def write_file(path, content, mode='w'):
             except OSError as exc:
                 if exc.errno != errno.EEXIST:  # It was just created
                     raise
-    with open(path, mode) as fd_path:
+    with open(path, mode, encoding="utf-8") as fd_path:
         fd_path.write(content)
 
 
@@ -168,7 +168,7 @@ def check_output(*args, **kwargs):
                    * when stderr is not present, subprocess.STDOUT is used
     :raise RuntimeError: In case of subprocess.CalledProcessError
     """
-    with open(os.devnull, "r+") as devnull:
+    with open(os.devnull, "r+", encoding="utf-8") as devnull:
         if "stderr" not in kwargs:
             kwargs["stderr"] = subprocess.STDOUT
         if "stdin" not in kwargs:
@@ -442,9 +442,11 @@ def record_failure(path, exc, paths=None, details=None):
             pass
     else:
         errpath = os.path.join(path, '__error__')
-    with open(os.path.join(errpath, 'exception'), 'w') as fd_exc:
+    with open(os.path.join(errpath, 'exception'), 'w',
+              encoding="utf-8") as fd_exc:
         fd_exc.write(str(exc))
-    with open(os.path.join(errpath, 'traceback'), 'w') as fd_tb:
+    with open(os.path.join(errpath, 'traceback'), 'w',
+              encoding="utf-8") as fd_tb:
         out = ''.join(traceback.format_exception(type(exc), exc,
                                                  exc.__traceback__))
         logging.debug(out)
@@ -455,7 +457,8 @@ def record_failure(path, exc, paths=None, details=None):
         for src in paths:
             shutil.copytree(src, dst + os.path.sep + src, dirs_exist_ok=True)
     if details:
-        with open(os.path.join(errpath, 'details'), 'w') as fd_details:
+        with open(os.path.join(errpath, 'details'), 'w',
+                  encoding="utf-8") as fd_details:
             fd_details.write(details)
     return errpath
 
@@ -532,7 +535,7 @@ class LogFetcher:
                         # Avoid fetching the files multiple times
                         continue
                     try:
-                        with open(path, 'w') as out_fd:
+                        with open(path, 'w', encoding="utf-8") as out_fd:
                             out_fd.write(session.cmd_output(cmd % self.params,
                                                             print_func='mute'))
                     except Exception:  # pylint: disable=W0703

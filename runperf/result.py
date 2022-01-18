@@ -112,7 +112,7 @@ class ModelLinearRegression(Model):
         self.mean_tolerance = mean_tolerance
         self.stddev_tolerance = stddev_tolerance
         if model:
-            with open(model) as fd_model:
+            with open(model, encoding="utf-8") as fd_model:
                 self.model = json.load(fd_model)
             if "__metadata__" not in self.model:
                 # Old results, "upgrade" it
@@ -517,7 +517,7 @@ def iter_results(path, skip_incorrect=False):
     LOG.debug("Processing %s", path)
     # Process results
     for src_path in iter_results_jsons(path, skip_incorrect):
-        with open(src_path, 'r') as src_fd:
+        with open(src_path, 'r', encoding="utf-8") as src_fd:
             src = json.load(src_fd)
         split_path = src_path.split(os.sep)
         result_id = "/".join(split_path[-4:-1])
@@ -535,7 +535,7 @@ def iter_results(path, skip_incorrect=False):
         result_id = "/".join(split_path)
         exc_path = os.path.join(src_path, 'exception')
         if os.path.exists(exc_path):
-            with open(exc_path) as exc_fd:
+            with open(exc_path, encoding="utf-8") as exc_fd:
                 exc = exc_fd.read()
         else:
             exc = '<Unknown exception>'
@@ -674,7 +674,7 @@ class ResultsContainer:
         metadata_path = os.path.join(path, "RUNPERF_METADATA")
         metadata = collections.defaultdict(lambda: "Unknown")
         if os.path.exists(metadata_path):
-            with open(metadata_path) as src_metadata_fd:
+            with open(metadata_path, encoding="utf-8") as src_metadata_fd:
                 for line in src_metadata_fd:
                     if not line or line.startswith('#'):
                         continue

@@ -13,7 +13,6 @@
 # Copyright: Red Hat Inc. 2018
 # Author: Lukas Doktor <ldoktor@redhat.com>
 import glob
-import locale
 import logging
 import os
 import time
@@ -271,7 +270,7 @@ class PersistentProfile(BaseProfile):
             self._tuned_adm_profile = extra["tuned_adm_profile"]
         if 'rc_local_file' in extra:
             with open(extra["rc_local_file"],
-                      encoding=locale.getpreferredencoding()) as rc_local_fd:
+                      encoding="utf-8") as rc_local_fd:
                 params = {"performed_setup_path": self.performed_setup_path}
                 params.update(host.params)
                 if 'rc_local_file_params' in extra:
@@ -579,7 +578,7 @@ class DefaultLibvirt(PersistentProfile):
         PersistentProfile.fetch_logs(self, path)
         for log in glob.glob(os.path.join(path, self.host.get_fullname(),
                                           'var', 'log', 'libvirt', '*.log')):
-            with open(log) as fd_serial_log:
+            with open(log, encoding="utf-8") as fd_serial_log:
                 if 'kernel: Call Trace:' in fd_serial_log:
                     raise(f"'kernel: Call Trace' found in {log}, likely VM "
                           "had stability issues.")
@@ -684,7 +683,7 @@ class TunedLibvirt(DefaultLibvirt):
             path_xml = os.path.join(path, 'libvirt',
                                     f"{host.addr}{suffix}.xml")
             if os.path.exists(path_xml):
-                with open(path_xml) as xml_fd:
+                with open(path_xml, encoding="utf-8") as xml_fd:
                     return xml_fd.read()
         raise ValueError(f"{host.addr}{suffix}.xml not found in {rp_paths}, "
                          f"unable to apply {self.name}")

@@ -188,7 +188,8 @@ def create_metadata(output_dir, args):
         while i < len(cmd) and not cmd[i].startswith("-"):
             cmd[i] = "MASKED"
             i += 1
-    with open(os.path.join(output_dir, "RUNPERF_METADATA"), "w") as output:
+    with open(os.path.join(output_dir, "RUNPERF_METADATA"), "w",
+              encoding="utf-8") as output:
         # First write all the custom metadata so they can be eventually
         # overridden by our hardcoded values
         if args.metadata:
@@ -576,11 +577,13 @@ class AnalyzePerf:
         stddev_regression = None
         try:
             if args.csv:
-                csv = open(args.csv, 'w')  # pylint: disable=R1732
+                csv = open(args.csv, 'w', encoding="utf-8")  # pylint: disable=R1732
             if args.linear_regression:
-                linear_regression = open(args.linear_regression, 'w')  # pylint: disable=R1732
+                linear_regression = open(args.linear_regression, 'w',  # pylint: disable=R1732
+                                         encoding="utf-8")
             if args.stddev_linear_regression:
-                stddev_regression = open(args.stddev_linear_regression, 'w')  # pylint: disable=R1732
+                stddev_regression = open(args.stddev_linear_regression, 'w',  # pylint: disable=R1732
+                                         encoding="utf-8")
             result_names = sorted(result_names)
             if csv:
                 csv.write("test," + ",".join(csv_safe_str(_)
@@ -694,7 +697,7 @@ class StripPerf:
                     iteration_data[workflow][workflow_type] = workflow_data
             return iteration
 
-        with open(src_path, 'r') as src_fd:
+        with open(src_path, 'r', encoding="utf-8") as src_fd:
             src = json.load(src_fd)
         result_id = os.sep.join(src_path.split(os.sep)[-4:])
         res = []
@@ -710,7 +713,7 @@ class StripPerf:
         dst_json = os.path.join(dst_base, result_id)
         dst_path = os.path.dirname(dst_json)
         os.makedirs(dst_path, exist_ok=True)
-        with open(dst_json, 'w') as dst:
+        with open(dst_json, 'w', encoding="utf-8") as dst:
             json.dump(res, dst)
         return dst_path
 

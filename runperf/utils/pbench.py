@@ -57,7 +57,8 @@ class Dnf:  # pylint: disable=R0903
         session = self.session
         session.cmd("mkdir -p /opt/pbench-agent/config")
         with open(os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                               "assets", "pbench-agent.cfg")) as cfg:
+                               "assets", "pbench-agent.cfg"),
+                  encoding="utf-8") as cfg:
             session.cmd(shell_write_content_cmd("/opt/pbench-agent/config/"
                                                 "pbench-agent.cfg",
                                                 cfg.read() % self.extra),
@@ -88,9 +89,10 @@ class Dnf:  # pylint: disable=R0903
         else:
             distro = "epel"
         with open(os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                               "assets", "pbench-devel.repo")) as repo:
-            session.cmd(shell_write_content_cmd("/etc/yum.repos.d/pbench-devel."
-                                                "repo", repo.read() % distro))
+                               "assets", "pbench-devel.repo"),
+                  encoding="utf-8") as repo:
+            session.cmd(shell_write_content_cmd("/etc/yum.repos.d/pbench-devel"
+                                                ".repo", repo.read() % distro))
         session.cmd("dnf install -y --nobest --skip-broken pbench-agent "
                     "pbench-sysstat python3-libselinux", timeout=600)
         self._update_pbench()

@@ -688,5 +688,5 @@ def generate_report(path, results, with_charts=False, small_file=False):
     env = jinja2.Environment(loader=loader, autoescape=True)
     env.filters['zip'] = zip
     template = env.get_template("report_template.html")
-    with open(path, 'w') as output:
+    with open(path, 'w', encoding="utf-8") as output:
         output.write(template.render(values))

@@ -61,7 +61,8 @@ class BaseTest:
         if len(self.workers) < self.min_groups:
             msg = (f"Not enough groups of workers ({len(self.workers)} < "
                    "{self.min_groups})")
-            with open(os.path.join(self.output, "SKIP"), 'w') as skip:
+            with open(os.path.join(self.output, "SKIP"), 'w',
+                      encoding="utf-8") as skip:
                 skip.write(msg)
             raise exceptions.TestSkip("msg")
         self._all_machines_kmsg(f"Starting test {self.name}")
@@ -113,10 +114,11 @@ class DummyTest(BaseTest):
 
     def _run(self):
         result_path = os.path.join(self.output, "result.json")
-        with open(result_path, 'w') as result:
+        with open(result_path, 'w', encoding="utf-8") as result:
             with open(os.path.join(os.path.dirname(__file__), "assets",
                                    "tests", "DummyTest",
-                                   "result.json")) as src:
+                                   "result.json"),
+                      encoding="utf-8") as src:
                 result.write(src.read() % {"hostname": self.host.get_addr()})
         with self.host.get_session_cont() as session:
             self.inject_metadata(session, result_path)
@@ -396,12 +398,14 @@ class PBenchNBD(PBenchFio):
     def setup(self):
         PBenchFio.setup(self)
         with open(os.path.join(os.path.dirname(__file__), "assets", "pbench",
-                               "nbd-check.fio")) as fio_check:
+                               "nbd-check.fio"),
+                  encoding="utf-8") as fio_check:
             fio_check_tpl = utils.shell_write_content_cmd(self.base_path +
                                                           "nbd-check.fio",
                                                           fio_check.read())
         with open(os.path.join(os.path.dirname(__file__), "assets", "pbench",
-                               "nbd.fio")) as fio:
+                               "nbd.fio"),
+                  encoding="utf-8") as fio:
             fio_tpl = utils.shell_write_content_cmd(self.fio_job_file,
                                                     fio.read())
         for workers in self.workers:

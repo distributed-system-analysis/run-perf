@@ -355,7 +355,7 @@ class Controller:
 
         # Allow to customize host
         if self._host_setup_script:
-            with open(self._host_setup_script) as script:
+            with open(self._host_setup_script, encoding="utf-8") as script:
                 self.for_each_host(self.hosts, 'run_script', [script.read()])
             if self._host_setup_script_reboot:
                 self.for_each_host(self.hosts, "reboot")
@@ -369,7 +369,7 @@ class Controller:
     def write_metadata(self, key, value):
         """Append the key:value to the RUNPERF_METADATA file"""
         with open(os.path.join(self._output_dir, "RUNPERF_METADATA"),
-                  'a') as out:
+                  'a', encoding="utf-8") as out:
             out.write(f"\n{key}:")
             out.write(value)
 
@@ -403,7 +403,8 @@ class Controller:
         # apply and 3 extra in case one boot fails to get resources
         # (eg. hugepages)
         if self._worker_setup_script:
-            with open(self._worker_setup_script) as setup_script_fd:
+            with open(self._worker_setup_script,
+                      encoding="utf-8") as setup_script_fd:
                 setup_script = setup_script_fd.read()
         else:
             setup_script = None
@@ -544,7 +545,7 @@ class Host(BaseMachine):
         for path in args.paths:
             path_cfg = os.path.join(path, 'hosts', self.addr + '.yaml')
             if os.path.exists(path_cfg):
-                with open(path_cfg) as cfg:
+                with open(path_cfg, encoding="utf-8") as cfg:
                     params = yaml.load(cfg, Loader=yaml.SafeLoader)
                     break
         else:
