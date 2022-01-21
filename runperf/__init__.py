@@ -122,7 +122,8 @@ def _parse_args():
                         " installed on guest(s)", nargs="+")
     parser.add_argument("--keep-tmp-files", action="store_true", help="Keep "
                         "the temporary files (local/remote)")
-    parser.add_argument("--output", help="Force output directory (%(default)s",
+    parser.add_argument("--output",
+                        help="Force output directory (%(default)s)",
                         default=f"./result_{time.strftime('%Y%m%d_%H%M%S')}",
                         type=get_abs_path)
     parser.add_argument("--force-params", help="Override params related to "
@@ -135,7 +136,7 @@ def _parse_args():
     parser.add_argument("--default-passwords", help="List of default passwords"
                         " to try/use when asked for.", nargs='+')
     parser.add_argument("--retry-tests", help="How many times to try "
-                        "re-execute tests on failure (%(default)s", default=3,
+                        "re-execute tests on failure (%(default)s)", default=3,
                         type=int)
     parser.add_argument("--host-setup-script", help="Path to a file that will "
                         "be copied to all hosts and executed as part of "
