@@ -42,7 +42,7 @@ def _get_git_version():
              "HEAD"]).strip().decode("utf-8")
         if version.count("-") == 2:
             split = version.split('-')
-            version = "%s.%s+%s" % tuple(split)
+            version = f"{split[0]}.{split[1]}+{split[2]}"
         else:
             version = version.replace("-", ".")
         try:

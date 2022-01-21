@@ -28,10 +28,9 @@ import time
 
 import aexpect
 
-from . import exceptions, tests, result
+from . import exceptions, tests, result, utils
 from .machine import Controller
 from .version import __version__
-from runperf import utils
 
 PROG = 'run-perf'
 DESCRIPTION = ("A tool to execute the same tasks on pre-defined scenarios/"
@@ -68,8 +67,7 @@ class DictAction(Action):
             """Split item to key=value pairs"""
             split = item.split('=', 1)
             if len(split) != 2:
-                raise ValueError("Unable to parse key=value pair from %s"
-                                 % item)
+                raise ValueError(f"Unable to parse key=value pair from {item}")
             return split
 
         dictionary = dict(split_metadata(_) for _ in values)
@@ -124,8 +122,9 @@ def _parse_args():
                         " installed on guest(s)", nargs="+")
     parser.add_argument("--keep-tmp-files", action="store_true", help="Keep "
                         "the temporary files (local/remote)")
-    parser.add_argument("--output", help="Force output directory (%(default)s",
-                        default="./result_%s" % time.strftime("%Y%m%d_%H%M%S"),
+    parser.add_argument("--output",
+                        help="Force output directory (%(default)s)",
+                        default=f"./result_{time.strftime('%Y%m%d_%H%M%S')}",
                         type=get_abs_path)
     parser.add_argument("--force-params", help="Override params related to "
                         "host/guest configuration which is usually defined "
@@ -137,7 +136,7 @@ def _parse_args():
     parser.add_argument("--default-passwords", help="List of default passwords"
                         " to try/use when asked for.", nargs='+')
     parser.add_argument("--retry-tests", help="How many times to try "
-                        "re-execute tests on failure (%(default)s", default=3,
+                        "re-execute tests on failure (%(default)s)", default=3,
                         type=int)
     parser.add_argument("--host-setup-script", help="Path to a file that will "
                         "be copied to all hosts and executed as part of "
@@ -190,19 +189,20 @@ def create_metadata(output_dir, args):
         while i < len(cmd) and not cmd[i].startswith("-"):
             cmd[i] = "MASKED"
             i += 1
-    with open(os.path.join(output_dir, "RUNPERF_METADATA"), "w") as output:
+    with open(os.path.join(output_dir, "RUNPERF_METADATA"), "w",
+              encoding="utf-8") as output:
         # First write all the custom metadata so they can be eventually
         # overridden by our hardcoded values
         if args.metadata:
-            output.write("".join("%s:%s\n" % _ for _ in args.metadata.items()))
+            output.write("".join(f"{_[0]}:{_[1]}\n"
+                                 for _ in args.metadata.items()))
         # Now store certain hardcoded values
-        output.write("distro:%s\n" % args.distro)
+        output.write(f"distro:{args.distro}\n")
         if args.guest_distro is None or args.guest_distro == args.distro:
             output.write("guest_distro:DISTRO\n")
         else:
-            output.write("guest_distro:%s\n" % args.guest_distro)
-        output.write("runperf_version:%s\n"
-                     % __version__)
+            output.write(f"guest_distro:{args.guest_distro}\n")
+        output.write(f"runperf_version:{__version__}\n")
         cmd = list(sys.argv)
         for i in range(len(cmd)):  # pylint: disable=C0200
             this = cmd[i]
@@ -216,15 +216,15 @@ def create_metadata(output_dir, args):
                 with open(cmd[i + 1], 'rb') as script:
                     cmd[i + 1] = "sha1:"
                     cmd[i + 1] += hashlib.sha1(script.read()).hexdigest()[:6]  # nosec
-        output.write("runperf_cmd:%s\n" % " ".join(cmd))
-        output.write("machine:%s" % ",".join(_[1] for _ in args.hosts))
+        output.write(f"runperf_cmd:{' '.join(cmd)}\n")
+        output.write(f"machine:{','.join(_[1] for _ in args.hosts)}")
         if "machine_url_base" in args.metadata:
             url_base = args.metadata["machine_url_base"]
             urls = (url_base % {"machine": host[1]}
                     for host in args.hosts)
-            output.write("\nmachine_url:%s" % ','.join(urls))
+            output.write(f"\nmachine_url:{','.join(urls)}")
         else:
-            output.write("\nmachine_url:%s" % args.hosts[0][1])
+            output.write(f"\nmachine_url:{args.hosts[0][1]}")
 
 
 def profile_test_defs(profile_args, default_set):
@@ -278,7 +278,7 @@ def main():
         hosts.setup()
         try:
             hosts.fetch_logs(os.path.join(args.output, '__sysinfo_before__'))
-        except Exception as exc:
+        except Exception as exc:    # pylint: disable=W0703
             utils.record_failure(os.path.join(args.output,
                                               '__sysinfo_before__'), exc)
         for profile, profile_args in args.profiles:
@@ -293,7 +293,7 @@ def main():
                 except exceptions.StepFailed:
                     try:
                         hosts.revert_profile()
-                    except Exception:
+                    except Exception:   # pylint: disable=W0703
                         pass
             else:
                 log.error("ERROR applying profile %s, all tests will be "
@@ -309,8 +309,8 @@ def main():
                         break
                     except (AssertionError, aexpect.ExpectError,
                             aexpect.ShellError, RuntimeError) as details:
-                        msg = ('test %s@%s attempt %s execution failure: %s'
-                               % (test.test, profile, i, details))
+                        msg = (f"test {test.test}@{profile} attempt {i} "
+                               f"execution failure: {details}")
                         utils.record_failure(os.path.join(profile_path,
                                                           test.test, str(i)),
                                              details, details=msg)
@@ -321,7 +321,7 @@ def main():
             try:
                 hosts.fetch_logs(os.path.join(args.output, profile,
                                               '__sysinfo__'))
-            except Exception as exc:
+            except Exception as exc:    # pylint: disable=W0703
                 utils.record_failure(os.path.join(args.output, profile), exc)
             # Revert profile changes. In case manual reboot is required return
             # non-zero.
@@ -338,7 +338,6 @@ def main():
             log.error("Exception %s, cleaning up resources", exc)
             if hosts:
                 hosts.cleanup()
-        # TODO: Treat hanging background threads
         if len(threading.enumerate()) > 1:
             threads = threading.enumerate()
             if any("pydevd.Reader" in str(_) for _ in threads):
@@ -377,9 +376,9 @@ class ComparePerf:
         if os.path.exists(arg):
             return arg, arg
         if len(split_arg) == 2:
-            raise ValueError("None of possible paths exists:\n%s\n%s"
-                             % (split_arg[1], arg))
-        raise ValueError("Path %s does not exists" % arg)
+            raise ValueError("None of possible paths exists:\n"
+                             f"{split_arg[1]}\n{arg}")
+        raise ValueError(f"Path {arg} does not exists")
 
     def __call__(self):
         """
@@ -446,7 +445,6 @@ class ComparePerf:
                 args.n_out_of_results_n))
         results = result.ResultsContainer(self.log, args.tolerance,
                                           args.stddev_tolerance,
-                                          args.model_builds_average,
                                           models,
                                           args.results[0][0],
                                           args.results[0][1],
@@ -492,7 +490,7 @@ class DiffPerf:
         """
         if os.path.exists(arg):
             return arg
-        raise ValueError("Path %s does not exists" % arg)
+        raise ValueError(f"Path {arg} does not exists")
 
     def __call__(self):
         """
@@ -536,7 +534,8 @@ class AnalyzePerf:
 
         def csv_safe_str(text):
             """Turn text into csv string removing special characters"""
-            return '"%s"' % str(text).replace(',', '_').replace('"', '_')
+            safe_text = str(text).replace(',', '_').replace('"', '_')
+            return f'"{safe_text}"'
 
         parser = ArgumentParser(prog="to-csv",
                                 description="Tool to export run-perf results "
@@ -579,22 +578,25 @@ class AnalyzePerf:
         stddev_regression = None
         try:
             if args.csv:
-                csv = open(args.csv, 'w')
+                csv = open(args.csv, 'w', encoding="utf-8")  # pylint: disable=R1732
             if args.linear_regression:
-                linear_regression = open(args.linear_regression, 'w')
+                linear_regression = open(args.linear_regression, 'w',  # pylint: disable=R1732
+                                         encoding="utf-8")
             if args.stddev_linear_regression:
-                stddev_regression = open(args.stddev_linear_regression, 'w')
+                stddev_regression = open(args.stddev_linear_regression, 'w',  # pylint: disable=R1732
+                                         encoding="utf-8")
             result_names = sorted(result_names)
             if csv:
-                csv.write("test,%s" % ",".join(csv_safe_str(_)
-                                               for _ in result_names))
+                csv.write("test," + ",".join(csv_safe_str(_)
+                                             for _ in result_names))
                 for test in sorted(storage.keys()):
                     if test not in primary:
                         continue
                     test_results = storage.get(test, {})
-                    csv.write("\n%s," % test)
+                    csv.write(f"\n{test},")
                     for result_name in result_names:
-                        csv.write("%s," % test_results.get(result_name, -100))
+                        csv.write(str(test_results.get(result_name, -100)) +
+                                  ',')
             if linear_regression:
                 model = result.ModelLinearRegression(args.tolerance,
                                                      args.tolerance)
@@ -696,7 +698,7 @@ class StripPerf:
                     iteration_data[workflow][workflow_type] = workflow_data
             return iteration
 
-        with open(src_path, 'r') as src_fd:
+        with open(src_path, 'r', encoding="utf-8") as src_fd:
             src = json.load(src_fd)
         result_id = os.sep.join(src_path.split(os.sep)[-4:])
         res = []
@@ -712,7 +714,7 @@ class StripPerf:
         dst_json = os.path.join(dst_base, result_id)
         dst_path = os.path.dirname(dst_json)
         os.makedirs(dst_path, exist_ok=True)
-        with open(dst_json, 'w') as dst:
+        with open(dst_json, 'w', encoding="utf-8") as dst:
             json.dump(res, dst)
         return dst_path
 

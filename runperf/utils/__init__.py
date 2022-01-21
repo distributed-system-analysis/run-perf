@@ -15,22 +15,22 @@
 # Some of the methods are inspired by https://github.com/avocado-framework/
 #     avocado/tree/master/avocado/utils
 import errno
+import hashlib
 import itertools
 import logging
 import os
 import pipes
 import random
+import shutil
 import string
 import subprocess  # nosec
 import sys
 import threading
 import time
+import traceback
+import pkg_resources
 
 import aexpect
-import pkg_resources
-import traceback
-import hashlib
-import shutil
 
 
 # : String containing all fs-unfriendly chars (Windows-fat/Linux-ext3)
@@ -54,7 +54,7 @@ class ThreadWithStatus(threading.Thread):
         try:
             super().run()
             self.completed = True
-        except BaseException as exc:  # lgtm [py/catch-base-exception]
+        except BaseException as exc:  # lgtm [py/catch-base-exception] pylint: disable=W0703
             self.exc = exc
 
 
@@ -96,7 +96,7 @@ def read_file(path):
     """
     if not os.path.exists(path):
         return -1
-    with open(path, 'r') as fd_path:
+    with open(path, 'r', encoding="utf-8") as fd_path:
         return fd_path.read()
 
 
@@ -112,7 +112,7 @@ def write_file(path, content, mode='w'):
             except OSError as exc:
                 if exc.errno != errno.EEXIST:  # It was just created
                     raise
-    with open(path, mode) as fd_path:
+    with open(path, mode, encoding="utf-8") as fd_path:
         fd_path.write(content)
 
 
@@ -137,7 +137,7 @@ def comma_separated_ranges_to_list(text):
 def list_of_threads(cpus):
     """How many threads to use depending on no cpus"""
     if cpus < 1:
-        raise ValueError("Cpus needs to be a positive number >=1 (%s)" % cpus)
+        raise ValueError(f"Cpus needs to be a positive number >=1 ({cpus})")
     step = int(cpus / 4)
     if step <= 1:
         step = 1
@@ -145,7 +145,7 @@ def list_of_threads(cpus):
     else:
         out = "1,"
     return (out + ",".join(str(_) for _ in range(step, cpus + 1, step)) +
-            (",%s" % cpus if cpus % step else ""))
+            (f",{cpus}" if cpus % step else ''))
 
 
 def random_string(length):
@@ -168,7 +168,7 @@ def check_output(*args, **kwargs):
                    * when stderr is not present, subprocess.STDOUT is used
     :raise RuntimeError: In case of subprocess.CalledProcessError
     """
-    with open(os.devnull, "r+") as devnull:
+    with open(os.devnull, "r+", encoding="utf-8") as devnull:
         if "stderr" not in kwargs:
             kwargs["stderr"] = subprocess.STDOUT
         if "stdin" not in kwargs:
@@ -184,7 +184,7 @@ def check_output(*args, **kwargs):
         try:
             return subprocess.check_output(*args, **kwargs).decode("utf-8")  # nosec
         except subprocess.CalledProcessError as exc:
-            raise RuntimeError("%s\n%s" % (exc, exc.output)) from exc
+            raise RuntimeError(f"{exc}\n{exc.output}") from exc
 
 
 def wait_for(func, timeout, step=1.0, args=None, kwargs=None):
@@ -265,7 +265,7 @@ def iter_tabular_output(matrix, header=None):
         out = []
         padding = [" " * (lengths[i] - row_lens[i])
                    for i in range(len(row_lens))]
-        out = ["%s%s" % line for line in zip(row, padding)]
+        out = ["".join(line) for line in zip(row, padding)]
         try:
             out.append(row[-1])
         except IndexError:
@@ -318,9 +318,9 @@ def ssh_copy_id(log, addr, passwords, hop=None):
     session = None
     try:
         cmd = ("ssh-copy-id -o StrictHostKeyChecking=no -o ControlMaster=auto "
-               "-o ControlPath='/var/tmp/%%r@%%h-%%p' "
+               "-o ControlPath='/var/tmp/%r@%h-%p' "
                "-o ControlPersist=60 -o UserKnownHostsFile=/dev/null "
-               "root@%s" % addr)
+               f"root@{addr}")
         if hop:
             cmd = hop.get_ssh_cmd() + " -t " + cmd
         session = aexpect.Expect(cmd, output_func=log.debug,
@@ -355,9 +355,8 @@ def shell_write_content_cmd(path, content, append=False):
         eof = random_string(6)
         if eof + '\n' not in content:
             break
-    return ("cat %s %s << \\%s\n%s\n%s" % (">>" if append else ">",
-                                           pipes.quote(path), eof, content,
-                                           eof))
+    return (f"cat {'>>' if append else '>'} {pipes.quote(path)} << "
+            f"\\{eof}\n{content}\n{eof}")
 
 
 def shell_find_command(session, command):
@@ -369,7 +368,7 @@ def shell_find_command(session, command):
     :return: path or empty string when not found
     """
     stat, out = session.cmd_status_output("which --skip-alias --skip-functions"
-                                          " %s 2>/dev/null" % command)
+                                          f" {command} 2>/dev/null")
     if stat == 0:
         return out.strip()
     return ''
@@ -385,12 +384,12 @@ def wait_for_machine_calms_down(session, timeout=600):
     """
     # wait until the machine settles down
     try:
-        if not session.cmd_status('( END="$(expr $(date \'+%%s\') + %s)"; '
-                                  'while [ "$(date \'+%%s\')" -lt "$END" ]; '
-                                  'do [ "$(cat /proc/loadavg | cut -d\' \' -f1'
-                                  ' | cut -d\'.\' -f1)" -eq 0 ] && exit 0; '
-                                  'sleep 5; done; exit 1 )' % timeout,
-                                  timeout=timeout + 11):
+        if not session.cmd_status(
+                f'( END="$(expr $(date \'+%s\') + {timeout})"; '
+                'while [ "$(date \'+%s\')" -lt "$END" ]; '
+                'do [ "$(cat /proc/loadavg | cut -d\' \' -f1'
+                ' | cut -d\'.\' -f1)" -eq 0 ] && exit 0; '
+                'sleep 5; done; exit 1 )', timeout=timeout + 11):
             return True
     except aexpect.ShellTimeoutError:
         pass
@@ -419,9 +418,9 @@ def named_entry_point(group, loaded_name):
         plugin = entry.load()
         if plugin.name == loaded_name:
             return plugin
-    raise KeyError("No plugin provider for %s:%s (%s)"
-                   % (group, loaded_name,
-                      ",".join(str(_) for _ in sorted_entry_points(group))))
+    raise KeyError(f"No plugin provider for {group}:{loaded_name} "
+                   f"({','.join(str(_) for _ in sorted_entry_points(group))})")
+
 
 def record_failure(path, exc, paths=None, details=None):
     """
@@ -436,16 +435,18 @@ def record_failure(path, exc, paths=None, details=None):
                   path)
     for i in range(1000):
         try:
-            errpath = os.path.join(path, '__error%d__' % i)
+            errpath = os.path.join(path, f'__error{i}__')
             os.makedirs(errpath)
             break
         except FileExistsError:
             pass
     else:
         errpath = os.path.join(path, '__error__')
-    with open(os.path.join(errpath, 'exception'), 'w') as fd_exc:
+    with open(os.path.join(errpath, 'exception'), 'w',
+              encoding="utf-8") as fd_exc:
         fd_exc.write(str(exc))
-    with open(os.path.join(errpath, 'traceback'), 'w') as fd_tb:
+    with open(os.path.join(errpath, 'traceback'), 'w',
+              encoding="utf-8") as fd_tb:
         out = ''.join(traceback.format_exception(type(exc), exc,
                                                  exc.__traceback__))
         logging.debug(out)
@@ -456,9 +457,11 @@ def record_failure(path, exc, paths=None, details=None):
         for src in paths:
             shutil.copytree(src, dst + os.path.sep + src, dirs_exist_ok=True)
     if details:
-        with open(os.path.join(errpath, 'details'), 'w') as fd_details:
+        with open(os.path.join(errpath, 'details'), 'w',
+                  encoding="utf-8") as fd_details:
             fd_details.write(details)
     return errpath
+
 
 def list_dir_hashes(path):
     """
@@ -472,14 +475,15 @@ def list_dir_hashes(path):
         for curfile in files:
             curpath = os.path.join(curdir, curfile)
             try:
-                sha = hashlib.sha1()
+                sha = hashlib.sha1()    # nosec
                 with open(curpath, "rb") as fd_curfile:
                     for chunk in iter(lambda: fd_curfile.read(4096), b""):
                         sha.update(chunk)
                 entries[os.path.relpath(curpath, path)] = sha.hexdigest()
-            except Exception:
+            except Exception:  # pylint: disable=W0703
                 entries[os.path.relpath(curpath, path)] = 'ERROR READING'
     return entries
+
 
 class LogFetcher:
     """
@@ -495,7 +499,8 @@ class LogFetcher:
         self.cmds = set(cmds) if cmds else set(["journalctl --no-pager "
                                                 "--since=@%(since)s"])
 
-    def collect_files(self, out_path, host, paths):
+    @staticmethod
+    def collect_files(out_path, host, paths):
         """Fetch files from `host`"""
         for path in paths:
             try:
@@ -508,7 +513,7 @@ class LogFetcher:
                 except FileExistsError:
                     pass
                 host.copy_from(path, dst)
-            except Exception:
+            except Exception:  # pylint: disable=W0703
                 pass
 
     def collect_cmds(self, out_path, host, cmds):
@@ -530,12 +535,12 @@ class LogFetcher:
                         # Avoid fetching the files multiple times
                         continue
                     try:
-                        with open(path, 'w') as out_fd:
+                        with open(path, 'w', encoding="utf-8") as out_fd:
                             out_fd.write(session.cmd_output(cmd % self.params,
                                                             print_func='mute'))
-                    except Exception:
+                    except Exception:  # pylint: disable=W0703
                         pass
-        except Exception:
+        except Exception:  # pylint: disable=W0703
             pass
         self.params["since"] = since
 

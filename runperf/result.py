@@ -55,11 +55,12 @@ _RE_FAILED_ITERATION_NAME = re.compile(r'.*-fail(\d+)$')
 
 LOG = logging.getLogger(__name__)
 
+
 def get_uncertainty(no_samples):
     """Return uncertainty coefficient based on the number of no_samples"""
     coefficients = [7, 2.3, 1.7, 1.4, 1.3, 1.3, 1.2, 1.2]
     if no_samples <= 0:
-        raise ValueError("Number of samples must be > 0 (%s)" % no_samples)
+        raise ValueError(f"Number of samples must be > 0 ({no_samples})")
     if no_samples <= 8:
         return coefficients[no_samples - 1]
     return 1
@@ -111,7 +112,7 @@ class ModelLinearRegression(Model):
         self.mean_tolerance = mean_tolerance
         self.stddev_tolerance = stddev_tolerance
         if model:
-            with open(model) as fd_model:
+            with open(model, encoding="utf-8") as fd_model:
                 self.model = json.load(fd_model)
             if "__metadata__" not in self.model:
                 # Old results, "upgrade" it
@@ -288,7 +289,7 @@ class Result:
             self.classname = "<undefined>"
             self.testname = name[0]
         else:
-            raise ValueError("No test specified %s" % test)
+            raise ValueError(f"No test specified {test}")
         self.tolerance = tolerance
         self.primary = primary
         if params is None:
@@ -338,12 +339,11 @@ class Result:
         for section in report:
             values = getattr(self, section)
             if values:
-                out.append("%s %s" % (section.upper(),
-                                      ", ".join(values)))
+                out.append(f"{section.upper()} {', '.join(values)}")
         srcs = "/".join(("%.2f" if isinstance(_, float) else "%s") % _
                         for _ in self.srcs)
-        out.append("(%s; %s)" % (srcs, self.dst))
-        out.append("+-%s%% tolerance" % self.tolerance)
+        out.append(f"({srcs}; {self.dst})")
+        out.append(f"+-{self.tolerance}% tolerance")
         self._score = score
         self._status = status
         self._details = " ".join(out)
@@ -380,13 +380,13 @@ class Result:
     @property
     def name(self):
         """Full test name"""
-        return "%s/%s" % (self.classname, self.testname)
+        return f"{self.classname}/{self.testname}"
 
     def __str__(self):
         if self.details:
-            return "%s: %s %.2f (%s)" % (STATUS_MAP[self.status], self.name,
-                                         self.score, self.details)
-        return "%s: %s" % (STATUS_MAP[self.status], self.name)
+            return (f"{STATUS_MAP[self.status]}: {self.name} {self.score:.2f} "
+                    f"({self.details})")
+        return f"{STATUS_MAP[self.status]}: {self.name}"
 
     def get_merged_name(self, merge):
         """
@@ -411,7 +411,8 @@ class Result:
         out.append('*' if "workflow" in merge else split_name[5])
         out.append('*' if "workflow_type" in merge else split_name[6])
         out.append('*' if "check_type" in merge else split_name[7])
-        return "%s/%s/%s:./%s-%s/%s/%s.%s" % tuple(out)
+        return (f"{out[0]}/{out[1]}/{out[2]}:./{out[3]}-{out[4]}/{out[5]}/"
+                f"{out[6]}.{out[7]}")
 
     def _add(self, difference, weight, src):
         self.agg_diffs += difference * weight
@@ -424,7 +425,7 @@ class Result:
         # Reset status to re-calculate on next query
         self._status = None
         self._add(difference, weight, src)
-        msg = "%s%s %.2F%%" % (name, suffix, difference)
+        msg = f"{name}{suffix} {difference:.2F}%"
         if abs(difference) > self.tolerance:
             if difference > 0:
                 self.big.append(msg)
@@ -434,6 +435,7 @@ class Result:
             self.good.append(msg)
 
     def add_bad(self, suffix, name, details, difference, weight, src=None):
+        """Add a bad result"""
         self._add(difference, weight, src)
         self.error.append(f"{name}{suffix} {details}")
 
@@ -486,32 +488,28 @@ def iter_results(path, skip_incorrect=False):
             primary_metric = benchmark.get('primary_metric')
             if primary_metric:
                 primary_metrics.append(primary_metric)
-            test_params[i] = "\n".join("%s:%s" % item
+            test_params[i] = "\n".join(f"{item[0]}:{item[1]}"
                                        for item in benchmark.items())
         for i, benchmark in enumerate(data['parameters'].get('user',
                                                              [])):
             if "profile" in benchmark:
-                test_params["user%s" % i] = ("profile: %s"
-                                             % benchmark["profile"])
+                test_params[f"user{i}"] = (f"profile: {benchmark['profile']}")
         for workflow in ('throughput', 'latency'):
             workflow_items = data.get(workflow, {}).items()
             for workflow_type, results in workflow_items:
-                test = ("%s:./%s/%s/%s.mean"
-                        % (result_id, iteration_name, workflow,
-                           workflow_type))
+                test = (f"{result_id}:./{iteration_name}/{workflow}/"
+                        f"{workflow_type}.mean")
                 res = _find_all_result(test, results)
                 if not res:
                     continue
                 primary = bool(workflow_type in primary_metrics)
-                yield ("%s:./%s/%s/%s.mean"
-                       % (result_id, iteration_name, workflow,
-                          workflow_type),
+                yield (f"{result_id}:./{iteration_name}/{workflow}/"
+                       f"{workflow_type}.mean",
                        res['mean'],  # pylint: disable=W0631
                        primary,
                        test_params)
-                yield ("%s:./%s/%s/%s.stddev"
-                       % (result_id, iteration_name, workflow,
-                          workflow_type),
+                yield (f"{result_id}:./{iteration_name}/{workflow}/"
+                       f"{workflow_type}.stddev",
                        res['stddevpct'],  # pylint: disable=W0631
                        primary,
                        test_params)
@@ -519,7 +517,7 @@ def iter_results(path, skip_incorrect=False):
     LOG.debug("Processing %s", path)
     # Process results
     for src_path in iter_results_jsons(path, skip_incorrect):
-        with open(src_path, 'r') as src_fd:
+        with open(src_path, 'r', encoding="utf-8") as src_fd:
             src = json.load(src_fd)
         split_path = src_path.split(os.sep)
         result_id = "/".join(split_path[-4:-1])
@@ -537,15 +535,22 @@ def iter_results(path, skip_incorrect=False):
         result_id = "/".join(split_path)
         exc_path = os.path.join(src_path, 'exception')
         if os.path.exists(exc_path):
-            with open(exc_path) as exc_fd:
+            with open(exc_path, encoding="utf-8") as exc_fd:
                 exc = exc_fd.read()
         else:
             exc = '<Unknown exception>'
-        yield("%s:./ERROR/ERROR/ERROR.error" % result_id, exc, True,
+        yield(f"{result_id}:./ERROR/ERROR/ERROR.error", exc, True,
               utils.list_dir_hashes(src_path))
 
 
 class Modifier:
+    """
+    Base class for post-analysis modification of results.
+
+    For every reference build the `add_result` is called and the final result
+    is then checked using the `check_result` method and appended as a new
+    metrics to the test result.
+    """
     # Weight of this modifier
     weight = 0
 
@@ -642,7 +647,7 @@ class ResultsContainer:
     Container to store multiple RelativeResults and provide various stats
     """
 
-    def __init__(self, log, tolerance, stddev_tolerance, averages, models,
+    def __init__(self, log, tolerance, stddev_tolerance, models,
                  src_name, src_path, modifiers):
         self.log = log
         self.tolerance = tolerance
@@ -669,7 +674,7 @@ class ResultsContainer:
         metadata_path = os.path.join(path, "RUNPERF_METADATA")
         metadata = collections.defaultdict(lambda: "Unknown")
         if os.path.exists(metadata_path):
-            with open(metadata_path) as src_metadata_fd:
+            with open(metadata_path, encoding="utf-8") as src_metadata_fd:
                 for line in src_metadata_fd:
                     if not line or line.startswith('#'):
                         continue
@@ -695,11 +700,11 @@ class ResultsContainer:
                                   score, primary, params=params, last=last)
                 src_tests.remove(test)
             else:
-                res.record_broken(test, "Not present in source results (%s)."
-                                  % score, primary, params)
+                res.record_broken(test, "Not present in source results "
+                                  f"({score}).", primary, params)
         for missing_test in src_tests:
             res.record_broken(missing_test, "Not present in target results "
-                              "(%s)" % -100, self.src_results[missing_test][1])
+                              "(-100)", self.src_results[missing_test][1])
         self.results[name] = res
         return res
 
@@ -790,7 +795,7 @@ class RelativeResults:
         """
 
         def _str(text):
-            return ''.join(_ if _ in PRINTABLE else "\\x%02x" % ord(_)
+            return ''.join(_ if _ in PRINTABLE else f"\\x{ord(_):02x}"
                            for _ in str(text))
 
         document = Document()
@@ -863,7 +868,7 @@ class RelativeResults:
         """
 
         def _str(number):
-            return '%.1f' % number
+            return f'{number:.1f}'
 
         # a+ => average aggregated mean gain
         # astd- => average aggregated stddev loss
@@ -906,9 +911,10 @@ class RelativeResults:
         def line_stats(values):
             if not values:  # [] is not supported for numpy.min...
                 return [0] * 6
-            return [len(values), '%.1f' % numpy.median(values),
-                    '%.1f' % numpy.min(values), '%.1f' % numpy.max(values),
-                    '%.1f' % numpy.sum(values), '%.1f' % numpy.average(values)]
+            return [len(values), f"{numpy.median(values):.1f}",
+                    f"{numpy.median(values):.1f}", f"{numpy.min(values):.1f}",
+                    f"{numpy.max(values):.1f}", f"{numpy.sum(values):.1f}",
+                    f"{numpy.average(values):.1f}"]
 
         gains = []
         m_gains = []
@@ -1039,7 +1045,7 @@ def closest_result(src_path, dst_paths):
     :param src_path: Path to the src result
     :param dst_paths: List of paths to results we are comparing to
     """
-    def norm_normpdf(x, mean, sd):
+    def norm_normpdf(x, mean, sd):  # Using math symbols pylint: disable=C0103
         """
         Normalized normal probability density function
 

@@ -13,7 +13,6 @@
 # Copyright: Red Hat Inc. 2018
 # Author: Lukas Doktor <ldoktor@redhat.com>
 import glob
-import locale
 import logging
 import os
 import time
@@ -77,7 +76,7 @@ class BaseProfile:
     def _read_file(self, path, default=-1):
         if not self._exists(path):
             return default
-        out = self.session.cmd_output("cat '%s'" % path)
+        out = self.session.cmd_output(f"cat '{path}'")
         if out.endswith('\n'):
             return out[:-1]
         return out
@@ -86,11 +85,11 @@ class BaseProfile:
         path = CONFIG_DIR + key
         ppath = os.path.dirname(path)
         if not self._exists(ppath):
-            self.session.cmd("mkdir -p '%s'" % ppath)
+            self.session.cmd(f"mkdir -p '{ppath}'")
         return path
 
     def _exists(self, path):
-        return not self.session.cmd_status("[ -e %s ]" % path)
+        return not self.session.cmd_status(f"[ -e {path} ]")
 
     def _get(self, key, default=-1):
         """
@@ -105,7 +104,7 @@ class BaseProfile:
         """
         path = self._persistent_storage_path(key)
         if fail_if_exists and self._exists(path):
-            raise ValueError("Key %s is already set" % key)
+            raise ValueError(f"Key {key} is already set")
         self._write_file(path, value)
 
     def _append(self, key, value):
@@ -113,8 +112,8 @@ class BaseProfile:
         Append value to \n separated list of items in persistent storage
         """
         if "\n" in value:
-            raise ValueError("Unable to set %s, list values must not contain "
-                             "'\n' (%s)" % (key, value))
+            raise ValueError(f"Unable to set {key}, "
+                             f"list values must not contain '\n' ({value})")
         path = self._persistent_storage_path(key)
         self._write_file(path, value, True)
 
@@ -122,7 +121,7 @@ class BaseProfile:
         """
         Remove key from persistent storage
         """
-        self.session.cmd("rm -rf %s" % (CONFIG_DIR + key))
+        self.session.cmd(f"rm -rf {CONFIG_DIR + key}")
 
     def _path_to_be_removed(self, path):
         """
@@ -176,8 +175,8 @@ class BaseProfile:
         _profile = _profile.strip()
         if _profile != self.name:
             raise NotImplementedError("Reverting non-matching profiles not "
-                                      "yet supported (%s != %s)"
-                                      % (_profile, self.name))
+                                      f"yet supported ({_profile} != "
+                                      f"{self.name})")
         return self._do_revert(_profile)
 
     def _do_revert(self, profile):
@@ -187,9 +186,9 @@ class BaseProfile:
         self._remove("applied_profile")
         ret = self._revert()
         if self.workers:
-            raise RuntimeError("Workers not cleaned by profile %s" % profile)
+            raise RuntimeError(f"Workers not cleaned by profile {profile}")
         for path in self._get("cleanup/paths_to_be_removed", "").splitlines():
-            self.session.cmd("rm -rf '%s'" % path, print_func="mute")
+            self.session.cmd(f"rm -rf '{path}'", print_func="mute")
         self._remove("cleanup/paths_to_be_removed")
         session = self.session
         self.session = None
@@ -214,6 +213,9 @@ class BaseProfile:
         raise NotImplementedError
 
     def fetch_logs(self, path):
+        """
+        Fetch useful data from all workers as well as host.
+        """
         self._refresh_session()
         self.log_fetcher.collect(path, self.host)
         for worker in self.workers:
@@ -262,15 +264,13 @@ class PersistentProfile(BaseProfile):
             self._grub_args = set()
         for arg in extra.get("grub_args", []):
             self._grub_args.add(arg)
-        # TODO: Add extra handling of our arguments in Baseclass similarly to
-        # DefaultLibvirt
         if 'irqbalance' in extra:
             self._irqbalance = extra['irqbalance']
         if 'tuned_adm_profile' in extra:
             self._tuned_adm_profile = extra["tuned_adm_profile"]
         if 'rc_local_file' in extra:
             with open(extra["rc_local_file"],
-                      encoding=locale.getpreferredencoding()) as rc_local_fd:
+                      encoding="utf-8") as rc_local_fd:
                 params = {"performed_setup_path": self.performed_setup_path}
                 params.update(host.params)
                 if 'rc_local_file_params' in extra:
@@ -317,7 +317,7 @@ class PersistentProfile(BaseProfile):
         if tune_current != "virtual-host":
             # Change the profile
             self._set("persistent_setup/tuned_adm_profile", tune_current)
-            self.session.cmd("tuned-adm profile %s" % profile)
+            self.session.cmd(f"tuned-adm profile {profile}")
 
     def _persistent_grub_args(self, grub_args):
         cmdline = self._read_file("/proc/cmdline")
@@ -327,8 +327,8 @@ class PersistentProfile(BaseProfile):
             return
         self.host.reboot_request = True
         self._set("persistent_setup/grub_args", args)
-        self.session.cmd('grubby --args="%s" --update-kernel='
-                         '"$(grubby --default-kernel)"' % args)
+        self.session.cmd(f'grubby --args="{args}" --update-kernel='
+                         '"$(grubby --default-kernel)"')
 
     def _persistent_irqbalance(self, status):
         _status = self.session.cmd_status("systemctl is-enabled irqbalance")
@@ -336,8 +336,8 @@ class PersistentProfile(BaseProfile):
             # We are done, they are configured correctly
             return
         self._set("persistent_setup/irqbalance", _status)
-        self.session.cmd('systemctl %s irqbalance'
-                         % 'enable' if status else 'disable')
+        self.session.cmd(f"systemctl {'enable' if status else 'disable'} "
+                         "irqbalance")
         self.host.reboot_request = True
 
     def _apply_persistent(self):
@@ -368,12 +368,12 @@ class PersistentProfile(BaseProfile):
         cmdline = self._get("persistent_setup/grub_args", -1)
         if cmdline != -1:
             reboot = True
-            self.session.cmd('grubby --remove-args="%s" --update-kernel='
-                             '"$(grubby --default-kernel)"' % cmdline)
+            self.session.cmd(f'grubby --remove-args="{cmdline}" '
+                             '--update-kernel="$(grubby --default-kernel)"')
             self._remove("persistent_setup/grub_args")
         tuneadm = self._get("persistent_setup/tuned_adm_profile", -1)
         if tuneadm != -1:
-            self.session.cmd("tuned-adm profile %s" % tuneadm)
+            self.session.cmd(f"tuned-adm profile {tuneadm}")
             self._remove("persistent_setup/tuned_adm_profile")
         rc_local = self._get('persistent_setup/rc_local', -1)
         if rc_local != -1:
@@ -381,7 +381,7 @@ class PersistentProfile(BaseProfile):
             self._remove("persistent_setup/rc_local")
         elif self._get('persistent_setup/rc_local_was_missing') != -1:
             self.session.cmd("rm -f /etc/rc.d/rc.local")
-        self.session.cmd("rm -Rf %s" % self.performed_setup_path)
+        self.session.cmd(f"rm -Rf {self.performed_setup_path}")
         self._remove("persistent_setup_expected")
         self._remove("profile/TunedLibvirt/persistent")
         return reboot
@@ -473,7 +473,7 @@ class DefaultLibvirt(PersistentProfile):
     def _prerequisities(self, session):
         if self._custom_qemu:
             deps = self.deps + " git"
-            session.cmd("yum install -y %s" % deps)
+            session.cmd(f"yum install -y {deps}")
         else:
             deps = self.deps
 
@@ -481,25 +481,24 @@ class DefaultLibvirt(PersistentProfile):
                 session.cmd_status("which virt-install")):
             if not self._custom_qemu:
                 # with custom qemu we force-install prior to libvirt check
-                session.cmd("yum install -y %s" % deps)
+                session.cmd(f"yum install -y {deps}")
             session.cmd("systemctl start libvirtd")
 
     def _image_up_to_date(self, session, pubkey, image, setup_script,
                           setup_script_path):
-        image_exists = session.cmd_status("[ -e '%s' ]" % image) == 0
+        image_exists = session.cmd_status(f"[ -e '{image}' ]") == 0
         if not image_exists:
             return "does not exists"
-        img_pubkey = session.cmd_output("[ -e '%s' ] && cat '%s'"
-                                        % (pubkey, pubkey))
+        img_pubkey = session.cmd_output(f"[ -e '{pubkey}' ] && cat '{pubkey}'")
         if img_pubkey.strip() != self.shared_pub_key.strip():
             return "has wrong public key"
         if setup_script:
-            if session.cmd_status("[ -e '%s' ]" % setup_script_path):
+            if session.cmd_status(f"[ -e '{setup_script_path}' ]"):
                 return "not created with setup script"
-            act = session.cmd_output("cat '%s'" % setup_script_path).strip()
+            act = session.cmd_output(f"cat '{setup_script_path}'").strip()
             if act != setup_script.strip():
                 return "created with a different setup script"
-        elif not session.cmd_status("[ -e '%s' ]" % setup_script_path):
+        elif not session.cmd_status(f"[ -e '{setup_script_path}' ]"):
             return "created with setup script"
         return None
 
@@ -528,17 +527,17 @@ class DefaultLibvirt(PersistentProfile):
                 return plugin.image
         providers = ", ".join(str(_)
                               for _ in pkg_entry_points(entry_point))
-        raise RuntimeError("Fail to fetch %s using %s providers"
-                           % (self._guest["distro"], providers))
+        raise RuntimeError(f"Fail to fetch {self._guest['distro']} "
+                           f"using {providers} providers")
 
     def _start_vms(self):
-        from . import machine
+        from . import machine   # py2 issue pylint: disable=C0415
         if not self._guest.get('guest_mem'):
             self._guest['guest_mem'] = int(self.host.params['guest_mem_m'] /
                                            self._guest['no_vms'])
         for i in range(self._guest['no_vms']):
             vm = machine.LibvirtGuest(self.host,
-                                      "%s%s" % (self.__class__.__name__, i),
+                                      f"{self.__class__.__name__}{i}",
                                       self._guest["distro"],
                                       self._guest["image"],
                                       self._guest['guest_cpus'],
@@ -554,7 +553,7 @@ class DefaultLibvirt(PersistentProfile):
         out = PersistentProfile.get_info(self)
         for i, vm in enumerate(self.vms):
             for key, value in vm.get_info().items():
-                out["guest%s_%s" % (i, key)] = value
+                out[f"guest{i}_{key}"] = value
         if self._custom_qemu:
             out["custom_qemu_details"] = self._get_qemu_info()
         return out
@@ -562,27 +561,27 @@ class DefaultLibvirt(PersistentProfile):
     def _get_qemu_info(self):
         session = self.session
         out = []
-        stat, version = session.cmd_status_output("%s -version"
-                                                  % self._custom_qemu)
+        stat, version = session.cmd_status_output(f"{self._custom_qemu}"
+                                                  " -version")
         if stat:
-            out.append("Failed to get %s -version" % self._custom_qemu)
+            out.append(f"Failed to get {self._custom_qemu} -version")
         else:
-            out.append("version: %s" % version)
+            out.append(f"version: {version}")
         stat, config = session.cmd_status_output(
-            "cat %s/../share/qemu/config.status"
-            % os.path.dirname(self._custom_qemu))
+            f"cat {os.path.dirname(self._custom_qemu)}"
+            "/../share/qemu/config.status")
         if not stat:
-            out.append("configuration:\n%s" % config)
+            out.append(f"configuration:\n{config}")
         return "\n".join(out)
 
     def fetch_logs(self, path):
         PersistentProfile.fetch_logs(self, path)
         for log in glob.glob(os.path.join(path, self.host.get_fullname(),
                                           'var', 'log', 'libvirt', '*.log')):
-            with open(log) as fd_serial_log:
+            with open(log, encoding="utf-8") as fd_serial_log:
                 if 'kernel: Call Trace:' in fd_serial_log:
-                    raise("'kernel: Call Trace' found in %s, likely VM "
-                          "had stability issues." % log)
+                    raise(f"'kernel: Call Trace' found in {log}, likely VM "
+                          "had stability issues.")
 
     def _revert(self):
         ret = PersistentProfile._revert(self)
@@ -682,12 +681,12 @@ class TunedLibvirt(DefaultLibvirt):
     def _get_xml(self, host, rp_paths, suffix):
         for path in rp_paths:
             path_xml = os.path.join(path, 'libvirt',
-                                    "%s%s.xml" % (host.addr, suffix))
+                                    f"{host.addr}{suffix}.xml")
             if os.path.exists(path_xml):
-                with open(path_xml) as xml_fd:
+                with open(path_xml, encoding="utf-8") as xml_fd:
                     return xml_fd.read()
-        raise ValueError("%s%s.xml not found in %s, unable to apply "
-                         "%s" % (host.addr, suffix, rp_paths, self.name))
+        raise ValueError(f"{host.addr}{suffix}.xml not found in {rp_paths}, "
+                         f"unable to apply {self.name}")
 
 
 def get(profile, extra, host, paths):
