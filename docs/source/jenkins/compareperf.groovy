@@ -33,7 +33,7 @@ spaceChr = ' '
 lastBuildChr = '-1'
 
 stage('Analyze') {
-    node (workerNode) {
+    node(workerNode) {
         assert builds.size() >= 2
         git branch: gitBranch, url: 'https://github.com/distributed-system-analysis/run-perf.git'
         sh '\\rm -Rf result* src_result* reference_builds ' + htmlPath
@@ -75,7 +75,7 @@ stage('Analyze') {
             cmpExtra = ''
         }
         status = 0
-        lock (workerNode) {
+        lock(workerNode) {
             // Avoid modifying workerNode's environment while executing compareperf
             sh pythonDeployCmd
             status = sh(returnStatus: true,

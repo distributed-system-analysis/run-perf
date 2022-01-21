@@ -47,6 +47,7 @@ noReferenceBuilds = params.NO_REFERENCE_BUILDS.toInteger()
 pbenchPublish = params.PBENCH_PUBLISH
 // Github-publisher project ID
 githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT
+githubPublisherTag = ''
 
 // Extra variables
 // Provisioner machine
@@ -78,18 +79,17 @@ String getBkrInstallCmd(String hostBkrLinks, String hostBkrLinksFilter, String a
 
 node(workerNode) {
     stage('Preprocess') {
-        // User-defined distro or use bkr to get latest RHEL-8.0*
-        if (distro) {
-            echo "Using distro ${distro} from params"
-        } else {
+        distro = distro ?: 'latest-RHEL-8.0%.n.%'
+        if (distro.startsWith('latest-')) {
             distro = sh(returnStdout: true,
-                        script: ('echo -n $(bkr distro-trees-list --arch x86_64 --name="%8.0%.n.%" '
-                                 '--family RedHatEnterpriseLinux8 --limit 1 --labcontroller '
-                                 '$ENTER_LAB_CONTROLLER_URL | grep Name: | cut -d":" -f2 | xargs | '
-                                 'cut -d" " -f1)'))
+                        script: ('echo -n $(bkr distro-trees-list --arch x86_64 --name="' +
+                                 distro[7..-1] + '" --limit 1 --labcontroller $ENTER_LAB_CONTROLLER_URL' +
+                                 '| grep Name:  | cut -d":" -f2 | xargs | cut -d" " -f1)'))
             echo "Using latest distro ${distro} from bkr"
+        } else {
+            echo "Using distro ${distro} from params"
         }
-        if (! guestDistro) {
+        if (!guestDistro) {
             guestDistro == distro
         }
         if (guestDistro == distro) {
@@ -134,11 +134,11 @@ node(workerNode) {
         // Install deps and compile custom fio with nbd ioengine
         if (fioNbdSetup) {
             nbdSetupScript = ('\n\n# FIO_NBD_SETUP' +
-                              '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img ' +
-                              'libaio-devel tar' +
+                              '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make ' +
+                              'qemu-img libaio-devel tar' +
                               '\ncd /tmp' +
-                              '\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz' +
-                              '\ncd fio-fio-3.19' +
+                              '\ncurl -L https://github.com/axboe/fio/archive/fio-3.27.tar.gz | tar xz' +
+                              '\ncd fio-fio-3.27' +
                               '\n./configure --enable-libnbd' +
                               makeInstallCmd)
             hostScript += nbdSetupScript
@@ -146,6 +146,18 @@ node(workerNode) {
         }
         // Build custom qemu
         if (upstreamQemuCommit) {
+            // Always translate the user input into the actual commit and also get the description
+            sh 'rm -Rf upstream_qemu'
+            dir('upstream_qemu') {
+                sh 'git clone --filter=tree:0 https://gitlab.com/qemu-project/qemu.git .'
+                upstreamQemuVersion = sh(returnStdout: true,
+                                         script: "git rev-parse ${upstreamQemuCommit}").trim()
+                githubPublisherTag = sh(returnStdout: true,
+                                        script: "git describe --tags --always ${upstreamQemuCommit}"
+                                       ).trim().split('-')[0]
+                println("Using qemu $githubPublisherTag commit $upstreamQemuVersion")
+            }
+            sh '\\rm -Rf upstream_qemu'
             hostScript += '\n\n# UPSTREAM_QEMU_SETUP'
             hostScript += '\nOLD_PWD="$PWD"'
             hostScript += '\ndnf install --skip-broken -y python3-devel zlib-devel gtk3-devel glib2-static '
@@ -153,16 +165,17 @@ node(workerNode) {
             hostScript += 'libaio-devel git ninja-build'
             hostScript += '\ncd /root'
             hostScript += '\n[ -e "qemu" ] || { mkdir qemu; cd qemu; git init; git remote add origin '
-            hostScript += 'https://github.com/qemu/qemu; cd ..; }'
+            hostScript += 'https://gitlab.com/qemu-project/qemu.git; cd ..; }'
             hostScript += '\ncd qemu'
-            hostScript += "\ngit fetch --depth=1 origin ${upstreamQemuCommit}"
-            hostScript += "\ngit checkout -f ${upstreamQemuCommit}"
+            hostScript += "\ngit fetch --depth=1 origin ${upstreamQemuVersion}"
+            hostScript += "\ngit checkout -f ${upstreamQemuVersion}"
             hostScript += '\ngit submodule update --init'
             hostScript += '\nVERSION=$(git rev-parse HEAD)'
             hostScript += '\ngit diff --quiet || VERSION+="-dirty"'
             hostScript += '\n./configure --target-list="$(uname -m)"-softmmu --disable-werror --enable-kvm '
             hostScript += '--enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp '
-            hostScript += '--enable-spice --enable-usb-redir --with-pkgversion="$VERSION"'
+            hostScript += '--enable-usb-redir --disable-opengl --disable-virglrenderer '
+            hostScript += '--with-pkgversion="$VERSION"'
             hostScript += makeInstallCmd
             hostScript += '\nchcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"'
             hostScript += '\n\\cp -f build/config.status /usr/local/share/qemu/'
@@ -278,11 +291,13 @@ node(workerNode) {
         sh '\\rm -Rf result* src_result* reference_builds'
         // Publish the results
         if (githubPublisherProject) {
-            build (job: 'rp-publish-results-git',
+            build(job: 'rp-publish-results-git',
                    parameters: [string(name: 'JOB', value: env.JOB_NAME),
                                 string(name: 'BUILD', value: env.BUILD_NUMBER),
                                 booleanParam(name: 'STATUS', value: status == 0),
+                                string(name: 'NOTES', value: descriptionPrefix),
                                 string(name: 'PROJECT', value: githubPublisherProject),
+                                string(name: 'TAG', value: githubPublisherTag),
                                 booleanParam(name: 'STRIP_RESULTS', value: true)],
                    quietPeriod: 0,
                    wait: false)

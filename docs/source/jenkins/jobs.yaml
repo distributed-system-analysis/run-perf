@@ -287,6 +287,10 @@
             name: PBENCH_PUBLISH
             description: 'Push the pbench results to company pbench server'
             default: "{param-pbench-publish}"
+        - string:
+            name: GITHUB_PUBLISHER_PROJECT
+            description: 'Github publisher project ID (when you want to publish your results)'
+            default: ""
 
         - string:
             name: NO_ITERATIONS
@@ -449,7 +453,7 @@
             description: How old results should be pruned
     builders:
         - python:
-            !include-raw-escape ../scripts/prune_artifacts.py
+            !include-raw-escape: ../scripts/prune_artifacts.py
 
 
 ##############################################################################
@@ -475,9 +479,17 @@
             default: false
             description: "Status of the comparison (GOOD=true/BAD=false)"
         - string:
+            name: NOTES
+            default: ""
+            description: "Notes to be added as description to the result entry"
+        - string:
             name: PROJECT
             default: ""
             description: "Owner of the results (usually a group/company name + project/machine)"
+        - string:
+            name: TAG
+            default: "all"
+            description: "Version tag used to split results of different versions/tags"
         - bool:
             name: STRIP_RESULTS
             default: true

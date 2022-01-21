@@ -21,7 +21,7 @@ modelFile = 'model.json'
 spaceChr = ' '
 
 stage('Analyze') {
-    node (workerNode) {
+    node(workerNode) {
         git branch: gitBranch, url: 'https://github.com/distributed-system-analysis/run-perf.git'
         sh '\\rm -Rf results* model.json'
         // Get all the specified builds
@@ -30,7 +30,7 @@ stage('Analyze') {
                           projectName: srcJob, selector: specific(build), target: 'results/')
         }
         status = 0
-        lock (workerNode) {
+        lock(workerNode) {
             // Avoid modifying workerNode's environment while executing compareperf
             sh 'python3 setup.py develop --user'
             status = sh(returnStatus: true,
