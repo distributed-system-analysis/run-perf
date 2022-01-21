@@ -475,7 +475,7 @@ def list_dir_hashes(path):
         for curfile in files:
             curpath = os.path.join(curdir, curfile)
             try:
-                sha = hashlib.sha1()
+                sha = hashlib.sha1()    # nosec
                 with open(curpath, "rb") as fd_curfile:
                     for chunk in iter(lambda: fd_curfile.read(4096), b""):
                         sha.update(chunk)

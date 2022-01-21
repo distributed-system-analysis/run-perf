@@ -143,7 +143,7 @@ class Fedora(BaseProvider):
             release = self.distro.split('-')[-1]
             url = ("https://download.fedoraproject.org/pub/fedora/linux/"
                    f"releases/{release}/Cloud/{self.arch}/images/")
-            with urlopen(url) as page:
+            with urlopen(url) as page:  # nosec
                 imgs = re.findall(br'href="([^"]+\.qcow2)"', page.read())
             if not imgs:
                 return False
