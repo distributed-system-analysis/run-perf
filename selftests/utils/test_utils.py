@@ -225,6 +225,30 @@ class LogFetcher(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.tmpdir, 'TEST',
                                                     'COMMANDS')))
 
+    def test_check_errors(self):
+        commands_path = os.path.join(self.tmpdir, 'machine_name', 'COMMANDS')
+        custom_serial_path = os.path.join(commands_path,
+                                          'custom_serial_console.log')
+        os.makedirs(commands_path)
+        with open(os.path.join(commands_path,
+                               'journalctl --no-pager --since=@%(since)s'),
+                  'w', encoding='utf8'):
+            pass
+        with open(custom_serial_path,
+                  'w', encoding='utf8') as journal_fd:
+            journal_fd.write('foo\nkernel: Call Trace:\nbar')
+        fetcher = utils.LogFetcher()
+        fetcher.check_errors(self.tmpdir)
+        fetcher.globs_kernel_log_path.append(os.path.join('*', 'COMMANDS',
+                                                          '*serial*.log'))
+        self.assertRaises(RuntimeError, fetcher.check_errors, self.tmpdir)
+        os.unlink(custom_serial_path)
+        with open(os.path.join(commands_path,
+                               'journalctl --no-pager --since=@%(since)s'),
+                  'w', encoding='utf8') as journal_fd:
+            journal_fd.write('foo\nkernel: Call Trace:\nbar')
+        self.assertRaises(RuntimeError, fetcher.check_errors, self.tmpdir)
+
     def tearDown(self):
         if self.tmpdir:
             shutil.rmtree(self.tmpdir)

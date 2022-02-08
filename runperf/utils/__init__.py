@@ -15,6 +15,7 @@
 # Some of the methods are inspired by https://github.com/avocado-framework/
 #     avocado/tree/master/avocado/utils
 import errno
+import glob
 import hashlib
 import itertools
 import logging
@@ -498,6 +499,8 @@ class LogFetcher:
         self.paths = set(paths) if paths else set()
         self.cmds = set(cmds) if cmds else set(["journalctl --no-pager "
                                                 "--since=@%(since)s"])
+        self.globs_kernel_log_path = [os.path.join("*", "COMMANDS",
+                                                   "journalctl*")]
 
     @staticmethod
     def collect_files(out_path, host, paths):
@@ -554,3 +557,32 @@ class LogFetcher:
         path = os.path.join(path, host.get_fullname())
         self.collect_files(path, host, self.paths)
         self.collect_cmds(path, host, self.cmds)
+
+    @staticmethod
+    def _check_kernel_calltraces(path, log_glob):
+        """
+        Check the log file for kernel call traces
+
+        :param path: Local path to a log file with kernel output.
+        """
+        errs = []
+        for log in glob.glob(os.path.join(path, log_glob)):
+            with open(log, encoding="utf-8") as fd_serial_log:
+                if 'kernel: Call Trace:' in fd_serial_log.read():
+                    errs.append(f"{log}: 'kernel: Call Trace' detected")
+        return '\n'.join(errs)
+
+    def check_errors(self, path):
+        """
+        Check for issues in the fetched files
+
+        :param path: Path where outputs are stored
+        """
+        errs = []
+        # kernel errors
+        for glob_kernel_log in self.globs_kernel_log_path:
+            err = self._check_kernel_calltraces(path, glob_kernel_log)
+            if err:
+                errs.append(err)
+        if errs:
+            raise RuntimeError("Issue(s) detected:\n" + '\n'.join(errs))
