@@ -220,6 +220,8 @@ class BaseProfile:
         self.log_fetcher.collect(path, self.host)
         for worker in self.workers:
             self.workers_log_fetcher.collect(path, worker)
+        self.log_fetcher.check_errors(path)
+        self.workers_log_fetcher.check_errors(path)
 
     def __del__(self):
         if self.session:
@@ -452,6 +454,8 @@ class DefaultLibvirt(PersistentProfile):
         with self.host.get_session_cont() as session:
             session.cmd_status("rm -Rf /var/log/libvirt/*")
         self.log_fetcher.paths.add('/var/log/libvirt/')
+        self.log_fetcher.globs_kernel_log_path.append(
+            os.path.join('*', 'var', 'log', 'libvirt', '*.log'))
 
     def _apply(self, setup_script):
         if self.vms:
@@ -573,15 +577,6 @@ class DefaultLibvirt(PersistentProfile):
         if not stat:
             out.append(f"configuration:\n{config}")
         return "\n".join(out)
-
-    def fetch_logs(self, path):
-        PersistentProfile.fetch_logs(self, path)
-        for log in glob.glob(os.path.join(path, self.host.get_fullname(),
-                                          'var', 'log', 'libvirt', '*.log')):
-            with open(log, encoding="utf-8") as fd_serial_log:
-                if 'kernel: Call Trace:' in fd_serial_log:
-                    raise(f"'kernel: Call Trace' found in {log}, likely VM "
-                          "had stability issues.")
 
     def _revert(self):
         ret = PersistentProfile._revert(self)
