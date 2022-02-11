@@ -12,7 +12,6 @@
 #
 # Copyright: Red Hat Inc. 2018
 # Author: Lukas Doktor <ldoktor@redhat.com>
-import glob
 import logging
 import os
 import time
