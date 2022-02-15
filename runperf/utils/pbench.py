@@ -145,9 +145,7 @@ def register_tools(session, tools, clients):
     Unregister all tools and then register the provided ones
     """
     # Cleanup previous tools configuration
-    for client in clients:
-        with client.get_session_cont() as csession:
-            csession.cmd_output("rm -rf /var/lib/pbench-agent/tools-*default")
+    session.cmd("pbench-clear-tools")
     # Register tools on all clients
     addrs = ','.join(_.get_addr() for _ in clients)
     for tool in tools:

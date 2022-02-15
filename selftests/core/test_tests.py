@@ -52,7 +52,6 @@ class PBenchTest(Selftest):
                          args)
         mock_args = {'cmd_status.return_value': 0,
                      'cmd_output.side_effect': (
-                         [0] +
                          prepend_host_cmd_output_side_effect +
                          ["prefix+self._cmd", "0", result_path]),
                      'cmd_status_output.return_value': [1, ""]}
