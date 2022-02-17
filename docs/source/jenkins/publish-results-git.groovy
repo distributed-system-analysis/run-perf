@@ -101,6 +101,7 @@ projectTemplateStyle = '''td, th {
 }
 tr:nth-child(even){background-color: #f2f2f2;}
 tr:hover {background-color: #ddd;}
+.alert {background-color: orange;}
 
 th {
   padding-top: 3px;
