@@ -54,6 +54,9 @@ guestBkrLinkss = GUEST_BKR_LINKSS.split(csvSeparator)
 guestBkrLinksFilter = params.GUEST_BKR_LINKS_FILTER
 // Add steps to checkout, compile and install the upstream qemu from git
 upstreamQemuCommits = params.UPSTREAM_QEMU_COMMITS.split(csvSeparator)
+// Custom host/guest setups cript
+hostScript = params.HOST_SCRIPT
+workerScript = params.WORKER_SCRIPT
 
 // Extra variables
 // Provisioner machine
@@ -157,7 +160,9 @@ for (params in paramTypes.combinations()) {
         new StringParameterValue('CMP_MODEL_BUILD', cmpModelBuild),
         new StringParameterValue('CMP_TOLERANCE', cmpTolerance),
         new StringParameterValue('CMP_STDDEV_TOLERANCE', cmpStddevTolerance),
-        new StringParameterValue('GITHUB_PUBLISHER_PROJECT', githubPublisherProject)
+        new StringParameterValue('GITHUB_PUBLISHER_PROJECT', githubPublisherProject),
+        new TextParameterValue('HOST_SCRIPT', hostScript),
+        new TextParameterValue('WORKER_SCRIPT', workerScript)
         ]
     srcBuild = triggerJob(parameters, srcBuild, jobName)
     referenceBuilds += 1

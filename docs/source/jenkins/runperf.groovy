@@ -48,6 +48,9 @@ pbenchPublish = params.PBENCH_PUBLISH
 // Github-publisher project ID
 githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT
 githubPublisherTag = ''
+// Custom host/guest setups cript
+hostScript = params.HOST_SCRIPT
+workerScript = params.WORKER_SCRIPT
 
 // Extra variables
 // Provisioner machine
@@ -110,8 +113,6 @@ node(workerNode) {
         sh "\\rm -Rf result* src_result* reference_builds ${htmlPath}"
         sh "mkdir ${htmlPath}"
         sh pythonDeployCmd
-        hostScript = ''
-        guestScript = ''
         metadata = ''
         // Use grubby to update default args on host
         if (hostKernelArgs) {
@@ -125,11 +126,11 @@ node(workerNode) {
         }
         // The same on guest
         if (guestKernelArgs) {
-            guestScript += "\ngrubby --args '${guestKernelArgs}' --update-kernel=\$(grubby --default-kernel)"
+            workerScript += "\ngrubby --args '${guestKernelArgs}' --update-kernel=\$(grubby --default-kernel)"
         }
         // The same on guest
         if (guestBkrLinks) {
-            guestScript += getBkrInstallCmd(guestBkrLinks, guestBkrLinksFilter, arch)
+            workerScript += getBkrInstallCmd(guestBkrLinks, guestBkrLinksFilter, arch)
         }
         // Install deps and compile custom fio with nbd ioengine
         if (fioNbdSetup) {
@@ -142,7 +143,7 @@ node(workerNode) {
                               '\n./configure --enable-libnbd' +
                               makeInstallCmd)
             hostScript += nbdSetupScript
-            guestScript += nbdSetupScript
+            workerScript += nbdSetupScript
         }
         // Build custom qemu
         if (upstreamQemuCommit) {
@@ -191,14 +192,14 @@ node(workerNode) {
             kernelBuildUrl = kojiUrl + kernelBuild
             kernelBuildFilter = 'debug bpftool kernel-tools perf kernel-selftests kernel-doc'
             hostScript += getBkrInstallCmd(kernelBuildUrl, kernelBuildFilter, arch)
-            guestScript += getBkrInstallCmd(kernelBuildUrl, kernelBuildFilter, arch)
+            workerScript += getBkrInstallCmd(kernelBuildUrl, kernelBuildFilter, arch)
         }
         if (hostScript) {
             writeFile file: 'host_script', text: hostScript
             extraArgs += ' --host-setup-script host_script --host-setup-script-reboot'
         }
-        if (guestScript) {
-            writeFile file: 'worker_script', text: guestScript
+        if (workerScript) {
+            writeFile file: 'worker_script', text: workerScript
             extraArgs += ' --worker-setup-script worker_script'
         }
         if (pbenchPublish) {

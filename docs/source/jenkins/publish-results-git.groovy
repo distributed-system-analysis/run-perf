@@ -78,6 +78,7 @@ resultTemplate = '''<html>
     &#10060; == BAD
     &#x1F44D;  == MANUAL GOOD
     &#x1F44E; == MANUAL BAD
+    &#x1F4A5; == BROKEN BUILD
     --></th>
     <th><!--Qemu version, use 6 digit tooltip + the rest in tooltiptext-->Qemu version</th>
     <th>Date</th>
@@ -100,6 +101,7 @@ projectTemplateStyle = '''td, th {
 }
 tr:nth-child(even){background-color: #f2f2f2;}
 tr:hover {background-color: #ddd;}
+.alert {background-color: orange;}
 
 th {
   padding-top: 3px;
