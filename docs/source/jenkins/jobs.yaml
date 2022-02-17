@@ -26,6 +26,8 @@
     param-fio-nbd-setup: false
     param-upstream-qemu-commit: ''
     param-github-publisher: ''
+    param-host-script: ''
+    param-worker-script: ''
     trigger-on: "H 17 * * *"
     disabled: false
 
@@ -127,6 +129,14 @@
             name: FEDORA_LATEST_KERNEL
             description: 'Install the latest kernel from koji (Fedora rpm)'
             default: false
+        - text:
+            name: HOST_SCRIPT
+            description: 'Host script to be executed on all --servers'
+            default: "{param-host-script}"
+        - text:
+            name: WORKER_SCRIPT
+            description: 'Worker script to be executed on all runperf workers'
+            default: "{param-worker-script}"
         - string:
             name: DESCRIPTION_PREFIX
             description: Description prefix (describe the difference from default)
@@ -291,6 +301,14 @@
             name: GITHUB_PUBLISHER_PROJECT
             description: 'Github publisher project ID (when you want to publish your results)'
             default: ""
+        - text:
+            name: HOST_SCRIPT
+            description: 'Host script to be executed on all --servers'
+            default: "{param-host-script}"
+        - text:
+            name: WORKER_SCRIPT
+            description: 'Worker script to be executed on all runperf workers'
+            default: "{param-worker-script}"
 
         - string:
             name: NO_ITERATIONS
