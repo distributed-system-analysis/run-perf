@@ -239,6 +239,24 @@ class PBenchTest(BaseTest):
                 self.host.log.warning("Host did not stabilize in 1800s,"
                                       " proceeding on a loaded machine!")
 
+    def _pbench_destructive_cleanup_on_failure(self, session):
+        """
+        In case of a failure pbench might leave some processes behind,
+        use this drastic method to ensure they won't spoil future testing.
+        Note the list might not be complete but it should prevent hangs
+        related to multiple TMs running.
+
+        https://github.com/distributed-system-analysis/pbench/issues/2625
+        """
+        nuke_cmd = ("for NAME in pbench-tool-meister-start redis-server "
+                    "gpg-agent scdaemon fio uperf linpack; do "
+                    "killall -9 $NAME; done")
+        session.cmd_status(nuke_cmd)
+        for workers in self.workers:
+            for worker in workers:
+                with worker.get_session_cont(hop=self.host) as wsession:
+                    wsession.cmd_status(nuke_cmd)
+
     def _run(self):
         # We only need one group of workers
         src = None
@@ -263,7 +281,11 @@ class PBenchTest(BaseTest):
                                if line.strip().isdigit()]
                 if digit_lines:
                     if int(digit_lines[0].strip()) != 0:
-                        raise RuntimeError(f"Execution failed {digit_lines}")
+                        self._pbench_destructive_cleanup_on_failure(session)
+                        raise RuntimeError(f"Execution failed {digit_lines} ("
+                                           "redis and pbench TM were "
+                                           "forcefully destroyed, ensure "
+                                           "your workloads were not affected)")
                 else:
                     raise RuntimeError("Failed to get status")
                 src = session.cmd_output("echo $(ls -dt /var/lib/pbench-agent/"
