@@ -166,6 +166,9 @@ class PBenchTest(BaseTest):
         # Using sorted to always use the same cmdline
         for key, value in sorted(extra.items()):
             # Replace special values
+            # Skip "__*" keys
+            if key.startswith("__"):
+                continue
             # __PER_WORKER_CPUS__ == no cpus perf worker
             if value == "__PER_WORKER_CPUS__":
                 for _workers in self.workers:

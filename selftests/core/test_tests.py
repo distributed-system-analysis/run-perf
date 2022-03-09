@@ -99,7 +99,8 @@ class PBenchTest(Selftest):
     def test_fio_custom(self):
         self.check(tests.PBenchFio, {"pbench_server_publish": "yes",
                                      "project": "asdf", "build": "fdsa"},
-                   {"test-types": "randomrw", "runtime": "10", "foo": "bar"},
+                   {"test-types": "randomrw", "runtime": "10", "foo": "bar",
+                    "__THIS_WONT_BE_INCLUDED__": "value"},
                    'pbench-fio  --foo=bar --ramptime=10 --runtime=10 '
                    '--samples=3 --test-types=randomrw --clients=addr2')
 
