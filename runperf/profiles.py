@@ -46,6 +46,9 @@ class BaseProfile:
         self.session = host.get_session()
         self.rp_paths = rp_paths
         self.extra = extra
+        name = extra.get("__NAME__")
+        if name:
+            self.name = utils.string_to_safe_path(name)
         # List of available workers
         self.workers = []
         self.log_fetcher = utils.LogFetcher()
