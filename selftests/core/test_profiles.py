@@ -161,6 +161,16 @@ class ProfileUnitTests(Selftest):
                                             None, setup_script_path)
             self.assertEqual(None, out)
 
+    def test_name(self):
+        profile = profiles.Localhost(mock.Mock(), None, {})
+        self.assertEqual("Localhost", profile.name)
+        profile = profiles.Localhost(mock.Mock(), None,
+                                     {"__NAME__": "Custom name"})
+        self.assertEqual("Custom name", profile.name)
+        profile = profiles.Localhost(mock.Mock(), None,
+                                     {"__NAME__": "Custom/name"})
+        self.assertEqual("Custom_name", profile.name)
+
 
 class RunPerfTest(Selftest):
 

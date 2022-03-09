@@ -37,6 +37,9 @@ class BaseTest:
             os.makedirs(base_output_path)
         self.output = tempfile.mkdtemp(prefix="tmp", dir=base_output_path)
         self.metadata = metadata
+        name = extra.get("__NAME__")
+        if name:
+            self.name = utils.string_to_safe_path(name)
 
     def setup(self):
         """

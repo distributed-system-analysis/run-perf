@@ -140,6 +140,16 @@ class PBenchTest(Selftest):
                    "--linpack-binary='/my/path/to/linpack'",
                    ["/my/path/to/linpack"])
 
+    def test_custom_name(self):
+        tst = tests.DummyTest(None, None, self.tmpdir, {}, {})
+        self.assertEqual(tst.name, "DummyTest")
+        tst = tests.DummyTest(None, None, self.tmpdir, {},
+                              {"__NAME__": "Custom name"})
+        self.assertEqual(tst.name, "Custom name")
+        tst = tests.DummyTest(None, None, self.tmpdir, {},
+                              {"__NAME__": "Custom/name"})
+        self.assertEqual(tst.name, "Custom_name")
+
 
 if __name__ == '__main__':
     unittest.main()

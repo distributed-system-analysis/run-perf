@@ -78,6 +78,10 @@ Profiles
 Are implemented under :mod:`runperf.profiles` and they can accept
 additional parameters. See each profile API documentation for details.
 
+By default profiles are named according to their class but one can
+tweak the name (and result dir) by using ``"__NAME__": "custom name"``
+extra argument.
+
 There is one shared extra parameter available for all profiles,
 the `RUNPERF_TESTS`, which allows to override/extend the set of tests
 that will be executed on this profile. Similarly to ``--tests`` one
@@ -130,6 +134,10 @@ of a few `pbench-based <https://distributed-system-analysis.github.io/pbench/pbe
 tests. These tests accept any extra argument (specified via
 'TestName:{"arg": "val"}') on the cmdline and pass it directly to the
 pbench-$test command. Below you can find all/most arguments that can be tweaked.
+
+By default tests are named according to their class but one can
+tweak the name (and result dir) by using ``"__NAME__": "custom name"``
+extra argument.
 
 In case you want to use the number of cpus per worker you can supply
 ``__PER_WORKER_CPUS__`` value which will be calculated and replaced
