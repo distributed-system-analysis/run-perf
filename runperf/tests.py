@@ -29,17 +29,18 @@ class BaseTest:
     name = ""
     min_groups = 1
 
-    def __init__(self, host, workers, base_output_path,
-                 metadata, extra):  # pylint: disable=W0613
+    def __init__(self, host, workers, base_output_path, metadata, extra):
+        name = extra.pop('__NAME__', None)
+        if not name:
+            name = self.name
+        self.name = utils.string_to_safe_path(name)
         self.host = host
         self.workers = workers
+        base_output_path = os.path.join(base_output_path, self.name)
         if not os.path.exists(base_output_path):
             os.makedirs(base_output_path)
         self.output = tempfile.mkdtemp(prefix="tmp", dir=base_output_path)
         self.metadata = metadata
-        name = extra.get("__NAME__")
-        if name:
-            self.name = utils.string_to_safe_path(name)
 
     def setup(self):
         """

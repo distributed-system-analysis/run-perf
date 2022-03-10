@@ -460,11 +460,11 @@ class Controller:
                            controller
         :param workers: list of workers to be made available for execution
         """
-        name = test_class.name
-        self.log.info(f"  RUN test {name}")
         test = test_class(self.main_host, workers,
-                          os.path.join(self._output_dir, self.profile,
-                                       name), self.metadata, extra)
+                          os.path.join(self._output_dir, self.profile),
+                          self.metadata, extra)
+        name = test.name
+        self.log.info(f"  RUN test {name}")
         try:
             test.setup()
             test.run()

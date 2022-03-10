@@ -142,14 +142,27 @@ class PBenchTest(Selftest):
                    ["/my/path/to/linpack"])
 
     def test_custom_name(self):
+        shutil.rmtree(self.tmpdir)
         tst = tests.DummyTest(None, None, self.tmpdir, {}, {})
         self.assertEqual(tst.name, "DummyTest")
+        self.assertTrue(os.path.exists(os.path.join(self.tmpdir, "DummyTest")),
+                        os.listdir(self.tmpdir))
+        shutil.rmtree(self.tmpdir)
         tst = tests.DummyTest(None, None, self.tmpdir, {},
                               {"__NAME__": "Custom name"})
         self.assertEqual(tst.name, "Custom name")
+        self.assertFalse(os.path.exists(os.path.join(
+            self.tmpdir, "DummyTest")), os.listdir(self.tmpdir))
+        self.assertTrue(os.path.exists(os.path.join(
+            self.tmpdir, "Custom name")), os.listdir(self.tmpdir))
+        shutil.rmtree(self.tmpdir)
         tst = tests.DummyTest(None, None, self.tmpdir, {},
                               {"__NAME__": "Custom/name"})
         self.assertEqual(tst.name, "Custom_name")
+        self.assertFalse(os.path.exists(os.path.join(
+            self.tmpdir, "DummyTest")), os.listdir(self.tmpdir))
+        self.assertTrue(os.path.exists(os.path.join(
+            self.tmpdir, "Custom_name")), os.listdir(self.tmpdir))
 
 
 if __name__ == '__main__':

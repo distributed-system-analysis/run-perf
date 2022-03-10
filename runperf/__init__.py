@@ -301,7 +301,7 @@ def main():
                 continue
 
             # Run all tests under current profile
-            profile_path = os.path.join(args.output, profile)
+            profile_path = os.path.join(args.output, hosts.profile)
             for test, extra in test_defs:
                 for i in range(args.retry_tests):
                     try:
@@ -309,20 +309,21 @@ def main():
                         break
                     except (AssertionError, aexpect.ExpectError,
                             aexpect.ShellError, RuntimeError) as details:
-                        msg = (f"test {test.test}@{profile} attempt {i} "
+                        msg = (f"test {test.test}@{hosts.profile} attempt {i} "
                                f"execution failure: {details}")
                         utils.record_failure(os.path.join(profile_path,
                                                           test.test, str(i)),
                                              details, details=msg)
                 else:
                     log.error("ERROR running %s@%s, test will be SKIPPED!",
-                              test.test, profile)
+                              test.test, hosts.profile)
             # Fetch logs
             try:
-                hosts.fetch_logs(os.path.join(args.output, profile,
+                hosts.fetch_logs(os.path.join(args.output, hosts.profile,
                                               '__sysinfo__'))
             except Exception as exc:    # pylint: disable=W0703
-                utils.record_failure(os.path.join(args.output, profile), exc)
+                utils.record_failure(os.path.join(args.output, hosts.profile),
+                                     exc)
             # Revert profile changes. In case manual reboot is required return
             # non-zero.
             hosts.revert_profile()
