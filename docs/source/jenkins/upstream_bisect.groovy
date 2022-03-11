@@ -2,41 +2,41 @@
 // Following `params` have to be defined in job (eg. via jenkins-job-builder)
 
 // Machine to be provisioned and tested
-machine = params.MACHINE
+machine = params.MACHINE.trim()
 // target machine's architecture
-arch = params.ARCH
+arch = params.ARCH.trim()
 // Distribution to be installed/is installed (Fedora-32)
 // when empty it will pick the latest available nightly el8
-distro = params.DISTRO
+distro = params.DISTRO.trim()
 // Distribution to be installed on guest, when empty "distro" is used
-guestDistro = params.GUEST_DISTRO
+guestDistro = params.GUEST_DISTRO.trim()
 // Space separated list of tests to be executed
-tests = params.TESTS
+tests = params.TESTS.trim()
 // Space separated list of profiles to be applied
-profiles = params.PROFILES
+profiles = params.PROFILES.trim()
 // Add custom kernel arguments on host
-hostKernelArgs = params.HOST_KERNEL_ARGS
+hostKernelArgs = params.HOST_KERNEL_ARGS.trim()
 // Install rpms from (beaker) urls
-hostBkrLinks = params.HOST_BKR_LINKS
+hostBkrLinks = params.HOST_BKR_LINKS.trim()
 // filters for hostBkrLinks
-hostBkrLinksFilter = params.HOST_BKR_LINKS_FILTER
+hostBkrLinksFilter = params.HOST_BKR_LINKS_FILTER.trim()
 // Add custom kernel argsuments on workers/guests
-guestKernelArgs = params.GUEST_KERNEL_ARGS
+guestKernelArgs = params.GUEST_KERNEL_ARGS.trim()
 // Install rpms from (beaker) urls
-guestBkrLinks = GUEST_BKR_LINKS
+guestBkrLinks = GUEST_BKR_LINKS.trim()
 // filters for guestBkrLinks
-guestBkrLinksFilter = params.GUEST_BKR_LINKS_FILTER
+guestBkrLinksFilter = params.GUEST_BKR_LINKS_FILTER.trim()
 // Add steps to fetch, compile and install the upstream fio with nbd ioengine compiled in
-fioNbdSetup = params.FIO_NBD_SETUP
+fioNbdSetup = params.FIO_NBD_SETUP.trim()
 // Specify the bisection range
 // Older commit
-upstreamQemuGood = params.UPSTREAM_QEMU_GOOD
+upstreamQemuGood = params.UPSTREAM_QEMU_GOOD.trim()
 // Newer commit
-upstreamQemuBad = params.UPSTREAM_QEMU_BAD
+upstreamQemuBad = params.UPSTREAM_QEMU_BAD.trim()
 // Description prefix (describe the difference from default)
 descriptionPrefix = params.DESCRIPTION_PREFIX
 // Pbench-publish related options
-pbenchPublish = params.PBENCH_PUBLISH
+pbenchPublish = params.PBENCH_PUBLISH.trim()
 
 // Extra variables
 // Provisioner machine

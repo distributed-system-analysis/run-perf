@@ -5,20 +5,20 @@ csvSeparator = ';'
 
 // SHARED VALUES FOR ALL JOBS
 // Job name to be triggered
-jobName = params.JOB_NAME
+jobName = params.JOB_NAME.trim()
 // Machine to be provisioned and tested
-machine = params.MACHINE
+machine = params.MACHINE.trim()
 // target machine's architecture
-arch = params.ARCH
+arch = params.ARCH.trim()
 // Space separated list of tests to be executed
-tests = params.TESTS
+tests = params.TESTS.trim()
 // Space separated list of profiles to be applied
-profiles = params.PROFILES
+profiles = params.PROFILES.trim()
 // Compareperf tollerances
-cmpModelJob = params.CMP_MODEL_JOB
-cmpModelBuild = params.CMP_MODEL_BUILD
-cmpTolerance = params.CMP_TOLERANCE
-cmpStddevTolerance = params.CMP_STDDEV_TOLERANCE
+cmpModelJob = params.CMP_MODEL_JOB.trim()
+cmpModelBuild = params.CMP_MODEL_BUILD.trim()
+cmpTolerance = params.CMP_TOLERANCE.trim()
+cmpStddevTolerance = params.CMP_STDDEV_TOLERANCE.trim()
 // Add steps to fetch, compile and install the upstream fio with nbd ioengine compiled in
 fioNbdSetup = params.FIO_NBD_SETUP
 // Description prefix (describe the difference from default)
@@ -26,7 +26,7 @@ descriptionPrefix = params.DESCRIPTION_PREFIX
 // Pbench-publish related options
 pbenchPublish = params.PBENCH_PUBLISH
 // Github-publisher project ID
-githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT
+githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT.trim()
 
 // LIST OF VALUES
 // Iterations of each combination
