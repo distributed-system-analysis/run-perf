@@ -98,7 +98,7 @@ node(workerNode) {
         sh 'mkdir html'
         sh pythonDeployCmd
         hostScript = ''
-        guestScript = ''
+        workerScript = ''
         metadata = ''
         // Use grubby to update default args on host
         if (hostKernelArgs) {
@@ -112,23 +112,23 @@ node(workerNode) {
         }
         // The same on guest
         if (guestKernelArgs) {
-            guestScript += "\ngrubby --args '${guestKernelArgs}' --update-kernel=\$(grubby --default-kernel)"
+            workerScript += "\ngrubby --args '${guestKernelArgs}' --update-kernel=\$(grubby --default-kernel)"
         }
         // The same on guest
         if (guestBkrLinks) {
-            guestScript += getBkrInstallCmd(guestBkrLinks, guestBkrLinksFilter, arch)
+            workerScript += getBkrInstallCmd(guestBkrLinks, guestBkrLinksFilter, arch)
         }
         // Install deps and compile custom fio with nbd ioengine
         if (fioNbdSetup) {
             hostScript += fioNbdScript
-            guestScript += fioNbdScript
+            workerScript += fioNbdScript
         }
         if (hostScript) {
             writeFile file: 'host_script', text: hostScript
             extraArgs += ' --host-setup-script host_script --host-setup-script-reboot'
         }
-        if (guestScript) {
-            writeFile file: 'worker_script', text: guestScript
+        if (workerScript) {
+            writeFile file: 'worker_script', text: workerScript
             extraArgs += ' --worker-setup-script worker_script'
         }
         if (pbenchPublish) {
