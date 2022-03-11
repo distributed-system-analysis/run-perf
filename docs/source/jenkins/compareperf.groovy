@@ -2,17 +2,17 @@
 // Following `params` have to be defined in job (eg. via jenkins-job-builder)
 
 // Source jenkins job
-srcJob = params.SRC_JOB
+srcJob = params.SRC_JOB.trim()
 // List of space separated build numbers to be analyzed, first build is used
 // as source build (not included in graphs)
 builds = params.BUILDS.split().toList()
 // Description of this analysis
 description = params.DESCRIPTION
 // Compareperf tollerances
-cmpModelJob = params.CMP_MODEL_JOB
-cmpModelBuild = params.CMP_MODEL_BUILD
-cmpTolerance = params.CMP_TOLERANCE
-cmpStddevTolerance = params.CMP_STDDEV_TOLERANCE
+cmpModelJob = params.CMP_MODEL_JOB.trim()
+cmpModelBuild = params.CMP_MODEL_BUILD.trim()
+cmpTolerance = params.CMP_TOLERANCE.trim()
+cmpStddevTolerance = params.CMP_STDDEV_TOLERANCE.trim()
 
 // Extra variables
 // Provisioner machine

@@ -187,6 +187,14 @@
             name: PROFILES
             description: 'Space separated list of profiles to be applied'
             default: "{param-profiles}"
+        - text:
+            name: HOST_SCRIPT
+            description: 'Host script to be executed on all --servers'
+            default: "{param-host-script}"
+        - text:
+            name: WORKER_SCRIPT
+            description: 'Worker script to be executed on all runperf workers'
+            default: "{param-worker-script}"
         - string:
             name: HOST_KERNEL_ARGS
             description: Add custom kernel arguments on host

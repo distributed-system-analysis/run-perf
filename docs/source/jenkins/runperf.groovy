@@ -2,41 +2,41 @@
 // Following `params` have to be defined in job (eg. via jenkins-job-builder)
 
 // Machine to be provisioned and tested
-machine = params.MACHINE
+machine = params.MACHINE.trim()
 // target machine's architecture
-arch = params.ARCH
+arch = params.ARCH.trim()
 // Distribution to be installed/is installed (Fedora-32)
 // when empty it will pick the latest available nightly el8
-distro = params.DISTRO
+distro = params.DISTRO.trim()
 // Distribution to be installed on guest, when empty "distro" is used
-guestDistro = params.GUEST_DISTRO
+guestDistro = params.GUEST_DISTRO.trim()
 // Space separated list of tests to be executed
-tests = params.TESTS
+tests = params.TESTS.trim()
 // Space separated list of profiles to be applied
-profiles = params.PROFILES
+profiles = params.PROFILES.trim()
 // Base build to compare with
-srcBuild = params.SRC_BUILD
+srcBuild = params.SRC_BUILD.trim()
 // Compareperf tollerances
-cmpModelJob = params.CMP_MODEL_JOB
-cmpModelBuild = params.CMP_MODEL_BUILD
-cmpTolerance = params.CMP_TOLERANCE
-cmpStddevTolerance = params.CMP_STDDEV_TOLERANCE
+cmpModelJob = params.CMP_MODEL_JOB.trim()
+cmpModelBuild = params.CMP_MODEL_BUILD.trim()
+cmpTolerance = params.CMP_TOLERANCE.trim()
+cmpStddevTolerance = params.CMP_STDDEV_TOLERANCE.trim()
 // Add custom kernel arguments on host
-hostKernelArgs = params.HOST_KERNEL_ARGS
+hostKernelArgs = params.HOST_KERNEL_ARGS.trim()
 // Install rpms from (beaker) urls
-hostBkrLinks = params.HOST_BKR_LINKS
+hostBkrLinks = params.HOST_BKR_LINKS.trim()
 // filters for hostBkrLinks
-hostBkrLinksFilter = params.HOST_BKR_LINKS_FILTER
+hostBkrLinksFilter = params.HOST_BKR_LINKS_FILTER.trim()
 // Add custom kernel argsuments on workers/guests
-guestKernelArgs = params.GUEST_KERNEL_ARGS
+guestKernelArgs = params.GUEST_KERNEL_ARGS.trim()
 // Install rpms from (beaker) urls
-guestBkrLinks = GUEST_BKR_LINKS
+guestBkrLinks = GUEST_BKR_LINKS.trim()
 // filters for guestBkrLinks
-guestBkrLinksFilter = params.GUEST_BKR_LINKS_FILTER
+guestBkrLinksFilter = params.GUEST_BKR_LINKS_FILTER.trim()
 // Add steps to fetch, compile and install the upstream fio with nbd ioengine compiled in
 fioNbdSetup = params.FIO_NBD_SETUP
 // Add steps to checkout, compile and install the upstream qemu from git
-upstreamQemuCommit = params.UPSTREAM_QEMU_COMMIT
+upstreamQemuCommit = params.UPSTREAM_QEMU_COMMIT.trim()
 // Add steps to install the latest kernel from koji (Fedora rpm)
 fedoraLatestKernel = params.FEDORA_LATEST_KERNEL
 // Description prefix (describe the difference from default)
@@ -46,7 +46,7 @@ noReferenceBuilds = params.NO_REFERENCE_BUILDS.toInteger()
 // Pbench-publish related options
 pbenchPublish = params.PBENCH_PUBLISH
 // Github-publisher project ID
-githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT
+githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT.trim()
 githubPublisherTag = ''
 // Custom host/guest setups cript
 hostScript = params.HOST_SCRIPT
