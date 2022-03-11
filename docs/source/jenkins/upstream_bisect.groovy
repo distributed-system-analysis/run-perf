@@ -141,9 +141,16 @@ node(workerNode) {
             sh 'rm -Rf upstream_qemu/'
             sh 'git clone https://gitlab.com/qemu-project/qemu.git upstream_qemu/'
             sh '$KINIT'
+            // First run the provisioning and dummy test to age the machine a bit
+            sh("python3 scripts/run-perf ${extraArgs} -vvv --hosts ${machine} --distro ${distro} " +
+               '--provisioner Beaker --default-password YOUR_DEFAULT_PASSWORD ' +
+               '--profiles DefaultLibvirt --paths ./downstream_config -- ' +
+              '\'fio:{"runtime": "30", "targets": "/fio", "block-sizes": "4", "test-types": "read", ' +
+              '"samples": "1"}\'')
+            // And now run the bisection without reprovisioning
             sh("DIFFPERF='python3 scripts/diff-perf' contrib/upstream_qemu_bisect.sh upstream_qemu/ " +
                "${upstreamQemuGood} ${upstreamQemuBad} python3 scripts/run-perf ${extraArgs} " +
-               "-vvv --hosts ${machine} --distro ${distro} --provisioner Beaker " +
+               "-vvv --hosts ${machine} --distro ${distro} " +
                "--default-password YOUR_DEFAULT_PASSWORD --profiles ${profiles} " +
                "--paths ./downstream_config --metadata 'url=${currentBuild.absoluteUrl}' " +
                "'project=virt-perf-ci ${currentBuild.projectName}' " +
