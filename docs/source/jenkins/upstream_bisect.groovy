@@ -37,6 +37,9 @@ upstreamQemuBad = params.UPSTREAM_QEMU_BAD.trim()
 descriptionPrefix = params.DESCRIPTION_PREFIX
 // Pbench-publish related options
 pbenchPublish = params.PBENCH_PUBLISH.trim()
+// Custom host/guest setups cript
+hostScript = params.HOST_SCRIPT
+workerScript = params.WORKER_SCRIPT
 
 // Extra variables
 // Provisioner machine
@@ -97,8 +100,6 @@ node(workerNode) {
         sh '\\rm -Rf result* src_result* reference_builds html'
         sh 'mkdir html'
         sh pythonDeployCmd
-        hostScript = ''
-        workerScript = ''
         metadata = ''
         // Use grubby to update default args on host
         if (hostKernelArgs) {
