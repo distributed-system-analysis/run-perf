@@ -148,8 +148,6 @@ class PBenchTest(BaseTest):
             self.pbench_publish = True
         else:
             self.pbench_publish = False
-        # Copy the extra dict to preserve it for the following profiles
-        extra = extra.copy()
         pbench_tools = extra.pop("pbench_tools", None)
         if not pbench_tools:
             pbench_tools = metadata.get("pbench_tools", None)
