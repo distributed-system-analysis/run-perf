@@ -123,8 +123,6 @@ class PBenchTest(Selftest):
         extra["pbench_tools"] = ["extra", "set"]
         tst = self.check(tests.PBenchFio, metadata, extra, cmdline)
         self.assertEqual(tst.pbench_tools, ["extra", "set"])
-        # Check the extra is not modified by the test initialization
-        self.assertEqual({"pbench_tools": ["extra", "set"]}, extra)
 
     def test_uperf(self):
         self.check(tests.UPerf, {}, {}, 'PERL5LIB=/opt/pbench-agent/tool-'

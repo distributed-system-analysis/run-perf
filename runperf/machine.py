@@ -462,7 +462,7 @@ class Controller:
         """
         test = test_class(self.main_host, workers,
                           os.path.join(self._output_dir, self.profile),
-                          self.metadata, extra)
+                          self.metadata, extra.copy())
         name = test.name
         self.log.info(f"  RUN test {name}")
         try:
