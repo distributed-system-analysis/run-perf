@@ -227,6 +227,10 @@
             name: FIO_NBD_SETUP
             description: 'Compile and install fio with nbd ioengine enabled before test execution'
             default: "{param-fio-nbd-setup}"
+        - bool:
+            name: TWO_OUT_OF_THREE
+            description: 'Use 2 out of 3 result evaluation (longer duration, better stability for jittery results)'
+            default: true
         - string:
             name: UPSTREAM_QEMU_GOOD
             description: 'SHA of the last good (older) upstream qemu.'
