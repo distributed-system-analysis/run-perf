@@ -32,6 +32,41 @@ function usage {
     exit -1
 }
 
+function execute_runperf {
+    # Execute runperf and check for execution issues
+    echo; echo
+    echo "${CMD[@]}"
+    "${CMD[@]}" || { echo " execution failed, skipping this commit!"; exit 125; }
+    [ -e "${DIFFDIR}/current-result" ] || { echo "no results generated"; exit -1; }
+}
+
+function execute_diffperf {
+    # Compare the current-result with good and bad ones
+    ${DIFFPERF} -- "${DIFFDIR}/current-result" "${DIFFDIR}/good" "${DIFFDIR}/bad"
+    return $?
+}
+
+function move_result {
+    # Move "current_result$2" to good or bad location based on the $1 status
+    RET=$1
+    SUFFIX=$2
+    idx=1
+    while [ -e "${DIFFDIR}/${idx}b" -o -e "${DIFFDIR}/${idx}g" ]; do
+        idx=$((idx+1))
+    done
+    if [ "$RET" -eq 0 ]; then
+        echo "BISECT: GOOD $SUFFIX"
+        mv "${DIFFDIR}/current-result$SUFFIX" "${DIFFDIR}/${idx}g"
+    elif [ "$RET" -eq 1 ]; then
+        echo "BISECT: BAD $SUFFIX"
+        mv "${DIFFDIR}/current-result$SUFFIX" "${DIFFDIR}/${idx}b"
+    else
+        # Skip the current commit
+        echo "Incorrect diffperf result $RET, skipping..."
+        exit 125
+    fi
+}
+
 good_or_bad=""
 
 mkdir -p ${DIFFDIR}
@@ -74,30 +109,39 @@ case $1 in
         done
         [ "$name_set" -eq 0 ] && CMD+=("--metadata" "build=$name")
         [ "$output_set" -eq 0 ] && CMD+=("--output" "${DIFFDIR}/current-result")
-        echo "${CMD[@]}"
-        "${CMD[@]}" || { echo " execution failed, skipping this commit!"; exit 125; }
-        [ -e "${DIFFDIR}/current-result" ] || { echo "no results generated"; exit -1; }
+        execute_runperf
         if [ "$good_or_bad" ]; then
             # Good or bad -> just move the result
             mv "${DIFFDIR}/current-result" "${DIFFDIR}/$good_or_bad";
         else
             # Check -> move the current result to idx postfixed by g or b
-            idx=1
-            while [ -e "${DIFFDIR}/${idx}b" -o -e "${DIFFDIR}/${idx}g" ]; do
-                idx=$((idx+1))
-            done
-            ${DIFFPERF} -- "${DIFFDIR}/current-result" "${DIFFDIR}/good" "${DIFFDIR}/bad"
-            RET="$?"
-            if [ "$RET" -eq 0 ]; then
-                mv "${DIFFDIR}/current-result" "${DIFFDIR}/${idx}g"
-                exit 0
-            elif [ "$RET" -eq 1 ]; then
-                mv "${DIFFDIR}/current-result" "${DIFFDIR}/${idx}b"
-                exit 1
+            execute_diffperf
+            RET=$?
+            if [ "$TWO_OUT_OF_THREE" == "true" ]; then
+                # Execute it 2 or 3 times to get 2 out of 3
+                mv "${DIFFDIR}/current-result" "${DIFFDIR}/current-result1"
+                execute_runperf
+                execute_diffperf
+                RET2=$?
+                if [ $RET -eq $RET2 ]; then
+                    echo "BISECT: TWO_OUT_OF_THREE: First two match $RET"
+                    move_result $RET 1
+                    move_result $RET
+                else
+                    mv "${DIFFDIR}/current-result" "${DIFFDIR}/current-result2"
+                    execute_runperf
+                    execute_diffperf
+                    RET3=$?
+                    echo "BISECT: TWO_OUT_OF_THREE: Jittery results, two out of three match $RET $RET2 $RET3"
+                    move_result $RET3 1
+                    move_result $RET3 2
+                    move_result $RET3
+                fi
             else
-                # Skip the current commit
-                exit 125
+                # Just use this result
+                move_result $RET
             fi
+            exit $RET
         fi
         ;;
     "report")
