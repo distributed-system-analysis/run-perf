@@ -27,7 +27,7 @@ guestBkrLinks = GUEST_BKR_LINKS.trim()
 // filters for guestBkrLinks
 guestBkrLinksFilter = params.GUEST_BKR_LINKS_FILTER.trim()
 // Add steps to fetch, compile and install the upstream fio with nbd ioengine compiled in
-fioNbdSetup = params.FIO_NBD_SETUP.trim()
+fioNbdSetup = params.FIO_NBD_SETUP
 // Specify the bisection range
 // Older commit
 upstreamQemuGood = params.UPSTREAM_QEMU_GOOD.trim()
@@ -36,7 +36,7 @@ upstreamQemuBad = params.UPSTREAM_QEMU_BAD.trim()
 // Description prefix (describe the difference from default)
 descriptionPrefix = params.DESCRIPTION_PREFIX
 // Pbench-publish related options
-pbenchPublish = params.PBENCH_PUBLISH.trim()
+pbenchPublish = params.PBENCH_PUBLISH
 // Custom host/guest setups cript
 hostScript = params.HOST_SCRIPT
 workerScript = params.WORKER_SCRIPT
