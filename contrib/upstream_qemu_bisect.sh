@@ -106,7 +106,7 @@ chcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"
 cp -f build/config.status /usr/local/share/qemu/
 popd
 INNEREOF
-"$BISECT" "$CHECK" "${UPSTREAM_QEMU_COMMIT:0:3}" "${CMD[@]}"
+"$BISECT" "$CHECK" "$UPSTREAM_QEMU_COMMIT" "${CMD[@]}"
 RET=$?
 popd
 exit $RET

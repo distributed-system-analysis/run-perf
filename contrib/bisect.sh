@@ -87,7 +87,7 @@ case $1 in
         output_set=0
         while [ "$1" ] ; do
             if [ "$1" == "--metadata" ]; then
-                CMD+=("--metadata" "build=$name")
+                CMD+=("--metadata" "build=${name::3}")
                 name_set=1
                 shift
             elif [ "$1" == "--output" ]; then
@@ -97,7 +97,7 @@ case $1 in
                 shift
                 shift
             elif [ "$1" == "--" ]; then
-                [ "$name_set" -eq 0 ] && CMD+=("--metadata" "build=$name")
+                [ "$name_set" -eq 0 ] && CMD+=("--metadata" "build=${name::3}" "url=$name")
                 [ "$output_set" -eq 0 ] && CMD+=("--output" "${DIFFDIR}/current-result" "--")
                 name_set=1
                 output_set=1
@@ -107,7 +107,7 @@ case $1 in
                 shift
             fi
         done
-        [ "$name_set" -eq 0 ] && CMD+=("--metadata" "build=$name")
+        [ "$name_set" -eq 0 ] && CMD+=("--metadata" "build=${name::3}" "url=$name")
         [ "$output_set" -eq 0 ] && CMD+=("--output" "${DIFFDIR}/current-result")
         execute_runperf
         if [ "$good_or_bad" ]; then
