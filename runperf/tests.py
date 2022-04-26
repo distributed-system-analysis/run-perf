@@ -185,6 +185,7 @@ class PBenchTest(BaseTest):
     def setup(self):
         def install_pbench(host, metadata, test):
             with host.get_session_cont() as session:
+                session.runperf_stage("Setup pbench")
                 pbench.install_on(session, metadata, test=test)
 
         threads = []
@@ -268,6 +269,7 @@ class PBenchTest(BaseTest):
         try:
             with self.host.get_session_cont() as session:
                 session.cmd("true")
+                session.runperf_stage("Run pbench")
                 benchmark_bin = utils.shell_find_command(session, self.test)
                 if benchmark_bin:
                     prefix = f"benchmark_bin={benchmark_bin} "
@@ -293,6 +295,7 @@ class PBenchTest(BaseTest):
                                            "your workloads were not affected)")
                 else:
                     raise RuntimeError("Failed to get status")
+                session.runperf_stage("Postprocess pbench")
                 src = session.cmd_output("echo $(ls -dt /var/lib/pbench-agent/"
                                          f"{self.test}__*/ | "
                                          "head -n 1)").strip()
@@ -438,6 +441,7 @@ class PBenchNBD(PBenchFio):
         for workers in self.workers:
             for worker in workers:
                 with worker.get_session_cont() as session:
+                    session.runperf_stage("Start NBD listener")
                     session.cmd("mkdir -p " + self.base_path)
                     session.cmd(fio_check_tpl)
                     ret = session.cmd_status(

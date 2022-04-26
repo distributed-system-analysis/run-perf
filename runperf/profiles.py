@@ -147,6 +147,7 @@ class BaseProfile:
             raise RuntimeError("Trying to apply profile but there is already "
                                "'%s' persistent profile applied.")
         self._set("set_profile", self.name)
+        self.session.runperf_stage(f"Applying profile {self.name}")
         reboot = self._apply(setup_script)
         if reboot:
             self._remove("set_profile")
@@ -167,6 +168,7 @@ class BaseProfile:
         """
         if not self.session:  # Avoid cleaning twice... (cleanup on error)
             return None
+        self.session.runperf_stage(f"Reverting profile {self.name}")
         self._refresh_session()
         _profile = self._get("set_profile")
         if _profile == -1:

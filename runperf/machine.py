@@ -141,14 +141,16 @@ class BaseMachine:
         """
         end = time.time() + timeout
         session = None
+        rp_path = os.path.join("__sessions__",
+                               utils.string_to_safe_path(self.name))
         try:
             while time.time() < end:
                 try:
-                    session = ShellSession(self.get_ssh_cmd(hop))
+                    session = ShellSession(None, self.get_ssh_cmd(hop))
                     session.read_up_to_prompt()
                     session.close()
                     session = None
-                    session = ShellSession(self.get_ssh_cmd(hop),
+                    session = ShellSession(rp_path, self.get_ssh_cmd(hop),
                                            output_func=self.log.debug,
                                            output_prefix=">> ")
                     session.read_up_to_prompt()

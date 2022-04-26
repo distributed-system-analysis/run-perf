@@ -66,14 +66,27 @@ class MutableShellSession(aexpect.ShellSession):  # lgtm [py/missing-call-to-ini
     Mute-able aexpect.ShellSession
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name, *args, **kwargs):
+        self.name = name
         super().__init__(*args, **kwargs)
         self.__output_func = self.output_func
-        for name in dir(self):
-            if name.startswith('cmd'):
-                func = getattr(self, name)
+        for fction in dir(self):
+            if fction.startswith('cmd'):
+                func = getattr(self, fction)
                 if callable(func):
-                    setattr(self, name, self._muted(func))
+                    setattr(self, fction, self._muted(func))
+
+    def runperf_stage(self, stage):
+        """
+        Mark a next stage
+        """
+        if self.name:
+            CONTEXT.store(self.name, f"\n\n#\n# {stage}\n#\n")
+
+    def send(self, cont=""):
+        if self.name and cont != (self.status_test_command + self.linesep):
+            CONTEXT.store(self.name, cont)
+        aexpect.ShellSession.send(self, cont=cont)
 
     def _muted(self, cmd):
         def inner(*args, **kwargs):
