@@ -163,6 +163,7 @@ class BasicUtils(unittest.TestCase):
                         entries):
             self.assertRaises(KeyError, utils.named_entry_point, "", "missing")
 
+
 class Machine:
     def __init__(self, name, sessions=None):
         self.name = name
@@ -178,6 +179,48 @@ class Machine:
     def get_session_cont(self):
         for session in self.sessions:
             yield session
+
+
+class PathTracker(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="runperf-selftest")
+
+    def test_path_tracker(self):
+        tracker = utils.ContextManager(mock.Mock())
+        join = os.path.join
+        self.assertEqual(None, tracker.get())
+        self.assertRaises(RuntimeError, tracker.set, 0, "foo")
+        tracker.set_root(self.tmpdir)
+        self.assertEqual(self.tmpdir, tracker.get())
+        tracker.set(0, "bar")
+        self.assertEqual(join(self.tmpdir, "bar"), tracker.get())
+        tracker.set(0, "foo")
+        self.assertEqual(join(self.tmpdir, "foo"), tracker.get())
+        tracker.set(3, "baz")
+        self.assertEqual(join(self.tmpdir, "foo", "__NOT_SET__",
+                              "__NOT_SET__", "baz"), tracker.get())
+        tracker.set(1, "bar")
+        self.assertEqual(join(self.tmpdir, "foo", "bar"), tracker.get())
+        tracker.set(1, "baz")
+        self.assertEqual(join(self.tmpdir, "foo", "baz"), tracker.get())
+        tracker.set(2, "bar")
+        self.assertEqual(join(self.tmpdir, "foo", "baz", "bar"), tracker.get())
+        tracker.set(-1, "fee")
+        self.assertEqual(join(self.tmpdir, "foo", "baz", "fee"), tracker.get())
+        tracker.set(1, os.path.join(self.tmpdir, "foo", "another", "bar"))
+        self.assertEqual(join(self.tmpdir, "foo", "another", "bar"),
+                         tracker.get())
+        tracker.set_level(1)
+        self.assertEqual(join(self.tmpdir, "foo"), tracker.get())
+        tracker.set_level(0)
+        self.assertEqual(self.tmpdir, tracker.get())
+        tracker.set_level(1)
+        self.assertEqual(join(self.tmpdir, "__NOT_SET__"), tracker.get())
+
+    def tearDown(self):
+        if self.tmpdir:
+            shutil.rmtree(self.tmpdir)
+
 
 class LogFetcher(unittest.TestCase):
     def setUp(self):

@@ -49,6 +49,7 @@ class Selftest(unittest.TestCase):
 
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(prefix="runperf-selftest")
+        utils.CONTEXT.set_root(self.tmpdir)
 
     def check_calls(self, acts, exps):
         """

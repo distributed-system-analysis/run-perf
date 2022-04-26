@@ -215,6 +215,7 @@ class ControllerTests(Selftest):
     def test_reboot(self):
         profile = mock.Mock()
         profile.apply.side_effect = [True, True, ['worker1', 'worker2']]
+        profile.name = "Profile1"
         mod_profiles = mock.Mock()
         mod_profiles.get.return_value = profile
         with mock.patch("runperf.machine.profiles", mod_profiles):

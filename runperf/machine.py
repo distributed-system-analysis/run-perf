@@ -26,6 +26,7 @@ import yaml
 
 from . import exceptions, profiles, utils
 from .utils import MutableShellSession as ShellSession
+from .utils import CONTEXT
 
 
 LOG = logging.getLogger(__name__)
@@ -342,7 +343,7 @@ class Controller:
 
     def setup(self):
         """Basic setup like ssh keys, pbench installation and such"""
-        self.log.info("SETUP hosts %s", ",".join(str(_) for _ in self.hosts))
+        CONTEXT.msg(f"SETUP hosts {','.join(str(_) for _ in self.hosts)}")
         if self._provisioner:
             self.log.info("PROVISION %s", self.hosts)
             plugin = utils.named_entry_point('runperf.provisioners',
@@ -398,7 +399,7 @@ class Controller:
         return inner
 
     def _apply_profile(self, profile, extra):
-        self.log.info("APPLY profile %s %s", profile, extra)
+        CONTEXT.msg(f"APPLY profile {profile} {extra}")
         # Allow 5 attempts, one to revert previous profile, one to
         # apply and 3 extra in case one boot fails to get resources
         # (eg. hugepages)
@@ -419,7 +420,7 @@ class Controller:
         return self._step()(self._apply_profile)(profile, extra)
 
     def _revert_profile(self):
-        self.log.info("REVERT profile %s", self.profile)
+        CONTEXT.msg(f"REVERT profile {self.profile}")
         # Collect information about the profile in case it was applied
         if self.profile is not None:
             env = []
@@ -446,7 +447,7 @@ class Controller:
             try:
                 path = os.path.join(base_path, f"{i:04d}")
                 os.rename(tmp_path, path)
-                return
+                return path
             except IOError:
                 pass
         raise RuntimeError(f"Failed to create test output dir in {base_path} "
@@ -464,23 +465,23 @@ class Controller:
                           os.path.join(self._output_dir, self.profile),
                           self.metadata, extra.copy())
         name = test.name
-        self.log.info(f"  RUN test {name}")
+        CONTEXT.set(1, test.output, "Running test")
         try:
             test.setup()
             test.run()
-            self._move_results(test.output)
-            self.log.info(f"  SUCCESS test {name}")
+            path = self._move_results(test.output)
+            CONTEXT.set(1, path, f"{name} FINISHED")
         except exceptions.TestSkip as exc:
-            self.log.warning(f"  SKIP test {name}: {exc}")
+            CONTEXT.msg(f"{name} SKIPPED: {exc}")
         except Exception as exc:
-            self.log.error(f"  FAILURE test {name}: {exc}")
+            CONTEXT.msg(f"{name} INTERRUPTED: {exc}")
             raise
         finally:
             test.cleanup()
 
     def cleanup(self):
         """Post-testing cleanup"""
-        self.log.info(f"CLEANUP hosts {self.hosts}")
+        CONTEXT.msg(f"CLEANUP hosts {self.hosts}")
         self.for_each_host_retry(2, self.hosts, 'cleanup')
 
 
@@ -621,8 +622,8 @@ class Host(BaseMachine):
         :param setup_script: setup script to be executed on each worker setup
         :param paths: paths to runperf assets
         """
-        self.log.debug("  Applying profile %s", profile)
         self.profile = profiles.get(profile, extra, self, rp_paths)
+        CONTEXT.set(0, self.profile.name, f"Applying profile {profile}")
         ret = self.profile.apply(setup_script)
         if ret is True:
             self.reboot_request = True

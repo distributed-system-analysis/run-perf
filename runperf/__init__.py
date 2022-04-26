@@ -31,6 +31,7 @@ import aexpect
 from . import exceptions, tests, result, utils
 from .machine import Controller
 from .version import __version__
+from .utils import CONTEXT
 
 PROG = 'run-perf'
 DESCRIPTION = ("A tool to execute the same tasks on pre-defined scenarios/"
@@ -261,12 +262,15 @@ def main():
     log = logging.getLogger("controller")
     # create results (or re-use if asked for)
     if os.path.exists(args.output):
-        log.info("Removing previous results: %s", args.output)
+        CONTEXT.set_root(args.output, "Removing previously existing results: "
+                         f"{args.output}")
         shutil.rmtree(args.output)
-        os.makedirs(args.output)
     else:
-        log.info("Creating results: %s", args.output)
+        CONTEXT.set_root(args.output, f"Creating results: {args.output}")
+    try:
         os.makedirs(args.output)
+    except FileExistsError:
+        pass
     create_metadata(args.output, args)
 
     hosts = None
@@ -277,11 +281,12 @@ def main():
         # provision, fetch assets, ...
         hosts.setup()
         try:
-            hosts.fetch_logs(os.path.join(args.output, '__sysinfo_before__'))
+            CONTEXT.set(0, "__sysinfo_before__")
+            hosts.fetch_logs(CONTEXT.get())
         except Exception as exc:    # pylint: disable=W0703
-            utils.record_failure(os.path.join(args.output,
-                                              '__sysinfo_before__'), exc)
+            utils.record_failure(CONTEXT.get(), exc)
         for profile, profile_args in args.profiles:
+            CONTEXT.set_level(0)
             # Check whether this profile changes test set
             test_defs = profile_test_defs(profile_args, _test_defs)
             # Applies profile and set `hosts.workers` to contain list of IP
@@ -319,19 +324,21 @@ def main():
                               test.test, hosts.profile)
             # Fetch logs
             try:
-                hosts.fetch_logs(os.path.join(args.output, hosts.profile,
-                                              '__sysinfo__'))
+                CONTEXT.set(1, "__sysinfo__")
+                hosts.fetch_logs(CONTEXT.get())
             except Exception as exc:    # pylint: disable=W0703
                 utils.record_failure(os.path.join(args.output, hosts.profile),
                                      exc)
             # Revert profile changes. In case manual reboot is required return
             # non-zero.
+            CONTEXT.set_level(1, "Reverting profile")
             hosts.revert_profile()
         # Remove unnecessary files
         hosts.cleanup()
         aexpect.kill_tail_threads()
     except Exception as exc:
-        utils.record_failure(args.output, exc)
+        CONTEXT.set_level(0, "Handling root exception")
+        utils.record_failure(CONTEXT.get(), exc)
         if args.keep_tmp_files:
             log.error("Exception %s, asked not to cleanup by --keep-tmp-files",
                       exc)
