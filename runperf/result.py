@@ -245,7 +245,6 @@ class ModelStdev(ModelLinearRegression):
                 LOG.debug("%s: Adjusting max_value from %.2f to %.2f", test,
                           max_value, highest)
                 max_value = highest
-            min_value = min(values)
             lowest = average * (1 - too_strict_coefficient)
             if lowest < min_value:
                 LOG.debug("%s: Adjusting min_value from %.2f to %.2f", test,
