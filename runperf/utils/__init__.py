@@ -43,6 +43,8 @@ _FS_TRANSLATE = bytes.maketrans(bytes(FS_UNSAFE_CHARS, "ascii"), b'__________')
 # Default log level for the MutableShellSession object
 DEFAULT_ROOT_LOG_LEVEL = logging.DEBUG
 
+CONTEXT = None
+
 
 class ThreadWithStatus(threading.Thread):
     """
@@ -64,14 +66,27 @@ class MutableShellSession(aexpect.ShellSession):  # lgtm [py/missing-call-to-ini
     Mute-able aexpect.ShellSession
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name, *args, **kwargs):
+        self.name = name
         super().__init__(*args, **kwargs)
         self.__output_func = self.output_func
-        for name in dir(self):
-            if name.startswith('cmd'):
-                func = getattr(self, name)
+        for fction in dir(self):
+            if fction.startswith('cmd'):
+                func = getattr(self, fction)
                 if callable(func):
-                    setattr(self, name, self._muted(func))
+                    setattr(self, fction, self._muted(func))
+
+    def runperf_stage(self, stage):
+        """
+        Mark a next stage
+        """
+        if self.name:
+            CONTEXT.store(self.name, f"\n\n#\n# {stage}\n#\n")
+
+    def send(self, cont=""):
+        if self.name and cont != (self.status_test_command + self.linesep):
+            CONTEXT.store(self.name, cont)
+        aexpect.ShellSession.send(self, cont=cont)
 
     def _muted(self, cmd):
         def inner(*args, **kwargs):
@@ -88,6 +103,89 @@ class MutableShellSession(aexpect.ShellSession):  # lgtm [py/missing-call-to-ini
             return cmd(*args, **kwargs)
 
         return inner
+
+
+class ContextManager:
+    """
+    Object to keep track of the current path
+    """
+    profile = 0
+    test = 1
+
+    def __init__(self, log, root=None):
+        self.log = log
+        self._root = root
+        self._levels = []
+        self._current = root
+        self._lock = threading.Lock()
+
+    def _update_current(self, msg):
+        if not self._root:
+            raise RuntimeError("Root not set")
+        new_path = os.path.join(self._root, *self._levels)
+        if not os.path.exists(new_path):
+            try:
+                os.makedirs(new_path)
+            except FileExistsError:
+                pass
+        self._current = new_path
+        if msg:
+            self.msg(msg)
+
+    def msg(self, msg):
+        """Log a context message"""
+        self.log("/%s: %s", "/".join(self._levels), msg)
+
+    def set_root(self, root, msg=None):
+        """Set new root location"""
+        self._root = root
+        self._update_current(msg)
+
+    def set(self, level, name, msg=None):
+        """
+        Set the path to the $root + path
+
+        :param level: current level, adds/removes the previous levels if needed
+                      use "-1" to only replace the last item of the current
+                      level
+        :param name: name of the current level
+        """
+        if os.path.isabs(name):
+            up_level = os.path.join(self._root, *self._levels[:level])
+            if name.startswith(up_level):
+                name = name[len(up_level) + 1:]
+        self.set_level(level)
+        self._levels.append(name)
+        self._update_current(msg)
+
+    def set_level(self, level, msg=None):
+        """Set the current level"""
+        if len(self._levels) < level:
+            self._levels = (self._levels +
+                            ["__NOT_SET__"] * (level - len(self._levels)))
+        else:
+            self._levels = self._levels[:level]
+        self._update_current(msg)
+
+    def get(self):
+        """Get the current path"""
+        return self._current
+
+    def store(self, path, content):
+        """Append $content to a file inside a dir structure"""
+        path = os.path.join(self._current, path)
+        dirname = os.path.dirname(path)
+        if not os.path.exists(dirname):
+            try:
+                os.makedirs(dirname)
+            except FileExistsError:
+                pass
+        with self._lock:
+            with open(path, 'a', encoding='utf-8') as output:
+                output.write(content)  # lgtm [py/clear-text-storage-sensitive-data]
+
+
+CONTEXT = ContextManager(logging.getLogger("Context").info)
 
 
 def read_file(path):
@@ -443,6 +541,7 @@ def record_failure(path, exc, paths=None, details=None):
             pass
     else:
         errpath = os.path.join(path, '__error__')
+    CONTEXT.set(-1, os.path.basename(errpath))
     with open(os.path.join(errpath, 'exception'), 'w',
               encoding="utf-8") as fd_exc:
         fd_exc.write(str(exc))

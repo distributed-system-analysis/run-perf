@@ -65,7 +65,7 @@ class ProfileUnitTests(Selftest):
         with mock.patch("runperf.profiles.CONFIG_DIR", self.tmpdir):
             host = Host(mock.Mock(), "selftest", "addr", "__test_distro__",
                         args)
-            host.get_session = lambda *args, **kwargs: ShellSession("sh")
+            host.get_session = lambda *args, **kwargs: ShellSession(None, "sh")
             profile = Localhost(host, self.tmpdir, {})
             # basic handling
             self.assertEqual(-1, profile._get("foo"))
@@ -120,7 +120,7 @@ class ProfileUnitTests(Selftest):
         with mock.patch("runperf.profiles.CONFIG_DIR", self.tmpdir):
             host = Host(mock.Mock(), "selftest", "addr", "__test_distro__",
                         args)
-            host.get_session = lambda *args, **kwargs: ShellSession("sh")
+            host.get_session = lambda *args, **kwargs: ShellSession(None, "sh")
             profile = DefaultLibvirt(host, self.tmpdir, {})
             pubkey = os.path.join(self.tmpdir, "pubkey")
             image = os.path.join(self.tmpdir, "image")
