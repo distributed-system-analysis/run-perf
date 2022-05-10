@@ -1069,7 +1069,7 @@ def closest_result(src_path, dst_paths, flatten_coefficient=1):
         """
         score = max(storage[i] for i in selection)
         count = storage.count(score)
-        LOG.debug("Score: %s (matching %s result(s))", score, count)
+        LOG.info("Score: %s (matching %s result(s))", score, count)
         if count == 1:
             for i in selection:
                 if storage[i] == score:
