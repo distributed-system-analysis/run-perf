@@ -516,12 +516,17 @@ class DiffPerf:
                             "results to", nargs="+", type=self._abs_path)
         parser.add_argument("--verbose", "-v", action="count", default=0,
                             help="Increase the verbosity level")
+        parser.add_argument("--flatten-coefficient", type=float,
+                            help="Coefficient used to flatten the probability "
+                            "curve based on the standard deviation. "
+                            "(%(default)s)", default=1)
         args = parser.parse_args()
         setup_logging(args.verbose, "%(levelname)-5s| %(message)s")
         if len(args.results) < 3:
             raise RuntimeError("Please use more than one result to compare "
                                "to (3 positional args and more).")
-        return result.closest_result(args.results[0], args.results[1:])
+        return result.closest_result(args.results[0], args.results[1:],
+                                     args.flatten_coefficient)
 
 
 class AnalyzePerf:

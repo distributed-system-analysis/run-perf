@@ -1036,7 +1036,7 @@ class RelativeResults:
         return 0
 
 
-def closest_result(src_path, dst_paths):
+def closest_result(src_path, dst_paths, flatten_coefficient=1):
     """
     Compare results and find the one that has more results closer to the src
     one
@@ -1055,6 +1055,8 @@ def closest_result(src_path, dst_paths):
         As a last step scale the probability from the highest ~0.4 to ~1 (there
         is still some rounding, but slightly above 1)
         """
+        if x is None:
+            return 0
         var = float(sd)**2
         denom = (2*math.pi*var)**.5
         num = math.exp(-(float(x)-float(mean))**2/(2*var))
@@ -1067,7 +1069,7 @@ def closest_result(src_path, dst_paths):
         """
         score = max(storage[i] for i in selection)
         count = storage.count(score)
-        LOG.debug("Score: %s (matching %s result(s))", score, count)
+        LOG.info("Score: %s (matching %s result(s))", score, count)
         if count == 1:
             for i in selection:
                 if storage[i] == score:
@@ -1119,19 +1121,17 @@ def closest_result(src_path, dst_paths):
             # Distances are in absolute values
             if stddev or any(True for _ in this if _[1] is not None):
                 # We know the stddev of all samples of this test. To deal with
-                # uncertainty calculate the average stddev and corect it using
-                # the usual uncertainty ratio based on the number of samples
-                # and to be more lenient towards the usual build-to-build
-                # (provisioning) jittery let's add an extra coefficient of 2.
-                # As this happens for each sample the difference should be
-                # minimal while allowing some score to the slightly jittery
-                # results.
-                stddevs = [_[1] for _ in this if _[1] is not None]
+                # uncertainty calculate the maximum standard deviation (out
+                # of stddev_pct) and use it to calculate the probability of
+                # the compare-with values.
+                max_stddev = max((_[1] * _[0] for _ in this
+                                  if _[1] is not None))
                 if stddev:
-                    stddevs.append(stddev)
-                norm_stddev = (numpy.average(stddevs) *
-                               get_uncertainty(len(stddevs)) * 2)
-                norm_score = [0 if _[0] is None else norm_normpdf(_[0], score, norm_stddev)
+                    max_stddev = max(max_stddev, stddev * score)
+                # We calculate max_stddev from stddevpct * score, divide by
+                # 100 to move from pct to absolute value
+                max_stddev = max_stddev / 100 * flatten_coefficient
+                norm_score = [norm_normpdf(_[0], score, max_stddev)
                               for _ in this]
             else:
                 distances = [_distance(x, score) for x in range(len(this))]
@@ -1168,7 +1168,10 @@ def closest_result(src_path, dst_paths):
             # of 0-3
             for idx, result_score in enumerate(norm_score):
                 this_cathegory[idx] += result_score
-            LOG.debug("%s %s: %s", "P" if primary else "S", test, norm_score)
+            if primary:
+                LOG.info("P %s: %s", test, norm_score)
+            else:
+                LOG.debug("S %s: %s", test, norm_score)
         return stats
 
     def _process_src(src_path):
@@ -1194,9 +1197,11 @@ def closest_result(src_path, dst_paths):
     no_results = len(dst_paths)
     stats = _calculate_stats(src, storage)
     selection = range(no_results)
-    for values in stats:
+    for i, values in enumerate(stats):
         ret = process_score(values, selection)
         if isinstance(ret, int):
             return ret
+        LOG.warning("Unable to resolve on level %s, consider tweaking the "
+                    "flatten coefficient.", i)
         selection = ret
     return selection[0]
