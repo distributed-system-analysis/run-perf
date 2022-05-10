@@ -1121,16 +1121,16 @@ def closest_result(src_path, dst_paths):
             # Distances are in absolute values
             if stddev or any(True for _ in this if _[1] is not None):
                 # We know the stddev of all samples of this test. To deal with
-                # uncertainty calculate the average stddev and corect it using
-                # the usual uncertainty ratio based on the number of samples
-                # and to be more lenient towards the usual build-to-build
-                # (provisioning) jittery let's add an extra coefficient of 2.
-                # As this happens for each sample the difference should be
-                # minimal while allowing some score to the slightly jittery
-                # results.
-                max_stddev = max(*(_[1] for _ in this if _[1] is not None))
+                # uncertainty calculate the maximum standard deviation (out
+                # of stddev_pct) and use it to calculate the probability of
+                # the compare-with values.
+                max_stddev = max((_[1] * _[0] for _ in this
+                                  if _[1] is not None))
                 if stddev:
-                    max_stddev = max(max_stddev, stddev)
+                    max_stddev = max(max_stddev, stddev * score)
+                # We calculate max_stddev from stddevpct * score, divide by
+                # 100 to move from pct to absolute value
+                max_stddev = max_stddev / 100
                 norm_score = [norm_normpdf(_[0], score, max_stddev)
                               for _ in this]
             else:
