@@ -1036,7 +1036,7 @@ class RelativeResults:
         return 0
 
 
-def closest_result(src_path, dst_paths):
+def closest_result(src_path, dst_paths, flatten_coefficient=1):
     """
     Compare results and find the one that has more results closer to the src
     one
@@ -1130,7 +1130,7 @@ def closest_result(src_path, dst_paths):
                     max_stddev = max(max_stddev, stddev * score)
                 # We calculate max_stddev from stddevpct * score, divide by
                 # 100 to move from pct to absolute value
-                max_stddev = max_stddev / 100
+                max_stddev = max_stddev / 100 * flatten_coefficient
                 norm_score = [norm_normpdf(_[0], score, max_stddev)
                               for _ in this]
             else:
@@ -1197,9 +1197,11 @@ def closest_result(src_path, dst_paths):
     no_results = len(dst_paths)
     stats = _calculate_stats(src, storage)
     selection = range(no_results)
-    for values in stats:
+    for i, values in enumerate(stats):
         ret = process_score(values, selection)
         if isinstance(ret, int):
             return ret
+        LOG.warning("Unable to resolve on level %s, consider tweaking the "
+                    "flatten coefficient.", i)
         selection = ret
     return selection[0]
