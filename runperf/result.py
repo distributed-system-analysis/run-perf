@@ -1055,6 +1055,8 @@ def closest_result(src_path, dst_paths):
         As a last step scale the probability from the highest ~0.4 to ~1 (there
         is still some rounding, but slightly above 1)
         """
+        if x is None:
+            return 0
         var = float(sd)**2
         denom = (2*math.pi*var)**.5
         num = math.exp(-(float(x)-float(mean))**2/(2*var))
@@ -1126,12 +1128,10 @@ def closest_result(src_path, dst_paths):
                 # As this happens for each sample the difference should be
                 # minimal while allowing some score to the slightly jittery
                 # results.
-                stddevs = [_[1] for _ in this if _[1] is not None]
+                max_stddev = max(*(_[1] for _ in this if _[1] is not None))
                 if stddev:
-                    stddevs.append(stddev)
-                norm_stddev = (numpy.average(stddevs) *
-                               get_uncertainty(len(stddevs)) * 2)
-                norm_score = [0 if _[0] is None else norm_normpdf(_[0], score, norm_stddev)
+                    max_stddev = max(max_stddev, stddev)
+                norm_score = [norm_normpdf(_[0], score, max_stddev)
                               for _ in this]
             else:
                 distances = [_distance(x, score) for x in range(len(this))]
