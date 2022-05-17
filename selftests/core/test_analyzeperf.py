@@ -61,7 +61,7 @@ class RunPerfTest(Selftest):
         with open(os.path.join(self.base_dir, "selftests", ".assets",
                                "results", "1_base",
                                "stddev_model.json")) as exp:
-            with open(path_model) as act:
+            with open(path_model_stddev) as act:
                 self.assertEqual(exp.read(), act.read())
         with open(os.path.join(self.base_dir, "selftests", ".assets",
                                "results", "data.csv")) as exp:
