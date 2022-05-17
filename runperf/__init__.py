@@ -566,6 +566,17 @@ class AnalyzePerf:
                             " per-test linear regression model mapping "
                             "avg (+/-)3x stddev as (min/max). Recomended "
                             "tolerance values are -4; +4.")
+        parser.add_argument("--rebase-model", help="Provide path to a source "
+                            "model which will be used to set the acceptable "
+                            "deviation but update the raw value based on the "
+                            "values from the provided results. Tests not "
+                            "present in the old model will be trained based "
+                            "on the newly provided results, tests missing in "
+                            "the new results will be kept unmodified. This "
+                            "is useful when we don't have enough results "
+                            "after a perf change that changed only the median "
+                            "value but kept the deviation (eg. 10%% "
+                            "improvement with a similar jitter)")
         parser.add_argument("-t", "--tolerance", help="Tolerance (-x,+x) used "
                             "by models, by default (%(default)s)",
                             default=4, type=float)
@@ -587,17 +598,18 @@ class AnalyzePerf:
                     storage[test] = {}
                 storage[test][results_name] = score
         csv = None
-        linear_regression = None
-        stddev_regression = None
+        models = []
         try:
             if args.csv:
                 csv = open(args.csv, 'w', encoding="utf-8")  # pylint: disable=R1732
             if args.linear_regression:
-                linear_regression = open(args.linear_regression, 'w',  # pylint: disable=R1732
-                                         encoding="utf-8")
+                models.append((open(args.linear_regression, 'w',  # pylint: disable=R1732
+                                    encoding="utf-8"),
+                               result.ModelLinearRegression))
             if args.stddev_linear_regression:
-                stddev_regression = open(args.stddev_linear_regression, 'w',  # pylint: disable=R1732
-                                         encoding="utf-8")
+                models.append((open(args.stddev_linear_regression, 'w',  # pylint: disable=R1732
+                                    encoding="utf-8"),
+                               result.ModelStdev))
             result_names = sorted(result_names)
             if csv:
                 csv.write("test," + ",".join(csv_safe_str(_)
@@ -610,20 +622,19 @@ class AnalyzePerf:
                     for result_name in result_names:
                         csv.write(str(test_results.get(result_name, -100)) +
                                   ',')
-            if linear_regression:
-                model = result.ModelLinearRegression(args.tolerance,
-                                                     args.tolerance)
-                json.dump(model.identify(storage), linear_regression, indent=4)
-            if stddev_regression:
-                model = result.ModelStdev(args.tolerance, args.tolerance)
-                json.dump(model.identify(storage), stddev_regression, indent=4)
+            for fd_model, klass in models:
+                model = klass(args.tolerance, args.tolerance,
+                              args.rebase_model)
+                if args.rebase_model:
+                    trained_model = model.rebase(storage)
+                else:
+                    trained_model = model.identify(storage)
+                json.dump(trained_model, fd_model, indent=4)
         finally:
             if csv:
                 csv.close()
-            if linear_regression:
-                linear_regression.close()
-            if stddev_regression:
-                stddev_regression.close()
+            for fd_model, _ in models:
+                fd_model.close()
 
 
 class StripPerf:

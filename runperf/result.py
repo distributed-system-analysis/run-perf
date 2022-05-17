@@ -208,6 +208,27 @@ class ModelLinearRegression(Model):
             self.model[test]["raw"] = average
         return self.model
 
+    def rebase(self, data):
+        """
+        Rebase the model to a new average raw values while keeping the
+        acceptable deviation.
+
+        :param data: dict of {result: [value, value, value]}
+        """
+        for test, values in sorted(data.items()):
+            if test not in self.model:
+                # Test wasn't present in the current model, add it via identify
+                self.identify({test: data[test]})
+                continue
+            try:
+                average = numpy.average([float(_) for _ in values.values()])
+            except ValueError:
+                # Probably string (error, other kind of result)
+                continue
+            a_x = - self.model[test]["equation"][0]
+            self.model[test]["equation"][1] = average * a_x
+        return self.model
+
 
 class ModelStdev(ModelLinearRegression):
 

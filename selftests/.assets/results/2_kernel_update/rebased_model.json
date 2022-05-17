@@ -1,0 +1,146 @@
+{
+    "__metadata__": {
+        "version": 1,
+        "tolerance": 4
+    },
+    "Localhost/fio/0000:./read-1024KiB/latency/clat.mean": {
+        "equation": [
+            0.00012784786104535603,
+            -14.767777811071445
+        ],
+        "raw": 115510.558333333
+    },
+    "Localhost/fio/0000:./read-1024KiB/latency/lat.mean": {
+        "equation": [
+            0.00010088538909067036,
+            -14.552617331651652
+        ],
+        "raw": 144249.008333333
+    },
+    "Localhost/fio/0000:./read-1024KiB/latency/slat.mean": {
+        "equation": [
+            0.00047626857856750355,
+            -13.581056496665745
+        ],
+        "raw": 28515.54166666665
+    },
+    "Localhost/fio/0000:./read-1024KiB/throughput/iops_sec.mean": {
+        "equation": [
+            0.002354031353503158,
+            -15.62488310887721
+        ],
+        "raw": 6637.5
+    },
+    "Localhost/fio/0000:./read-4KiB/latency/clat.mean": {
+        "equation": [
+            0.0005715601124958299,
+            -100.77008685780997
+        ],
+        "raw": 164174.45
+    },
+    "Localhost/fio/0000:./read-4KiB/latency/lat.mean": {
+        "equation": [
+            0.00027848876551524713,
+            -50.350636522993064
+        ],
+        "raw": 170260.75499999998
+    },
+    "Localhost/fio/0000:./read-4KiB/latency/slat.mean": {
+        "equation": [
+            0.011212446837464382,
+            -49.08977412144468
+        ],
+        "raw": 4332.539999999999
+    },
+    "Localhost/fio/0000:./read-4KiB/throughput/iops_sec.mean": {
+        "equation": [
+            0.0002709109468892366,
+            -45.850424223910075
+        ],
+        "raw": 179348.46101694903
+    },
+    "Localhost/fio/0000:./read-64KiB/latency/clat.mean": {
+        "equation": [
+            0.00046451057239066775,
+            -58.640062397569686
+        ],
+        "raw": 125175.49833333341
+    },
+    "Localhost/fio/0000:./read-64KiB/latency/lat.mean": {
+        "equation": [
+            0.00046773222895268374,
+            -61.084176447345016
+        ],
+        "raw": 130408.77499999982
+    },
+    "Localhost/fio/0000:./read-64KiB/latency/slat.mean": {
+        "equation": [
+            0.008652531619564469,
+            -36.665967991066395
+        ],
+        "raw": 5111.543333333333
+    },
+    "Localhost/fio/0000:./read-64KiB/throughput/iops_sec.mean": {
+        "equation": [
+            0.0006554872504635126,
+            -68.22170206416081
+        ],
+        "raw": 100482.88135593213
+    },
+    "Localhost2/fio/0000:./read-4KiB/latency/clat.mean": {
+        "equation": [
+            0.000679317059915765,
+            -109.99999999999982
+        ],
+        "raw": 161927.333333333
+    },
+    "Localhost2/fio/0000:./read-4KiB/latency/lat.mean": {
+        "equation": [
+            0.0006614352483453833,
+            -110.0
+        ],
+        "raw": 166305.016666667
+    },
+    "Localhost2/fio/0000:./read-4KiB/latency/slat.mean": {
+        "equation": [
+            0.025818464896667358,
+            -109.99999999999964
+        ],
+        "raw": 4260.51666666667
+    },
+    "Localhost2/fio/0000:./read-4KiB/throughput/iops_sec.mean": {
+        "equation": [
+            0.0005986617097354123,
+            -110.0
+        ],
+        "raw": 183743.169491525
+    },
+    "Localhost2/fio/0000:./read-64KiB/latency/clat.mean": {
+        "equation": [
+            0.0008985432367773731,
+            -109.99999999999982
+        ],
+        "raw": 122420.375
+    },
+    "Localhost2/fio/0000:./read-64KiB/latency/lat.mean": {
+        "equation": [
+            0.0008625283948268183,
+            -110.0
+        ],
+        "raw": 127532.033333333
+    },
+    "Localhost2/fio/0000:./read-64KiB/latency/slat.mean": {
+        "equation": [
+            0.022034594313071525,
+            -110.0
+        ],
+        "raw": 4992.15
+    },
+    "Localhost2/fio/0000:./read-64KiB/throughput/iops_sec.mean": {
+        "equation": [
+            0.0010647768217937675,
+            -110.0
+        ],
+        "raw": 103308.033898305
+    }
+}
