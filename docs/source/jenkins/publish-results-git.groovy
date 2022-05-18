@@ -249,9 +249,11 @@ node('runperf-slave') {
     } else {
         writeFile(file: resultGit + "/$project/$qemuTag/${thisResult}.html", text: 'Missing file')
     }
-    dir(runperfResults) {
-        sh "tar -cf ../../${resultGit}/$project/$qemuTag/${thisResult}.tar.xz *"
-    }
+	if (fileExists(runperfResults)) {
+	    dir(runperfResults) {
+	        sh "tar -cf ../../${resultGit}/$project/$qemuTag/${thisResult}.tar.xz *"
+	    }
+	}
     // Add the result by replacing the last </tr>
     // We are using 'tac' so we need to reverse the order
     if (status) {
