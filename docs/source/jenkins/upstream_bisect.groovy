@@ -152,7 +152,7 @@ node(workerNode) {
                "${upstreamQemuGood} ${upstreamQemuBad} python3 scripts/run-perf ${extraArgs} " +
                "-vvv --hosts ${machine} --distro ${distro} " +
                "--default-password YOUR_DEFAULT_PASSWORD --profiles ${profiles} " +
-               "--paths ./downstream_config --metadata 'url=${currentBuild.absoluteUrl}' " +
+               "--paths ./downstream_config --metadata " +
                "'project=virt-perf-ci ${currentBuild.projectName}' " +
                "'pbench_server=YOUR_PBENCH_SERVER_URL' " +
                "'machine_url_base=https://YOUR_BEAKER_URL/view/%(machine)s' " +
