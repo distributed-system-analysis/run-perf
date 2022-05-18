@@ -17,6 +17,10 @@ project = params.PROJECT
 qemuTag = params.TAG
 // Publish stripped results (MB->KB)
 stripResults = params.STRIP_RESULTS
+// Force distro version
+osVersion = params.OS_VERSION
+// Force qemu version
+qemuSHA = params.QEMU_SHA
 
 // Extra variables
 // Sed filters to be applied via sed
@@ -212,7 +216,9 @@ node('runperf-slave') {
             '\\mv -f "$PTH" "$SAFE_PTH"; done')
     }
     // Get versions
-    (osVersion, qemuSHA) = getVersions(runperfResults)
+	if (! osVersion || ! qemuSHA) {
+		(osVersion, qemuSHA) = getVersions(runperfResults)
+	}
     // In case project page does not exists, provide a template
     updateLinkFile("$resultGit/index.html", project, indexTemplate)
     updateLinkFile("$resultGit/${project}.html", "$project/$qemuTag", projectTemplate)
