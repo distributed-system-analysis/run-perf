@@ -17,6 +17,10 @@ project = params.PROJECT
 qemuTag = params.TAG
 // Publish stripped results (MB->KB)
 stripResults = params.STRIP_RESULTS
+// Force distro version
+osVersion = params.OS_VERSION
+// Force qemu version
+qemuSHA = params.QEMU_SHA
 
 // Extra variables
 // Sed filters to be applied via sed
@@ -193,7 +197,7 @@ node('runperf-slave') {
     if (stripResults) {
         // Deploy run-perf to get strip tool
         dir('run-perf') {
-            git branch: 'master', url: 'https://github.com/distributed-system-analysis/run-perf.git'
+            git branch: 'main', url: 'https://github.com/distributed-system-analysis/run-perf.git'
             sh pythonDeployCmd
         }
         sh "rm -Rf '.$buildArtifacts'"
@@ -212,7 +216,9 @@ node('runperf-slave') {
             '\\mv -f "$PTH" "$SAFE_PTH"; done')
     }
     // Get versions
-    (osVersion, qemuSHA) = getVersions(runperfResults)
+	if (! osVersion || ! qemuSHA) {
+		(osVersion, qemuSHA) = getVersions(runperfResults)
+	}
     // In case project page does not exists, provide a template
     updateLinkFile("$resultGit/index.html", project, indexTemplate)
     updateLinkFile("$resultGit/${project}.html", "$project/$qemuTag", projectTemplate)
@@ -243,9 +249,11 @@ node('runperf-slave') {
     } else {
         writeFile(file: resultGit + "/$project/$qemuTag/${thisResult}.html", text: 'Missing file')
     }
-    dir(runperfResults) {
-        sh "tar -cf ../../${resultGit}/$project/$qemuTag/${thisResult}.tar.xz *"
-    }
+	if (fileExists(runperfResults)) {
+	    dir(runperfResults) {
+	        sh "tar -cf ../../${resultGit}/$project/$qemuTag/${thisResult}.tar.xz *"
+	    }
+	}
     // Add the result by replacing the last </tr>
     // We are using 'tac' so we need to reverse the order
     if (status) {

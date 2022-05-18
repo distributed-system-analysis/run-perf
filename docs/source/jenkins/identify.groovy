@@ -10,12 +10,14 @@ builds = params.BUILDS.split().toList()
 description = params.DESCRIPTION
 // Extra AnalyzePerf arguments
 extraArgs = params.EXTRA_ARGS
+// Build number used for --rebase-model
+rebaseModelBuild = params.REBASE_MODEL_BUILD
 
 // Extra variables
 // Provisioner machine
 workerNode = 'runperf-slave'
 // runperf git branch
-gitBranch = 'master'
+gitBranch = 'main'
 // misc variables
 modelFile = 'model.json'
 spaceChr = ' '
@@ -29,6 +31,13 @@ stage('Analyze') {
             copyArtifacts(filter: 'result*/**/result*.json', optional: false, fingerprintArtifacts: true,
                           projectName: srcJob, selector: specific(build), target: 'results/')
         }
+		// If rebaseModel set, get the model from that build
+		if (rebaseModelBuild) {
+			copyArtifacts(filter: modelFile, optional: false, fingerprintArtifacts: true,
+						  projectName: env.JOB_NAME, selector: specific(rebaseModelBuild),
+						  target: 'src_model/')
+			extraArgs += " --rebase-model 'src_model/$modelFile'"
+		}
         status = 0
         lock(workerNode) {
             // Avoid modifying workerNode's environment while executing compareperf
