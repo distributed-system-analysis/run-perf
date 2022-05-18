@@ -163,12 +163,15 @@ node(workerNode) {
     stage('Postprocess̈́') {
         // Build description
         currentBuild.description = "${descriptionPrefix} ${currentBuild.number} ${distro}"
-        // Store and publish html results
-        diffReportPath = '.diff-perf/report.html'
-        archiveArtifacts allowEmptyArchive: true, artifacts: diffReportPath
-        if (fileExists(diffReportPath)) {
-            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true, reportDir: '.diff-perf/',
-                         reportFiles: 'report.html', reportName: 'HTML Report', reportTitles: ''])
+		// Move results to mimic usual run-perf results path
+        if (fileExists('.diff-perf/report.html')) {
+	        diffReportPath = 'html/index.html'
+			sh('mkdir -p html')
+			sh("mv '.diff-perf/report.html' '$diffReportPath'")
+	        // Store and publish html results
+	        archiveArtifacts allowEmptyArchive: true, artifacts: diffReportPath
+            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true, reportDir: 'html/',
+                         reportFiles: 'index.html', reportName: 'HTML Report', reportTitles: ''])
         }
         // Remove the unnecessary big files
         sh 'contrib/bisect.sh clean'
