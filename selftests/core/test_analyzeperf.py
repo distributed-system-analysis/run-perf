@@ -61,11 +61,22 @@ class RunPerfTest(Selftest):
         with open(os.path.join(self.base_dir, "selftests", ".assets",
                                "results", "1_base",
                                "stddev_model.json")) as exp:
-            with open(path_model) as act:
+            with open(path_model_stddev) as act:
                 self.assertEqual(exp.read(), act.read())
         with open(os.path.join(self.base_dir, "selftests", ".assets",
                                "results", "data.csv")) as exp:
             with open(path_csv) as act:
+                self.assertEqual(exp.read(), act.read())
+        # Check the rebase feature
+        path_model_rebased = os.path.join(self.tmpdir, "model_rebased.json")
+        args = ["analyze-perf", "-s", path_model_rebased, "--rebase-model",
+                path_model_stddev, "--", "selftests/.assets/results/"
+                "2_kernel_update/result_20200726_114437"]
+        self.assertEqual(self._run(args), None)
+        with open(os.path.join(self.base_dir, "selftests", ".assets",
+                               "results", "2_kernel_update",
+                               "rebased_model.json")) as exp:
+            with open(path_model_rebased) as act:
                 self.assertEqual(exp.read(), act.read())
 
     def test_bad(self):
