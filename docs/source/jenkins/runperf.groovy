@@ -56,7 +56,7 @@ workerScript = params.WORKER_SCRIPT
 // Provisioner machine
 workerNode = 'runperf-slave'
 // runperf git branch
-gitBranch = 'master'
+gitBranch = 'main'
 // extra runperf arguments
 extraArgs = ''
 // misc variables

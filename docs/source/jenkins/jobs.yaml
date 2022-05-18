@@ -151,7 +151,7 @@
             - git:
                 url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
                 branches:
-                    - master
+                    - main
         script-path: "runperf.groovy"
         lightweight-checkout: true
 
@@ -249,7 +249,7 @@
             - git:
                 url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
                 branches:
-                    - master
+                    - main
         script-path: "upstream_bisect.groovy"
         lightweight-checkout: true
 
@@ -368,7 +368,7 @@
             - git:
                 url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
                 branches:
-                    - master
+                    - main
         script-path: "multi_runperf.groovy"
         lightweight-checkout: true
 
@@ -419,7 +419,7 @@
             - git:
                 url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
                 branches:
-                    - master
+                    - main
         script-path: "compareperf.groovy"
         lightweight-checkout: true
 
@@ -456,7 +456,7 @@
             - git:
                 url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
                 branches:
-                    - master
+                    - main
         script-path: "identify.groovy"
         lightweight-checkout: true
 
@@ -529,7 +529,7 @@
             - git:
                 url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
                 branches:
-                    - master
+                    - main
         script-path: "publish-results-git.groovy"
         lightweight-checkout: true
 

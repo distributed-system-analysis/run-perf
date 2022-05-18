@@ -193,7 +193,7 @@ node('runperf-slave') {
     if (stripResults) {
         // Deploy run-perf to get strip tool
         dir('run-perf') {
-            git branch: 'master', url: 'https://github.com/distributed-system-analysis/run-perf.git'
+            git branch: 'main', url: 'https://github.com/distributed-system-analysis/run-perf.git'
             sh pythonDeployCmd
         }
         sh "rm -Rf '.$buildArtifacts'"

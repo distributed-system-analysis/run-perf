@@ -18,7 +18,7 @@ cmpStddevTolerance = params.CMP_STDDEV_TOLERANCE.trim()
 // Provisioner machine
 workerNode = 'runperf-slave'
 // runperf git branch
-gitBranch = 'master'
+gitBranch = 'main'
 // misc variables
 resultXml = 'result.xml'
 htmlPath = 'html'

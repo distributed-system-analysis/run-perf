@@ -15,7 +15,7 @@ extraArgs = params.EXTRA_ARGS
 // Provisioner machine
 workerNode = 'runperf-slave'
 // runperf git branch
-gitBranch = 'master'
+gitBranch = 'main'
 // misc variables
 modelFile = 'model.json'
 spaceChr = ' '
