@@ -450,6 +450,10 @@
             name: EXTRA_ARGS
             default: ""
             description: Additional analyze-perf arguments, for example -t to override default tolerance
+        - string:
+            name: REBASE_MODEL_BUILD
+            description: 'Build number of this job to be used as "--rebase-model" argument'
+            default: ""
     sandbox: true
     pipeline-scm:
         scm:
@@ -524,6 +528,14 @@
             name: STRIP_RESULTS
             default: true
             description: "Publish stripped results (MB->KB)"
+        - string:
+            name: OS_VERSION
+            default: ""
+            description: "Override the os version"
+        - string:
+            name: QEMU_SHA
+            defalut: ""
+            description: "Override the qemu SHA"
     pipeline-scm:
         scm:
             - git:
