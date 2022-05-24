@@ -410,6 +410,11 @@ def string_to_safe_path(input_str):
     return input_str.translate(_FS_TRANSLATE).replace(chr(65533), '_')
 
 
+def human_to_bool(value):
+    """Accepts multiple human values and turns it into a boolean"""
+    return str(value).strip().lower() in ("yes", "true", "t", "1")
+
+
 def ssh_copy_id(log, addr, passwords, hop=None):
     """
     Use "ssh-copy-id" to copy ssh id, try passwords if asked for.

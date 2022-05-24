@@ -56,6 +56,32 @@ class ProfileUnitTests(Selftest):
 
     """Various profile unit tests"""
 
+    def test_assets(self):
+        asset_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                                  ".assets")
+        args = argparse.Namespace(guest_distro="__test_distro__",
+                                  default_passwords="foo", paths=[asset_path],
+                                  force_params=[])
+        with mock.patch("runperf.profiles.CONFIG_DIR", self.tmpdir):
+            host = Host(mock.Mock(), "selftest", "addr", "__test_distro__",
+                        args)
+            host.get_session = lambda *args, **kwargs: ShellSession(None, "sh")
+            asset_path = os.path.join(self.tmpdir, "asset")
+            with open(asset_path, 'w', encoding='ascii'):
+                pass
+            # Keep assets
+            profile = Localhost(host, self.tmpdir, {"__KEEP_ASSETS__": "yes"})
+            profile._path_to_be_removed(asset_path)
+            profile.apply('')
+            profile.revert()
+            self.assertTrue(os.path.exists(asset_path))
+            # Remove assets (default)
+            profile = Localhost(host, self.tmpdir, {})
+            profile._path_to_be_removed(asset_path)
+            profile.apply('')
+            profile.revert()
+            self.assertFalse(os.path.exists(asset_path))
+
     def test_file_handling(self):
         asset_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                                   ".assets")
@@ -108,7 +134,7 @@ class ProfileUnitTests(Selftest):
             # delete active profile
             profile = Localhost(host, self.tmpdir, {})
             session = profile.session
-            del profile
+            profile.__del__()
             self.assertTrue(session.closed)
 
     def test_libvirt_image_up_to_date(self):

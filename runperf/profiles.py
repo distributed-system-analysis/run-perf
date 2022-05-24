@@ -37,6 +37,13 @@ class BaseProfile:
 
     def __init__(self, host, rp_paths, extra):
         """
+        Base profile that defines basic handling
+
+        Supported extra params:
+         * __NAME__: Set the name of this profile
+         * __KEEP_ASSETS__: Keep files that would be otherwise removed by
+           the ``_path_to_be_removed`` feature (eg. pristine imgs)
+
         :param host: Host machine to apply profile on
         :param rp_paths: list of runperf paths
         """
@@ -49,6 +56,10 @@ class BaseProfile:
         name = extra.get("__NAME__")
         if name:
             self.name = utils.string_to_safe_path(name)
+        if utils.human_to_bool(extra.get("__KEEP_ASSETS__", "no")):
+            self._path_to_be_removed = lambda _: True
+        else:
+            self._path_to_be_removed = self.__path_to_be_removed
         # List of available workers
         self.workers = []
         self.log_fetcher = utils.LogFetcher()
@@ -125,7 +136,7 @@ class BaseProfile:
         """
         self.session.cmd(f"rm -rf {CONFIG_DIR + key}")
 
-    def _path_to_be_removed(self, path):
+    def __path_to_be_removed(self, path):
         """
         Register path to be removed after everything
         """

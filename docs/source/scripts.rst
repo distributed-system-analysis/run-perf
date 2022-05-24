@@ -94,6 +94,11 @@ results in running ``Test1`` and ``Test2`` on profile ``First`` and
 ``Extra1``, ``Test1``, ``Test2`` and ``Extra2`` only on profile ``Second``
 using ``key: value`` arguments to the test ``Extra2``.
 
+To speedup setup for repeated runs you might want to try the
+``__KEEP_ASSETS__`` argument, which preserves the created assets (eg.
+images, downloaded isos, ...). Note it will not keep the images
+used in testing, just the pristine images to-be-copied for testing.
+
 Localhost
 ---------
 
