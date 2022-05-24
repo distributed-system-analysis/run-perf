@@ -163,6 +163,16 @@ class BasicUtils(unittest.TestCase):
                         entries):
             self.assertRaises(KeyError, utils.named_entry_point, "", "missing")
 
+    def test_human_to_bool(self):
+        self.assertTrue(utils.human_to_bool("Yes"))
+        self.assertTrue(utils.human_to_bool("true     \n"))
+        self.assertTrue(utils.human_to_bool("T"))
+        self.assertTrue(utils.human_to_bool(1))
+        self.assertFalse(utils.human_to_bool("nop"))
+        self.assertFalse(utils.human_to_bool("no"))
+        self.assertFalse(utils.human_to_bool("not yes"))
+        self.assertFalse(utils.human_to_bool("yes\nno"))
+
 
 class Machine:
     def __init__(self, name, sessions=None):
