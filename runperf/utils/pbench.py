@@ -43,7 +43,7 @@ class Dnf:  # pylint: disable=R0903
             if session.cmd_status("which dnf"):
                 return "The 'dnf' binary not found"
             self._install_pbench()
-        elif session.cmd_status("[ -e /var/lib/pbench-agent/tools-default ]"):
+        elif session.cmd_status("[ -e /var/lib/pbench-agent/tools-*default ]"):
             # Pbench was installed but tools were not registered, update cfgs
             self._update_pbench()
         else:
