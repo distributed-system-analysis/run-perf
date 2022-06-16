@@ -293,6 +293,8 @@ to plugins/tests, examples of some usages:
 * ``pbench_server_publish`` - used by tests inherited from
   :class:`runperf.tests.PBenchTest` to push the results to the specified
   ``pbench_server`` via ``pbench-copy-results``.
+* ``pbench_copr_repos`` - Allows to override the default copr repos to
+  install pbench from (used in :class:`runperf.utils.pbench.Dnf`)
 
 Additional metadata are being collected by run-perf and injected into the
 build metadata file. Before the execution it gathers:
