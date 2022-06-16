@@ -333,8 +333,7 @@ class Linpack(PBenchTest):
 
     name = "linpack"
     test = "linpack"
-    default_args = (("run-samples", 3),)
-    __detect_linpack_bin = True
+    default_args = (("samples", 3),)
 
     def __init__(self, host, workers, base_output_path, metadata, extra):
         if "linpack-binary" in extra:
@@ -345,31 +344,37 @@ class Linpack(PBenchTest):
                 host.params["guest_cpus"] * 2)
         PBenchTest.__init__(self, host, workers, base_output_path, metadata,
                             extra)
-        # Replace the PBenchTest's pbench-linpack command for
-        # pbench-run-benchmark as pbench-linpack does not provides json results
-        self._cmd = ("ANSIBLE_HOST_KEY_CHECKING=false "
-                     "ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3 "
-                     f"pbench-run-benchmark {self.test} "
-                     f"{self._cmd.split(' ', 1)[1]}")
 
     def _run(self):
-        if self.__detect_linpack_bin:
+        # For pbench-agent<=0.69 use pbench-run-benchmark to support clients
+        with self.host.get_session_cont() as session:
+            pbench_help = session.cmd_output("pbench-linpack -h")
             # When linpack is not specified by the user we need to detect
-            # and append it now as it was probably installed during `setup()`
-            with self.host.get_session_cont() as session:
-                linpack_bin = None
-                for name in ("linpack", "xlinpack_xeon64"):
-                    linpack_bin = utils.shell_find_command(session, name)
-                    if linpack_bin:
-                        break
+            # and append it now as it was probably installed during
+            # `setup()`
+            linpack_bin = None
+            for name in ("linpack", "xlinpack_xeon64"):
+                linpack_bin = utils.shell_find_command(session, name)
+                if linpack_bin:
+                    break
+            if not linpack_bin:
+                linpack_bin = session.cmd_output(
+                    "ls /usr/local/*/benchmarks/linpack/"
+                    "xlinpack_xeon64 2>/dev/null").strip()
                 if not linpack_bin:
-                    linpack_bin = session.cmd_output(
-                        "ls /usr/local/*/benchmarks/linpack/xlinpack_xeon64 "
-                        "2>/dev/null").strip()
-                    if not linpack_bin:
-                        raise exceptions.TestSkip("No linpack binary found on "
-                                                  "host")
-                    linpack_bin = linpack_bin.splitlines()[0]
+                    raise exceptions.TestSkip("No linpack binary found"
+                                              " on host")
+                linpack_bin = linpack_bin.splitlines()[0]
+            if '--clients' in pbench_help:
+                linpack_dir = os.path.dirname(linpack_bin)
+                self._cmd = f"linpack_dir={linpack_dir} {self._cmd}"
+            else:
+                pbench_args = (self._cmd.split(' ', 1)[1]
+                               .replace('--samples=', '--run-samples='))
+                self._cmd = ("ANSIBLE_HOST_KEY_CHECKING=false "
+                             "ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3 "
+                             f"pbench-run-benchmark {self.test} "
+                             f"{pbench_args}")
                 self._cmd += f" --linpack-binary='{linpack_bin}'"
         PBenchTest._run(self)
 

@@ -31,6 +31,8 @@ class Dnf:  # pylint: disable=R0903
         self.session = session
         self.extra = collections.defaultdict(lambda: '', extra)
         self.test = test
+        if 'pbench_copr_repos' not in extra:
+            self.extra['pbench_copr_repos'] = 'portante/pbench;ndokos/pbench'
 
     def install(self):
         """
@@ -43,7 +45,7 @@ class Dnf:  # pylint: disable=R0903
             if session.cmd_status("which dnf"):
                 return "The 'dnf' binary not found"
             self._install_pbench()
-        elif session.cmd_status("[ -e /var/lib/pbench-agent/tools-default ]"):
+        elif session.cmd_status("[ -e /var/lib/pbench-agent/tools-*default ]"):
             # Pbench was installed but tools were not registered, update cfgs
             self._update_pbench()
         else:
@@ -84,15 +86,8 @@ class Dnf:  # pylint: disable=R0903
         """Install basic pbench suite"""
         session = self.session
         session.cmd("dnf install -y --nobest wget rsync", timeout=600)
-        if session.cmd_status("grep [Ff]edora /etc/redhat-release") == 0:
-            distro = "fedora"
-        else:
-            distro = "epel"
-        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                               "assets", "pbench-devel.repo"),
-                  encoding="utf-8") as repo:
-            session.cmd(shell_write_content_cmd("/etc/yum.repos.d/pbench-devel"
-                                                ".repo", repo.read() % distro))
+        for repo in self.extra['pbench_copr_repos'].split(';'):
+            session.cmd(f"dnf -y copr enable {repo}")
         session.cmd("dnf install -y --nobest --skip-broken pbench-agent "
                     "pbench-sysstat python3-libselinux", timeout=600)
         self._update_pbench()
