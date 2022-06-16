@@ -132,12 +132,23 @@ class PBenchTest(Selftest):
                    '--test-types=stream --clients=addr2 --servers addr2')
 
     def test_linpack(self):
-        self.check(tests.Linpack, {}, {}, "ANSIBLE_HOST_KEY_CHECKING=false "
-                   "ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3 "
-                   "pbench-run-benchmark linpack  --run-samples=3 "
-                   "--threads=1,4,8,12,16 --clients=addr2 "
-                   "--linpack-binary='/my/path/to/linpack'",
-                   ["/my/path/to/linpack"])
+        with mock.patch("runperf.tests.utils.shell_find_command",
+                        lambda *_, **_2: ""):
+            self.check(tests.Linpack, {}, {}, "ANSIBLE_HOST_KEY_CHECKING=false"
+                       " ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3 "
+                       "pbench-run-benchmark linpack  --run-samples=3 "
+                       "--threads=1,4,8,12,16 --clients=addr2 "
+                       "--linpack-binary='/my/path/to/linpack'",
+                       ["old pbench help text", "/my/path/to/linpack"])
+
+    def test_linpack_0_71(self):
+        with mock.patch("runperf.tests.utils.shell_find_command",
+                        lambda *_, **_2: ""):
+            self.check(tests.Linpack, {}, {}, "linpack_dir=/my/path/to "
+                       "pbench-linpack  --samples=3 --threads=1,4,8,12,16 "
+                       "--clients=addr2",
+                       ["new pbench help text with --clients= in it",
+                        "/my/path/to/linpack"])
 
     def test_custom_name(self):
         shutil.rmtree(self.tmpdir)
