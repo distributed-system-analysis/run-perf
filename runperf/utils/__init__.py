@@ -40,9 +40,6 @@ FS_UNSAFE_CHARS = '<>:"/\\|?*;'
 # Translate table to replace fs-unfriendly chars
 _FS_TRANSLATE = bytes.maketrans(bytes(FS_UNSAFE_CHARS, "ascii"), b'__________')
 
-# Default log level for the MutableShellSession object
-DEFAULT_ROOT_LOG_LEVEL = logging.DEBUG
-
 CONTEXT = None
 
 
@@ -98,7 +95,7 @@ class MutableShellSession(aexpect.ShellSession):  # lgtm [py/missing-call-to-ini
                     logger.setLevel(logging.INFO)
                     return cmd(*args, **kwargs)
                 finally:
-                    logger.setLevel(DEFAULT_ROOT_LOG_LEVEL)
+                    logger.setLevel(logging.DEBUG)
                     self.set_output_func(self.__output_func)
             return cmd(*args, **kwargs)
 
