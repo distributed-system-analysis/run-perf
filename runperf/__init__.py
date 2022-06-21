@@ -151,8 +151,7 @@ def _parse_args():
     parser.add_argument("--metadata", nargs="+", action=DictAction,
                         help="Build metadata to be attached to test results "
                         "using key=value syntax", default={})
-    parser.add_argument("--verbose", "-v", action="count", default=0,
-                        help="Increase the verbosity level")
+    logging_argparse(parser)
     args = parser.parse_args()
     # Add PATHs
     if base_dir not in args.paths:
@@ -160,26 +159,41 @@ def _parse_args():
     return args
 
 
-def setup_logging(verbosity_arg, fmt=None):
+def logging_argparse(parser):
     """
-    Setup logging according to -v arg
+    Define logging argparse arguments
     """
-    if verbosity_arg >= 2:
+    parser.add_argument("--log", help="Store debug log to a file")
+    parser.add_argument("--verbose", "-v", action="count", default=0,
+                        help="Increase the stderr verbosity level")
+
+
+def logging_setup(args, fmt=None):
+    """
+    Setup logging according to args
+    """
+    def add_handler(log, handler, level, formatter):
+        handler.setFormatter(formatter)
+        handler.setLevel(level)
+        log.addHandler(handler)
+
+    if args.verbose >= 2:
         log_level = logging.DEBUG
-    elif verbosity_arg >= 1:
+    elif args.verbose >= 1:
         log_level = logging.INFO
     else:
         log_level = logging.WARN
     if fmt is None:
         fmt = '%(asctime)s.%(msecs)03d: %(name)-15s: %(message)s'
 
-    logging.basicConfig(level=log_level, stream=sys.stderr,
-                        format=fmt, datefmt="%H:%M:%S")
-    # In case root logger already existed reset the root's log_level
     root = logging.getLogger('')
-    root.setLevel(log_level)
-    # Store the main log level in utils so MutableShellSession can use it
-    utils.DEFAULT_ROOT_LOG_LEVEL = log_level
+    root.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(fmt, datefmt="%H:%M:%S")
+
+    add_handler(root, logging.StreamHandler(sys.stderr), log_level, formatter)
+    if args.log:
+        add_handler(root, logging.FileHandler(args.log), logging.DEBUG,
+                    formatter)
 
 
 def create_metadata(output_dir, args):
@@ -257,7 +271,7 @@ def main():
     a suitable structure for compare-perf to compare them.
     """
     args = _parse_args()
-    setup_logging(args.verbose)
+    logging_setup(args)
 
     log = logging.getLogger("controller")
     # create results (or re-use if asked for)
@@ -433,10 +447,9 @@ class ComparePerf:
                             "size.", action="store_true")
         parser.add_argument("--xunit", help="Write XUnit/JUnit results to "
                             "specified file.")
-        parser.add_argument("--verbose", "-v", action="count", default=0,
-                            help="Increase the verbosity level")
+        logging_argparse(parser)
         args = parser.parse_args()
-        setup_logging(args.verbose, "%(levelname)-5s| %(message)s")
+        logging_setup(args, "%(levelname)-5s| %(message)s")
         models = []
         modifiers = []
         for path in args.model_linear_regression:
@@ -514,14 +527,13 @@ class DiffPerf:
         parser.add_argument("results", help="Path to run-perf results; first "
                             "one is the src result we are comparing the other "
                             "results to", nargs="+", type=self._abs_path)
-        parser.add_argument("--verbose", "-v", action="count", default=0,
-                            help="Increase the verbosity level")
         parser.add_argument("--flatten-coefficient", type=float,
                             help="Coefficient used to flatten the probability "
                             "curve based on the standard deviation. "
                             "(%(default)s)", default=1)
+        logging_argparse(parser)
         args = parser.parse_args()
-        setup_logging(args.verbose, "%(levelname)-5s| %(message)s")
+        logging_setup(args, "%(levelname)-5s| %(message)s")
         if len(args.results) < 3:
             raise RuntimeError("Please use more than one result to compare "
                                "to (3 positional args and more).")
@@ -580,10 +592,9 @@ class AnalyzePerf:
         parser.add_argument("-t", "--tolerance", help="Tolerance (-x,+x) used "
                             "by models, by default (%(default)s)",
                             default=4, type=float)
-        parser.add_argument("--verbose", "-v", action="count", default=0,
-                            help="Increase the verbosity level")
+        logging_argparse(parser)
         args = parser.parse_args()
-        setup_logging(args.verbose, "%(levelname)-5s| %(message)s")
+        logging_setup(args, "%(levelname)-5s| %(message)s")
 
         primary = set()
         storage = {}
@@ -662,10 +673,9 @@ class StripPerf:
                             action="store_true")
         parser.add_argument("-s", "--attach-sysinfo", help="Copy the assets "
                             "of failed the results", action="store_true")
-        parser.add_argument("--verbose", "-v", action="count", default=0,
-                            help="Increase the verbosity level")
+        logging_argparse(parser)
         args = parser.parse_args()
-        setup_logging(args.verbose, "%(levelname)-5s| %(message)s")
+        logging_setup(args, "%(levelname)-5s| %(message)s")
         os.makedirs(args.dst, exist_ok=True)
         # Main metadata
         metadata_path = os.path.join(args.src, "RUNPERF_METADATA")
