@@ -48,6 +48,8 @@ pbenchPublish = params.PBENCH_PUBLISH
 // Github-publisher project ID
 githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT.trim()
 githubPublisherTag = ''
+// Additional run-perf metadata
+metadata = params.METADATA
 // Custom host/guest setups cript
 hostScript = params.HOST_SCRIPT
 workerScript = params.WORKER_SCRIPT
@@ -114,7 +116,6 @@ node(workerNode) {
         sh "\\rm -Rf result* src_result* reference_builds ${htmlPath}"
         sh "mkdir ${htmlPath}"
         sh pythonDeployCmd
-        metadata = ''
         // Use grubby to update default args on host
         if (hostKernelArgs) {
             hostScript += "\ngrubby --args '${hostKernelArgs}' --update-kernel=\$(grubby --default-kernel)"

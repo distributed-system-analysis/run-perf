@@ -26,6 +26,7 @@
     param-fio-nbd-setup: false
     param-upstream-qemu-commit: ''
     param-github-publisher: ''
+    param-metadata: ''
     param-host-script: ''
     param-worker-script: ''
     trigger-on: "H 17 * * *"
@@ -129,6 +130,10 @@
             name: FEDORA_LATEST_KERNEL
             description: 'Install the latest kernel from koji (Fedora rpm)'
             default: false
+        - string:
+            name: METADATA
+            description: 'Additional run-perf --metadata arguments'
+            default: "{param-metadata}"
         - text:
             name: HOST_SCRIPT
             description: 'Host script to be executed on all --servers'
