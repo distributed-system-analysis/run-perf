@@ -218,15 +218,18 @@ node(workerNode) {
                "'pbench_server=YOUR_PBENCH_SERVER_URL' " +
                "'machine_url_base=https://YOUR_BEAKER_URL/view/%(machine)s' " +
                "${metadata} -- ${tests}")
-            sh "echo >> \$(echo -n result*)/RUNPERF_METADATA"       // Add new-line after runperf output
         }
-    }
-
-    stage('Archive results') {
-        // Archive only "result_*" as we don't want to archive "resultsNoArchive"
-        sh returnStatus: true, script: 'tar cf - result_* | xz -T2 -7e - > "$(echo result_*)".tar.xz'
-        archiveArtifacts allowEmptyArchive: true, artifacts: 'result_*.tar.xz'
-        archiveArtifacts allowEmptyArchive: true, artifacts: runperfResultsFilter
+        // Add new-line after runperf output (ignore error when does not exists
+        sh(returnStatus: true, script: "echo >> \$(echo -n result*)/RUNPERF_METADATA")
+        stage('Archive results') {
+            // Archive only "result_*" as we don't want to archive "resultsNoArchive"
+            sh returnStatus: true, script: 'tar cf - result_* | xz -T2 -7e - > "$(echo result_*)".tar.xz'
+            archiveArtifacts allowEmptyArchive: true, artifacts: runperfArchiveFilter
+        }
+        if (status) {
+            currentBuild.description = "BAD ${descriptionPrefix}${srcBuild} ${currentBuild.number} ${distro}"
+            error("run-perf returned non-zero status ($status)")
+        }
     }
 
     stage('Compare') {
