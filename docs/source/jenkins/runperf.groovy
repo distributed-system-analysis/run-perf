@@ -66,8 +66,9 @@ htmlFile = 'index.html'
 htmlIndex = "${htmlPath}/${htmlFile}"
 modelJson = 'model.json'
 thisPath = '.'
-runperfResultsFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**,' +
-                        'result*/**/__sysinfo*__/**')
+runperfArchiveFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**,' +
+                       'result*/**/__sysinfo*__/**,result_*.tar.xz,*.log')
+runperfResultsFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**')
 makeInstallCmd = '\nmake -j $(getconf _NPROCESSORS_ONLN)\nmake install'
 pythonDeployCmd = 'python3 setup.py develop --user'
 kojiUrl = 'https://koji.fedoraproject.org/koji/'
@@ -208,9 +209,10 @@ node(workerNode) {
         // Using jenkins locking to prevent multiple access to a single machine
         lock(machine) {
             sh '$KINIT'
-            sh("python3 scripts/run-perf ${extraArgs} -vvv --hosts ${machine} --distro ${distro} " +
+            status = sh(returnStatus: true,
+               script: "python3 scripts/run-perf ${extraArgs} -v --hosts ${machine} --distro ${distro} " +
                "--provisioner Beaker --default-password YOUR_DEFAULT_PASSWORD --profiles ${profiles} " +
-               '--paths ./downstream_config --metadata ' +
+               '--log run.log --paths ./downstream_config --metadata ' +
                "'build=${currentBuild.number}${descriptionPrefix}' " +
                "'url=${currentBuild.absoluteUrl}' 'project=YOUR_PROJECT_ID ${currentBuild.projectName}' " +
                "'pbench_server=YOUR_PBENCH_SERVER_URL' " +
@@ -261,8 +263,8 @@ node(workerNode) {
         }
         // Compare the results and generate html as well as xunit results
         status = sh(returnStatus: true,
-                    script: ('python3 scripts/compare-perf -vvv --tolerance ' + cmpTolerance +
-                             ' --stddev-tolerance ' + cmpStddevTolerance +
+                    script: ('python3 scripts/compare-perf --log compare.log ' +
+                             '--tolerance ' + cmpTolerance + ' --stddev-tolerance ' + cmpStddevTolerance +
                              " --xunit ${resultXml} --html ${htmlIndex} --html-small-file " + cmpExtra +
                              ' -- src_result/* ' + referenceBuilds.reverse().join(' ') +
                              ' $(find . -maxdepth 1 -type d ! -name "*.tar.*" -name "result*")'))
