@@ -48,6 +48,8 @@ pbenchPublish = params.PBENCH_PUBLISH
 // Github-publisher project ID
 githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT.trim()
 githubPublisherTag = ''
+// Additional run-perf metadata
+metadata = params.METADATA
 // Custom host/guest setups cript
 hostScript = params.HOST_SCRIPT
 workerScript = params.WORKER_SCRIPT
@@ -66,8 +68,9 @@ htmlFile = 'index.html'
 htmlIndex = "${htmlPath}/${htmlFile}"
 modelJson = 'model.json'
 thisPath = '.'
-runperfResultsFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**,' +
-                        'result*/**/__sysinfo*__/**')
+runperfArchiveFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**,' +
+                       'result*/**/__sysinfo*__/**,result_*.tar.xz,*.log')
+runperfResultsFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**')
 makeInstallCmd = '\nmake -j $(getconf _NPROCESSORS_ONLN)\nmake install'
 pythonDeployCmd = 'python3 setup.py develop --user'
 kojiUrl = 'https://koji.fedoraproject.org/koji/'
@@ -113,7 +116,6 @@ node(workerNode) {
         sh "\\rm -Rf result* src_result* reference_builds ${htmlPath}"
         sh "mkdir ${htmlPath}"
         sh pythonDeployCmd
-        metadata = ''
         // Use grubby to update default args on host
         if (hostKernelArgs) {
             hostScript += "\ngrubby --args '${hostKernelArgs}' --update-kernel=\$(grubby --default-kernel)"
@@ -208,23 +210,27 @@ node(workerNode) {
         // Using jenkins locking to prevent multiple access to a single machine
         lock(machine) {
             sh '$KINIT'
-            sh("python3 scripts/run-perf ${extraArgs} -vvv --hosts ${machine} --distro ${distro} " +
+            status = sh(returnStatus: true,
+               script: "python3 scripts/run-perf ${extraArgs} -v --hosts ${machine} --distro ${distro} " +
                "--provisioner Beaker --default-password YOUR_DEFAULT_PASSWORD --profiles ${profiles} " +
-               '--paths ./downstream_config --metadata ' +
+               '--log run.log --paths ./downstream_config --metadata ' +
                "'build=${currentBuild.number}${descriptionPrefix}' " +
                "'url=${currentBuild.absoluteUrl}' 'project=YOUR_PROJECT_ID ${currentBuild.projectName}' " +
                "'pbench_server=YOUR_PBENCH_SERVER_URL' " +
                "'machine_url_base=https://YOUR_BEAKER_URL/view/%(machine)s' " +
                "${metadata} -- ${tests}")
-            sh "echo >> \$(echo -n result*)/RUNPERF_METADATA"       // Add new-line after runperf output
         }
-    }
-
-    stage('Archive results') {
-        // Archive only "result_*" as we don't want to archive "resultsNoArchive"
-        sh returnStatus: true, script: 'tar cf - result_* | xz -T2 -7e - > "$(echo result_*)".tar.xz'
-        archiveArtifacts allowEmptyArchive: true, artifacts: 'result_*.tar.xz'
-        archiveArtifacts allowEmptyArchive: true, artifacts: runperfResultsFilter
+        // Add new-line after runperf output (ignore error when does not exists
+        sh(returnStatus: true, script: "echo >> \$(echo -n result*)/RUNPERF_METADATA")
+        stage('Archive results') {
+            // Archive only "result_*" as we don't want to archive "resultsNoArchive"
+            sh returnStatus: true, script: 'tar cf - result_* | xz -T2 -7e - > "$(echo result_*)".tar.xz'
+            archiveArtifacts allowEmptyArchive: true, artifacts: runperfArchiveFilter
+        }
+        if (status) {
+            currentBuild.description = "BAD ${descriptionPrefix}${srcBuild} ${currentBuild.number} ${distro}"
+            error("run-perf returned non-zero status ($status)")
+        }
     }
 
     stage('Compare') {
@@ -261,8 +267,8 @@ node(workerNode) {
         }
         // Compare the results and generate html as well as xunit results
         status = sh(returnStatus: true,
-                    script: ('python3 scripts/compare-perf -vvv --tolerance ' + cmpTolerance +
-                             ' --stddev-tolerance ' + cmpStddevTolerance +
+                    script: ('python3 scripts/compare-perf --log compare.log ' +
+                             '--tolerance ' + cmpTolerance + ' --stddev-tolerance ' + cmpStddevTolerance +
                              " --xunit ${resultXml} --html ${htmlIndex} --html-small-file " + cmpExtra +
                              ' -- src_result/* ' + referenceBuilds.reverse().join(' ') +
                              ' $(find . -maxdepth 1 -type d ! -name "*.tar.*" -name "result*")'))
