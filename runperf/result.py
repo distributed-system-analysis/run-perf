@@ -1057,7 +1057,7 @@ class RelativeResults:
         return 0
 
 
-def closest_result(src_path, dst_paths, flatten_coefficient=1):
+def closest_result(src_path, dst_path_groups, flatten_coefficient=1):
     """
     Compare results and find the one that has more results closer to the src
     one
@@ -1114,7 +1114,7 @@ def closest_result(src_path, dst_paths, flatten_coefficient=1):
                     storage[name][idx][0] = score
         return storage
 
-    def _calculate_stats(src, storage):
+    def _calculate_stats(src, storage, groups):
         def _distance(i, score):
             this_score = this[i][0]
             if this_score is None:
@@ -1184,15 +1184,29 @@ def closest_result(src_path, dst_paths, flatten_coefficient=1):
                 # method to the stddev based one
                 norm_score = [math.exp(-1/2 * distance ** 2) / 2
                               for distance in norm_distances]
+            # Average results of the same groups
+            grp_norm_score = []
+            idx = 0
+            for group_len in groups:
+                if group_len == 1:
+                    # Single result, just paste the value
+                    grp_norm_score.append(norm_score[idx])
+                    idx += 1
+                    continue
+                # Multiple results, calculate the average
+                value = sum(norm_score[_]
+                            for _ in range(idx, idx + group_len))
+                grp_norm_score.append(value / group_len)
+                idx = idx + group_len
             # Calculate the norm distance per each element using simplified
             # norm because we already normalized the distances to the range
             # of 0-3
-            for idx, result_score in enumerate(norm_score):
+            for idx, result_score in enumerate(grp_norm_score):
                 this_cathegory[idx] += result_score
             if primary:
-                LOG.info("P %s: %s", test, norm_score)
+                LOG.info("P %s: %s", test, grp_norm_score)
             else:
-                LOG.debug("S %s: %s", test, norm_score)
+                LOG.debug("S %s: %s", test, grp_norm_score)
         return stats
 
     def _process_src(src_path):
@@ -1214,9 +1228,11 @@ def closest_result(src_path, dst_paths, flatten_coefficient=1):
         return src
 
     src = _process_src(src_path)
+    dst_paths = [item for sublist in dst_path_groups for item in sublist]
+    groups = [len(_) for _ in dst_path_groups]
     storage = _process_results(dst_paths)
     no_results = len(dst_paths)
-    stats = _calculate_stats(src, storage)
+    stats = _calculate_stats(src, storage, groups)
     selection = range(no_results)
     for i, values in enumerate(stats):
         ret = process_score(values, selection)

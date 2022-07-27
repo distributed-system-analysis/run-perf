@@ -56,6 +56,23 @@ class RunPerfTest(Selftest):
         args.extend(res)
         self.assertEqual(self._run(args), 2)
 
+    def test_groups(self):
+        args = ["diff-perf", "-g"]
+        res = [os.path.join("selftests/.assets/results/1_base/", _)
+               for _ in ("result_20200726_080654", "result_20200726_091827",
+                         "result_20200726_092842", "result_20200726_093220",
+                         "result_20200726_093657")]
+        args.extend(res[0:3])  # This group contains src as well as close 2
+        args.append("-g")
+        args.append(res[4])  # Group with a single element
+        args.append('--')
+        args.append(res[0])  # Src
+        args.append(res[2])
+        args.append(res[3])  # Without groups this is closest
+        # Args are "-g [012] -g 4 -- 0 2 3"
+        # Return codes are 2, 3, g[012], g4
+        self.assertEqual(self._run(args), 2)
+
     def test_broken_stddevs(self):
         """
         Ensure missing tests are processed correctly
