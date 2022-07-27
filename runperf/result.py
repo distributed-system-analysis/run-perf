@@ -1116,6 +1116,7 @@ def closest_result(src_path, dst_path_groups, flatten_coefficient=1):
 
     def _calculate_stats(src, storage, groups):
         def _distance(i, score):
+            """Calculate absolute distance while sanitizing odd values"""
             this_score = this[i][0]
             if this_score is None:
                 return None
@@ -1124,67 +1125,56 @@ def closest_result(src_path, dst_path_groups, flatten_coefficient=1):
             except TypeError:
                 return 0 if this_score == score else 1
 
-        # stats is a list of per-cathegory similarities
-        # [0] => distances of primary scores
-        # [1] => distances of secondary scores
-        stats = [[0] * no_results for _ in range(2)]
-        # Iterate only through the src items as the missing tests from other
-        # results should not affect the closenest of the current result.
-        for test, value in src.items():
-            score, primary, stddev = value
-            if test not in storage:
-                continue
-            if not primary:
-                this_cathegory = stats[1]
-            else:
-                this_cathegory = stats[0]
-            this = storage[test]
-            # Distances are in absolute values
-            if stddev or any(True for _ in this if _[1] is not None):
-                # We know the stddev of all samples of this test. To deal with
-                # uncertainty calculate the maximum standard deviation (out
-                # of stddev_pct) and use it to calculate the probability of
-                # the compare-with values.
-                max_stddev = max((_[1] * _[0] for _ in this
-                                  if _[1] is not None))
-                if stddev:
-                    max_stddev = max(max_stddev, stddev * score)
-                # We calculate max_stddev from stddevpct * score, divide by
-                # 100 to move from pct to absolute value
-                max_stddev = max_stddev / 100 * flatten_coefficient
-                norm_score = [norm_normpdf(_[0], score, max_stddev)
-                              for _ in this]
-            else:
-                distances = [_distance(x, score) for x in range(len(this))]
-                # Treat missing results by using 2x max distance
-                min_distance = min(_ for _ in distances if _ is not None)
-                max_distance = max(_ for _ in distances if _ is not None)
-                if None in distances:
-                    if min_distance == max_distance:
-                        _bad_distance = min_distance * 2
-                    else:
-                        _bad_distance = max_distance * 2
-                    if min_distance == 0:
-                        _bad_distance = 1
-                    distances = [_bad_distance if _ is None else _
-                                 for _ in distances]
-                elif min_distance == max_distance:
-                    # Skip results where all distances are 0 (100% match for
-                    # all)
-                    LOG.debug("%s: SKIP - same distances", test)
-                    continue
-                one_third_of_max_distance = max(distances) / 3
-                # Normalize distance so they are within 0-3. That way we'd be able
-                # to calculate normal distribution via e^(-1/2*x^2)
-                norm_distances = [_ / one_third_of_max_distance for _ in distances]
-                # Calculate the norm distance per each element using simplified
-                # norm because we already normalized the distances to the range
-                # of 0-3
-                # Divide each element by 2 to decrease the significance of this
-                # method to the stddev based one
-                norm_score = [math.exp(-1/2 * distance ** 2) / 2
-                              for distance in norm_distances]
-            # Average results of the same groups
+        def _stddev_norm_scores(this, score, stddev):
+            """
+            We know the stddev of all samples of this test. To deal with
+            uncertainty calculate the maximum standard deviation (out
+            of stddev_pct) and use it to calculate the probability of
+            the compare-with values.
+            """
+            max_stddev = max((_[1] * _[0] for _ in this
+                              if _[1] is not None))
+            if stddev:
+                max_stddev = max(max_stddev, stddev * score)
+            # We calculate max_stddev from stddevpct * score, divide by
+            # 100 to move from pct to absolute value
+            max_stddev = max_stddev / 100 * flatten_coefficient
+            return [norm_normpdf(_[0], score, max_stddev) for _ in this]
+
+        def _max_distance_norm_scores(this, score):
+            """
+            Normalize distance between min and max values of all samples
+            (including src).
+            """
+            distances = [_distance(x, score) for x in range(len(this))]
+            # Treat missing results by using 2x max distance
+            min_distance = min(_ for _ in distances if _ is not None)
+            max_distance = max(_ for _ in distances if _ is not None)
+            if None in distances:
+                if min_distance == max_distance:
+                    _bad_distance = min_distance * 2
+                else:
+                    _bad_distance = max_distance * 2
+                if min_distance == 0:
+                    _bad_distance = 1
+                distances = [_bad_distance if _ is None else _
+                             for _ in distances]
+            elif min_distance == max_distance:
+                # Skip results where all distances are 0 (100% match for all)
+                return None
+            one_third_of_max_distance = max(distances) / 3
+            # Normalize distance so they are within 0-3. That way we'd be able
+            # to calculate normal distribution via e^(-1/2*x^2)
+            norm_distances = [_ / one_third_of_max_distance for _ in distances]
+            # Calculate the norm distance per each element using simplified
+            # norm because we already normalized the distances to the range
+            # of 0-3
+            # Divide each element by 2 to decrease the significance of this
+            # method to the stddev based one
+            return [math.exp(-1/2 * distance ** 2) / 2
+                    for distance in norm_distances]
+
+        def _average_group_scores(norm_score, groups):
             grp_norm_score = []
             idx = 0
             for group_len in groups:
@@ -1198,9 +1188,35 @@ def closest_result(src_path, dst_path_groups, flatten_coefficient=1):
                             for _ in range(idx, idx + group_len))
                 grp_norm_score.append(value / group_len)
                 idx = idx + group_len
-            # Calculate the norm distance per each element using simplified
-            # norm because we already normalized the distances to the range
-            # of 0-3
+            return grp_norm_score
+
+        # stats is a list of per-cathegory similarities
+        # [0] => distances of primary scores
+        # [1] => distances of secondary scores
+        stats = [[0] * no_results for _ in range(2)]
+        # Iterate only through the src items as the missing tests from other
+        # results should not affect the closenest of the current result.
+        for test, value in src.items():
+            score, primary, stddev = value
+            if test not in storage:
+                LOG.debug("%s: SKIP - not in any dst result", test)
+                continue
+            if not primary:
+                this_cathegory = stats[1]
+            else:
+                this_cathegory = stats[0]
+            this = storage[test]
+            # Distances are in absolute values
+            if stddev or any(True for _ in this if _[1] is not None):
+                norm_score = _stddev_norm_scores(this, score, stddev)
+            else:
+                norm_score = _max_distance_norm_scores(this, score)
+            if norm_score is None:
+                LOG.debug("%s: SKIP - same distances", test)
+                continue
+            grp_norm_score = _average_group_scores(norm_score, groups)
+            # Add current scores to the cathegory results. No need to average
+            # or normalize again as we do normalize individual results
             for idx, result_score in enumerate(grp_norm_score):
                 this_cathegory[idx] += result_score
             if primary:
