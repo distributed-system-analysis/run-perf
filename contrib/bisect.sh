@@ -42,7 +42,12 @@ function execute_runperf {
 
 function execute_diffperf {
     # Compare the current-result with good and bad ones
-    ${DIFFPERF} -- "${DIFFDIR}/current-result" "${DIFFDIR}/good" "${DIFFDIR}/bad"
+    declare -a goods bads
+    goods=("$DIFFDIR"/good*)
+    stat -t "${DIFFDIR}"/[0-9]*g &>/dev/null && goods+=("${DIFFDIR}"/[0-9]*g)
+    bads=("$DIFFDIR"/bad*)
+    stat -t "${DIFFDIR}"/[0-9]*b &>/dev/null && bads+=("${DIFFDIR}"/[0-9]*b)
+    ${DIFFPERF} "${DIFFDIR}/current-result" -g "${goods[@]}" -g "${bads[@]}"
     return $?
 }
 
