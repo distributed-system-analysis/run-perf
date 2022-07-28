@@ -519,14 +519,24 @@ class DiffPerf:
         """
         parser = ArgumentParser(prog="diff-perf",
                                 description="Compares multiple results and "
-                                "reports the closest results to the src one. "
+                                "reports the closest results (or group) to "
+                                "the src one. "
                                 "The exit number corresponds to the index "
-                                "of the result for indexes up to 253. The "
+                                "of the result (or group) for indexes up to "
+                                "253. The "
                                 "return number 254 means any higher index "
                                 "and 255 other failure.")
         parser.add_argument("results", help="Path to run-perf results; first "
                             "one is the src result we are comparing the other "
                             "results to", nargs="+", type=self._abs_path)
+        parser.add_argument("--group", "-g", nargs="+", action="append",
+                            help="Add groups of results by '-g result1 result2"
+                            "-g result3 -g result4 result5'; diff-perf will "
+                            "average the result of the same group; "
+                            "groups are appended after the results "
+                            "specified by the positional arguments so the "
+                            "return code will match individual results "
+                            "or group.")
         parser.add_argument("--flatten-coefficient", type=float,
                             help="Coefficient used to flatten the probability "
                             "curve based on the standard deviation. "
@@ -534,11 +544,14 @@ class DiffPerf:
         logging_argparse(parser)
         args = parser.parse_args()
         logging_setup(args, "%(levelname)-5s| %(message)s")
-        if len(args.results) < 3:
-            raise RuntimeError("Please use more than one result to compare "
-                               "to (3 positional args and more).")
-        return result.closest_result(args.results[0], args.results[1:],
-                                     args.flatten_coefficient)
+        src = args.results[0]
+        groups = [[_] for _ in args.results[1:]]
+        if args.group:
+            groups.extend(args.group)
+        if (len(groups) < 2):
+            raise RuntimeError("Please specify at least one src and two dst ("
+                               "or group of dst) results")
+        return result.closest_result(src, groups, args.flatten_coefficient)
 
 
 class AnalyzePerf:
