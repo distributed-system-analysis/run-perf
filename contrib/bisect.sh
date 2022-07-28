@@ -118,6 +118,11 @@ case $1 in
         if [ "$good_or_bad" ]; then
             # Good or bad -> just move the result
             mv "${DIFFDIR}/current-result" "${DIFFDIR}/$good_or_bad";
+            if [ "$TWO_OUT_OF_THREE" == "true" ]; then
+                # Create a second good/bad result
+                execute_runperf
+                mv "${DIFFDIR}/current-result" "${DIFFDIR}/${good_or_bad}2";
+            fi
         else
             # Check -> move the current result to idx postfixed by g or b
             execute_diffperf
