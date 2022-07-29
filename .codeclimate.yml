@@ -19,6 +19,8 @@ plugins:
     enabled: true
   radon:
     enabled: true
+    config:
+      threshold: "C"
   sonar-python:
     enabled: true
     config:

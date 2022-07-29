@@ -15,6 +15,7 @@
 
 import json
 import os
+import pipes
 import tempfile
 import time
 
@@ -51,14 +52,22 @@ class BaseTest:
         """
         Log a message on all workers' as well as host's kmsg
         """
-        msg = f"runperf: {time.time():.0f}: {self.host.profile.name}: {msg}"
-        for workers in self.workers:
-            for worker in workers:
-                with worker.get_session_cont(hop=self.host) as session:
-                    session.cmd_status(
-                        utils.shell_write_content_cmd("/dev/kmsg", msg))
-        with self.host.get_session_cont(hop=self.host) as session:
-            session.cmd_status(utils.shell_write_content_cmd("/dev/kmsg", msg))
+        sessions = []
+        try:
+            sessions.append(self.host.get_session())
+            for workers in self.workers:
+                for worker in workers:
+                    sessions.append(worker.get_session(hop=self.host))
+            msg = f"C{time.time():.0f}: {self.host.profile.name}: {msg}"
+            cmd = f"echo runperf: W$(date +%s): {pipes.quote(msg)} > /dev/kmsg"
+            for session in sessions:
+                session.sendline(cmd)
+            for session in sessions:
+                # Ensure all commands finished
+                session.cmd("true")
+        finally:
+            for session in sessions:
+                session.close()
 
     def run(self):
         """Run the testing"""
