@@ -160,16 +160,16 @@ node(workerNode) {
         }
     }
 
-    stage('Postprocess̈́') {
+    stage('Postprocess') {
         // Build description
         currentBuild.description = "${descriptionPrefix} ${currentBuild.number} ${distro}"
-		// Move results to mimic usual run-perf results path
+        // Move results to mimic usual run-perf results path
         if (fileExists('.diff-perf/report.html')) {
-	        diffReportPath = 'html/index.html'
-			sh('mkdir -p html')
-			sh("mv '.diff-perf/report.html' '$diffReportPath'")
-	        // Store and publish html results
-	        archiveArtifacts allowEmptyArchive: true, artifacts: diffReportPath
+            diffReportPath = 'html/index.html'
+            sh('mkdir -p html')
+            sh("mv '.diff-perf/report.html' '$diffReportPath'")
+            // Store and publish html results
+            archiveArtifacts allowEmptyArchive: true, artifacts: diffReportPath
             publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true, reportDir: 'html/',
                          reportFiles: 'index.html', reportName: 'HTML Report', reportTitles: ''])
         }

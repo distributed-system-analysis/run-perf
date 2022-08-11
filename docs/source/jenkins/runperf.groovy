@@ -284,7 +284,7 @@ node(workerNode) {
         }
     }
 
-    stage('Postprocess̈́') {
+    stage('Postprocess') {
         // Build description
         currentBuild.description = "${descriptionPrefix}${srcBuild} ${currentBuild.number} ${distro}"
         // Store and publish html results
