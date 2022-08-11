@@ -1088,9 +1088,10 @@ def closest_result(src_path, dst_path_groups, flatten_coefficient=1):
         Find the highest number in a $storage looking only on items specified
         in the $selection variable.
         """
-        score = max(storage[i] for i in selection)
+        values = [storage[i] for i in selection]
+        score = max(values)
         count = storage.count(score)
-        LOG.info("Score: %s (matching %s result(s))", score, count)
+        LOG.info("Score: %s %s", score, values)
         if count == 1:
             for i in selection:
                 if storage[i] == score:
