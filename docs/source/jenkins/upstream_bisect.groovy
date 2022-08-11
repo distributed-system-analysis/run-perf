@@ -97,7 +97,7 @@ node(workerNode) {
             sh pythonDeployCmd
         }
         // Remove files that might have been left behind
-        sh '\\rm -Rf result* src_result* reference_builds html'
+        sh '\\rm -Rf result* src_result* reference_builds html *.log'
         sh 'mkdir html'
         sh pythonDeployCmd
         metadata = ''
@@ -142,15 +142,15 @@ node(workerNode) {
             sh 'git clone https://gitlab.com/qemu-project/qemu.git upstream_qemu/'
             sh '$KINIT'
             // First run the provisioning and dummy test to age the machine a bit
-            sh("python3 scripts/run-perf ${extraArgs} -vvv --hosts ${machine} --distro ${distro} " +
+            sh("python3 scripts/run-perf ${extraArgs} -v --hosts ${machine} --distro ${distro} " +
                '--provisioner Beaker --default-password YOUR_DEFAULT_PASSWORD ' +
-               '--profiles DefaultLibvirt --paths ./downstream_config -- ' +
+               '--profiles DefaultLibvirt --paths ./downstream_config --log prejob.log -- ' +
               '\'fio:{"runtime": "30", "targets": "/fio", "block-sizes": "4", "test-types": "read", ' +
               '"samples": "1"}\'')
             // And now run the bisection without reprovisioning
             sh("DIFFPERF='python3 scripts/diff-perf' contrib/upstream_qemu_bisect.sh upstream_qemu/ " +
                "${upstreamQemuGood} ${upstreamQemuBad} python3 scripts/run-perf ${extraArgs} " +
-               "-vvv --hosts ${machine} --distro ${distro} " +
+               "-v --hosts ${machine} --distro ${distro} --log job.log " +
                "--default-password YOUR_DEFAULT_PASSWORD --profiles ${profiles} " +
                "--paths ./downstream_config --metadata " +
                "'project=virt-perf-ci ${currentBuild.projectName}' " +
