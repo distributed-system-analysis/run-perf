@@ -37,7 +37,7 @@
 # Definition for the run-perf execution job
 ##############################################################################
 - job-template:
-    name: "{name}"
+    name: "{name}-run"
     triggers:
         - timed: "{trigger-on}"
     project-type: pipeline
@@ -441,7 +441,7 @@
     parameters:
         - string:
             name: SRC_JOB
-            default: "{name}"
+            default: "{name}-run"
             desciption: Source jenkins job
         - string:
             name: BUILDS
@@ -562,7 +562,7 @@
 #    param-cmp-model-build: -1
 #    param-pbench-publish: true
 #    jobs:
-#        - "{name}"
+#        - "{name}-run"
 #        - "{name}-identify"
 #
 #
@@ -578,10 +578,10 @@
 #    param-cmp-model-job: "rp-example-manual-identify"
 #    param-cmp-model-build: 1
 #    param-pbench-publish: false
-#    param-job: "{name}"
+#    param-job: "{name}-run"
 #    trigger-on: ""
 #    jobs:
-#        - "{name}"
+#        - "{name}-run"
 #        - "{name}-identify"
 #        - "{name}-multi":
 #            param-cmp-model-job: ''
