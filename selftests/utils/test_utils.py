@@ -307,5 +307,80 @@ class LogFetcher(unittest.TestCase):
             shutil.rmtree(self.tmpdir)
 
 
+class Pbench(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="runperf-selftest")
+
+    def test_session_no_output(self):
+        """Session provides no return, unable to install"""
+        session = mock.Mock()
+        self.assertRaises(RuntimeError, utils.pbench.install_on, session)
+
+    def test_session_already_installed(self):
+        """Should report already installed"""
+        session = mock.Mock()
+        session.cmd_status.return_value = 0
+        utils.pbench.install_on(session)
+
+    def test_install_fedora(self):
+        """Pretend to be Fedora and check default copr repos"""
+        session = mock.Mock()
+        utils.pbench.Dnf(session)._install_pbench()
+        calls = session.mock_calls
+        # Only one copr by default
+        count = 0
+        for call in calls:
+            call = str(call)
+            if "copr enable" in call:
+                count += 1
+                self.assertIn("copr enable ndokos/pbench", call, "Enabling "
+                              f"copr that is not ndokos/pbench\n{calls}")
+        self.assertEqual(count, 1, f"Multiple copr enable calls\n{calls}")
+
+    def test_install_fedora_coprs(self):
+        """Pretend to be Fedora and verify custom coprs"""
+        session = mock.Mock()
+        extra = {"pbench_copr_repos": "copr1;copr2;copr3"}
+        utils.pbench.Dnf(session, extra)._install_pbench()
+        calls = session.mock_calls
+        # Only one copr by default
+        count = 0
+        coprs = ["copr1", "copr2", "copr3"]
+        extra_coprs = []
+        for call in calls:
+            call = str(call)
+            if "copr enable" in call:
+                count += 1
+                names = re.findall("copr enable (\w+)", call)
+                for name in names:
+                    if name in coprs:
+                        coprs.remove(name)
+                    else:
+                        extra_coprs.append(name)
+        self.assertFalse(coprs, f"Some copr repos were not enabled ({coprs})\n"
+                         f"{calls}")
+        self.assertFalse(extra_coprs, "Additional coprs were enabled "
+                         f"({extra_coprs})\n{calls}")
+        self.assertEqual(count, 3, "Incorrect number of copr enable calls\n"
+                         f"{calls}")
+
+    def test_check_test_installed(self):
+        """Test for _check_test_installed"""
+        session = mock.Mock()
+        pbench = utils.pbench.Dnf(session, {}, "test")
+        session.cmd_status.side_effect = [0]
+        self.assertTrue(pbench._check_test_installed(), "which should report "
+                        f"installed\n{session.mock_calls}")
+        session.cmd_status.side_effect = [1, 0]
+        self.assertTrue(pbench._check_test_installed(), "rpm should report "
+                        f"installed\n{session.mock_calls}")
+        session.cmd_status.side_effect = [1, 1, 0]
+        self.assertTrue(pbench._check_test_installed(), "rpm should report "
+                        f"pbench-$name installed\n{session.mock_calls}")
+        session.cmd_status.side_effect = [1, 1, 1]
+        self.assertFalse(pbench._check_test_installed(), "Should not report "
+                         f"installed\n{session.mock_calls}")
+
+
 if __name__ == '__main__':
     unittest.main()
