@@ -32,7 +32,7 @@ class Dnf:  # pylint: disable=R0903
         self.extra = collections.defaultdict(lambda: '', extra)
         self.test = test
         if 'pbench_copr_repos' not in extra:
-            self.extra['pbench_copr_repos'] = 'portante/pbench;ndokos/pbench'
+            self.extra['pbench_copr_repos'] = 'ndokos/pbench'
 
     def install(self):
         """
