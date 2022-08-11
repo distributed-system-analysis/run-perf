@@ -70,6 +70,7 @@ modelJson = 'model.json'
 thisPath = '.'
 runperfArchiveFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**,' +
                        'result*/**/__sysinfo*__/**,result_*.tar.xz,*.log')
+runperfArchFilterRmCmd = "\\rm -Rf result* src_result* reference_builds ${htmlPath} *.log"
 runperfResultsFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**')
 makeInstallCmd = '\nmake -j $(getconf _NPROCESSORS_ONLN)\nmake install'
 pythonDeployCmd = 'python3 setup.py develop --user'
@@ -113,7 +114,7 @@ node(workerNode) {
             sh pythonDeployCmd
         }
         // Remove files that might have been left behind
-        sh "\\rm -Rf result* src_result* reference_builds ${htmlPath}"
+        sh runperfArchFilterRmCmd
         sh "mkdir ${htmlPath}"
         sh pythonDeployCmd
         // Use grubby to update default args on host
@@ -295,7 +296,7 @@ node(workerNode) {
         // Junit results
         junit allowEmptyResults: true, testResults: resultXml
         // Remove the unnecessary big files
-        sh '\\rm -Rf result* src_result* reference_builds'
+        sh runperfArchFilterRmCmd
         // Publish the results
         if (githubPublisherProject) {
             build(job: 'rp-publish-results-git',
