@@ -16,8 +16,8 @@ might look like this:
 Which might generate following html results (slightly outdated version
 that compares a different setting on host and guest): `here <_static/html_result.html>`_
 
-Let's create imagine we have ``example.org`` machine, we can create
-``rp-example`` jpb to run regression testing, then ``rp-example-manual``
+Let's imagine we have ``example.org`` machine, we can create
+``rp-example`` job to run regression testing, then ``rp-example-manual``
 job to allow testing of changes or custom params. For each of these
 we might want to create ``$name-ident`` jobs to allow cherry-picking
 and analyzing of results in order to create models to easier evaluate
@@ -31,6 +31,9 @@ small and suffice for compare-perf usecases.
 
 The latest addition is an upstream qemu bisect pipeline called
 ``rp-example-upstream-bisect``.
+
+The above pipelines are using Jenkins shared library ``runperf``,
+which is attached below.
 
 All of these can be easily defined via `Jenkins Job Builder <https://docs.openstack.org/infra/jenkins-job-builder/>`_:
 
@@ -63,3 +66,14 @@ And a bisect job ``upstream_bisect.groovy``:
 And a range job to trigger multiple runperf jobs:
 
 .. literalinclude:: jenkins/multi_runperf.groovy
+
+To enable the Jenkins shared libraries look at
+`Extending with Shared Libraries <https://www.jenkins.io/doc/book/pipeline/shared-libraries/>`_
+tutorial. Once you have your repo enabled, place the
+following file:
+
+.. literalinclude:: jenkins/vars_runperf.groovy
+
+into ``$YOUR_SHARED_LIB_REPO/vars/runperf.groovy`` and you
+should be good to go. Feel free to ping me if anything
+goes wrong.

@@ -1,5 +1,7 @@
 // Pipeline to trigger a series of run-perf jobs to cover a range of params.
 // Following `params` have to be defined in job (eg. via jenkins-job-builder)
+// groovylint-disable-next-line
+@Library('runperf') _
 
 csvSeparator = ';'
 
@@ -64,65 +66,8 @@ workerNode = 'runperf-slave'
 // misc variables
 srcBuildUnset = '-1'
 
-// Process a range of distros
-List getDistroRange(String[] range, String workerNode) {
-    first = range[0]
-    last = range[1]
-    common = ''
-    for (i = 0; i < Math.min(first.length(), last.length()); i++) {
-        if (first[i] != last[i]) {
-            break
-        }
-        common += first[i]
-    }
-    if (first.contains('n')) {
-        common += '%n'
-    } else if (first.contains('d')) {
-        common += '%d'
-    }
-    node(workerNode) {
-        distroRange = sh(returnStdout: true,
-                          script: ('echo -n $(bkr distro-trees-list --arch x86_64 ' +
-                                   '--name=' + common + '% --family RedHatEnterpriseLinux8 ' +
-                                   '--limit 100 --labcontroller ENTER_LAB_CONTROLLER_URL ' +
-                                   '--format json | grep \'"distro_name"\' | cut -d\'"\' -f4 | ' +
-                                   'sed -n \'/^' + last + '/,/^' +
-                                   first + '/p\')')).trim().split().reverse()
-    }
-    return(distroRange)
-}
-
-// Process list of distros and replace '..' ranges with individual versions
-List getDistrosRange(String[] distrosRaw, String workerNode) {
-    println("getDistrosRange ${distrosRaw}")
-    List distros = []
-    for (distro in distrosRaw) {
-        if (distro.contains('..')) {
-            distroRange = getDistroRange(distro.split('\\.\\.'), workerNode)
-            println("range ${distroRange}")
-            distros += distroRange
-        } else {
-            println("add ${distro}")
-            distros.add(distro)
-        }
-    }
-    return(distros)
-}
-
-@NonCPS
-String triggerJob(List parameters, String srcBuild, String jobName) {
-    job = Hudson.instance.getJob(jobName)
-    queue = job.scheduleBuild2(0, new ParametersAction(parameters))
-    if (srcBuild == srcBuildUnset) {
-        println('Waiting for build to be scheduled to obtain srcBuild ID')
-        build = queue.waitForStart()
-        return(build.id)
-    }
-    return(srcBuild)
-}
-
-distros = getDistrosRange(distrosRaw, workerNode)
-guestDistros = getDistrosRange(guestDistrosRaw, workerNode)
+distros = runperf.getDistrosRange(distrosRaw, workerNode, arch)
+guestDistros = runperf.getDistrosRange(guestDistrosRaw, workerNode, arch)
 
 referenceBuilds = 0
 srcBuild = srcBuildUnset
@@ -135,35 +80,14 @@ for (params in paramTypes.combinations()) {
     } else {
         prefix = "${descriptionPrefix}${params[0]}"
     }
-    parameters = [
-        // TODO: Add no-provisioning-version
-        // Use a cleanup job to remove host-setup-script things
-        new StringParameterValue('DISTRO', params[7]),
-        new StringParameterValue('GUEST_DISTRO', params[6]),
-        new StringParameterValue('MACHINE', machine),
-        new StringParameterValue('ARCH', arch),
-        new StringParameterValue('TESTS', tests),
-        new StringParameterValue('PROFILES', profiles),
-        new StringParameterValue('SRC_BUILD', srcBuild),
-        new StringParameterValue('HOST_KERNEL_ARGS', params[4]),
-        new StringParameterValue('HOST_BKR_LINKS', params[3]),
-        new StringParameterValue('HOST_BRK_LINKS_FILTER', hostBkrLinksFilter),
-        new StringParameterValue('GUEST_KERNEL_ARGS', params[2]),
-        new StringParameterValue('GUEST_BKR_LINKS', params[1]),
-        new StringParameterValue('GUEST_BKR_LINKS_FILTER', guestBkrLinksFilter),
-        new StringParameterValue('UPSTREAM_QEMU_COMMIT', params[5]),
-        new StringParameterValue('DESCRIPTION_PREFIX', prefix),
-        new BooleanParameterValue('PBENCH_PUBLISH', pbenchPublish),
-        new BooleanParameterValue('FIO_NBD_SETUP', fioNbdSetup),
-        new StringParameterValue('NO_REFERENCE_BUILDS', Math.max(0, referenceBuilds).toString()),
-        new StringParameterValue('CMP_MODEL_JOB', cmpModelJob),
-        new StringParameterValue('CMP_MODEL_BUILD', cmpModelBuild),
-        new StringParameterValue('CMP_TOLERANCE', cmpTolerance),
-        new StringParameterValue('CMP_STDDEV_TOLERANCE', cmpStddevTolerance),
-        new StringParameterValue('GITHUB_PUBLISHER_PROJECT', githubPublisherProject),
-        new TextParameterValue('HOST_SCRIPT', hostScript),
-        new TextParameterValue('WORKER_SCRIPT', workerScript)
-        ]
-    srcBuild = triggerJob(parameters, srcBuild, jobName)
+    // TODO: Add no-provisioning-version
+    // Use a cleanup job to remove host-setup-script things
+    srcBuild = runperf.triggerRunperf(env.JOB_NAME, srcBuild == srcBuildUnset, params[7], params[6],
+                                      machine, arch, tests, profiles, srcBuild, params[4],
+                                      params[3], hostBkrLinksFilter, params[2], params[1],
+                                      guestBkrLinksFilter, params[5], prefix, pbenchPublish,
+                                      fioNbdSetup, Math.max(0, referenceBuilds).toString(),
+                                      cmpModelJob, cmpModelBuild, cmpTolerance, cmpStddevTolerance,
+                                      githubPublisherProject, hostScript, workerScript)
     referenceBuilds += 1
 }

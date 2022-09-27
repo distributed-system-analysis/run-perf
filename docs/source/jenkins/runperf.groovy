@@ -1,4 +1,7 @@
 // Pipeline to run runperf and compare to given results
+// groovylint-disable-next-line
+@Library('runperf') _
+
 // Following `params` have to be defined in job (eg. via jenkins-job-builder)
 
 // Machine to be provisioned and tested
@@ -7,7 +10,8 @@ machine = params.MACHINE.trim()
 arch = params.ARCH.trim()
 // Distribution to be installed/is installed (Fedora-32)
 // when empty it will pick the latest available nightly el8
-distro = params.DISTRO.trim()
+_distro = params.DISTRO.trim()
+_distro = _distro ?: 'latest-RHEL-8.0%.n.%'
 // Distribution to be installed on guest, when empty "distro" is used
 guestDistro = params.GUEST_DISTRO.trim()
 // Space separated list of tests to be executed
@@ -61,93 +65,22 @@ workerNode = 'runperf-slave'
 gitBranch = 'main'
 // extra runperf arguments
 extraArgs = ''
-// misc variables
-resultXml = 'result.xml'
-htmlPath = 'html'
-htmlFile = 'index.html'
-htmlIndex = "${htmlPath}/${htmlFile}"
-modelJson = 'model.json'
-thisPath = '.'
-runperfArchiveFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**,' +
-                       'result*/**/__sysinfo*__/**,result_*.tar.xz,*.log')
-runperfArchFilterRmCmd = "\\rm -Rf result* src_result* reference_builds ${htmlPath} *.log"
-runperfResultsFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**')
-makeInstallCmd = '\nmake -j $(getconf _NPROCESSORS_ONLN)\nmake install'
-pythonDeployCmd = 'python3 setup.py develop --user'
-kojiUrl = 'https://koji.fedoraproject.org/koji/'
-
-String getBkrInstallCmd(String hostBkrLinks, String hostBkrLinksFilter, String arch) {
-    return ('\ndnf remove -y --skip-broken qemu-kvm;' +
-            '\nfor url in ' + hostBkrLinks + '; do dnf install -y --allowerasing --skip-broken ' +
-            '$(curl -k \$url | grep -oP \'href="\\K[^"]*(noarch|' + arch + ')\\.rpm\' | ' +
-            'sed -e "/^http/! s#^#$url/#" | grep -v $(for expr in ' + hostBkrLinksFilter + '; do ' +
-            'echo -n " -e $expr"; done)); done')
-}
 
 node(workerNode) {
     stage('Preprocess') {
-        distro = distro ?: 'latest-RHEL-8.0%.n.%'
-        if (distro.startsWith('latest-')) {
-            distro = sh(returnStdout: true,
-                        script: ('echo -n $(bkr distro-trees-list --arch x86_64 --name="' +
-                                 distro[7..-1] + '" --limit 1 --labcontroller $ENTER_LAB_CONTROLLER_URL' +
-                                 '| grep Name:  | cut -d":" -f2 | xargs | cut -d" " -f1)'))
-            echo "Using latest distro ${distro} from bkr"
-        } else {
-            echo "Using distro ${distro} from params"
-        }
-        if (!guestDistro) {
-            guestDistro == distro
-        }
-        if (guestDistro == distro) {
-            echo "Using the same guest distro ${distro}"
-        } else {
-            echo "Using different guest distro: ${guestDistro} from host: ${distro}"
-        }
+        (distro, guestDistro, descriptionPrefix) = runperf.preprocessDistros(_distro, guestDistro,
+                                                                             arch, descriptionPrefix)
+        currentBuild.description = "${distro} - in progress"
     }
 
     stage('Measure') {
-        git branch: gitBranch, url: 'https://github.com/distributed-system-analysis/run-perf.git'
-        // This way we add downstream plugins and other configuration
-        dir('downstream_config') {
-            git branch: gitBranch, url: 'git://PATH_TO_YOUR_REPO_WITH_PIPELINES/runperf_config.git'
-            sh pythonDeployCmd
-        }
-        // Remove files that might have been left behind
-        sh runperfArchFilterRmCmd
-        sh "mkdir ${htmlPath}"
-        sh pythonDeployCmd
+        runperf.deployDownstreamConfig(gitBranch)
+        runperf.deployRunperf(gitBranch)
         // Use grubby to update default args on host
-        if (hostKernelArgs) {
-            hostScript += "\ngrubby --args '${hostKernelArgs}' --update-kernel=\$(grubby --default-kernel)"
-        }
-        // Ugly way of installing all arch's rpms from a site, allowing a filter
-        // this is usually used on koji/brew to allow updating certain packages
-        // warning: It does not work when the url rpm is older.
-        if (hostBkrLinks) {
-            hostScript += getBkrInstallCmd(hostBkrLinks, hostBkrLinksFilter, arch)
-        }
-        // The same on guest
-        if (guestKernelArgs) {
-            workerScript += "\ngrubby --args '${guestKernelArgs}' --update-kernel=\$(grubby --default-kernel)"
-        }
-        // The same on guest
-        if (guestBkrLinks) {
-            workerScript += getBkrInstallCmd(guestBkrLinks, guestBkrLinksFilter, arch)
-        }
-        // Install deps and compile custom fio with nbd ioengine
-        if (fioNbdSetup) {
-            nbdSetupScript = ('\n\n# FIO_NBD_SETUP' +
-                              '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make ' +
-                              'qemu-img libaio-devel tar' +
-                              '\ncd /tmp' +
-                              '\ncurl -L https://github.com/axboe/fio/archive/fio-3.27.tar.gz | tar xz' +
-                              '\ncd fio-fio-3.27' +
-                              '\n./configure --enable-libnbd' +
-                              makeInstallCmd)
-            hostScript += nbdSetupScript
-            workerScript += nbdSetupScript
-        }
+        hostScript = runperf.setupScript(hostScript, hostKernelArgs, hostBkrLinks, hostBkrLinksFilter,
+                                         arch, fioNbdSetup)
+        workerScript = runperf.setupScript(workerScript, guestKernelArgs, guestBkrLinks, guestBkrLinksFilter,
+                                           arch, fioNbdSetup)
         // Build custom qemu
         if (upstreamQemuCommit) {
             // Always translate the user input into the actual commit and also get the description
@@ -180,7 +113,7 @@ node(workerNode) {
             hostScript += '--enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp '
             hostScript += '--enable-usb-redir --disable-opengl --disable-virglrenderer '
             hostScript += '--with-pkgversion="$VERSION"'
-            hostScript += makeInstallCmd
+            hostScript += runperf.makeInstallCmd
             hostScript += '\nchcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"'
             hostScript += '\n\\cp -f build/config.status /usr/local/share/qemu/'
             hostScript += '\ncd $OLD_PWD'
@@ -188,14 +121,14 @@ node(workerNode) {
         // Install the latest kernel from koji (Fedora rpm)
         if (fedoraLatestKernel) {
             kernelBuild = sh(returnStdout: true,
-                             script: ("curl '$kojiUrl/packageinfo?packageID=8' | " +
+                             script: ("curl '$runperf.kojiUrl/packageinfo?packageID=8' | " +
                                       'grep -B 4 "complete" | grep "kernel" | ' +
                                       'grep "git" | grep -m 1 -o -e \'href="[^"]*"\'')
                              ).trim()[6..-2]
-            kernelBuildUrl = kojiUrl + kernelBuild
+            kernelBuildUrl = runperf.kojiUrl + kernelBuild
             kernelBuildFilter = 'debug bpftool kernel-tools perf kernel-selftests kernel-doc'
-            hostScript += getBkrInstallCmd(kernelBuildUrl, kernelBuildFilter, arch)
-            workerScript += getBkrInstallCmd(kernelBuildUrl, kernelBuildFilter, arch)
+            hostScript += runperf.getBkrInstallCmd(kernelBuildUrl, kernelBuildFilter, arch)
+            workerScript += runperf.getBkrInstallCmd(kernelBuildUrl, kernelBuildFilter, arch)
         }
         if (hostScript) {
             writeFile file: 'host_script', text: hostScript
@@ -226,19 +159,21 @@ node(workerNode) {
         stage('Archive results') {
             // Archive only "result_*" as we don't want to archive "resultsNoArchive"
             sh returnStatus: true, script: 'tar cf - result_* | xz -T2 -7e - > "$(echo result_*)".tar.xz'
-            archiveArtifacts allowEmptyArchive: true, artifacts: runperfArchiveFilter
+            archiveArtifacts allowEmptyArchive: true, artifacts: runperf.runperfArchiveFilter
         }
         if (status) {
-            currentBuild.description = "BAD ${descriptionPrefix}${srcBuild} ${currentBuild.number} ${distro}"
-            error("run-perf returned non-zero status ($status)")
+            runperf.tryOtherDistros(_distro, arch)
+            runperf.failBuild('Run-perf execution failed',
+                              "run-perf returned non-zero status ($status)",
+                              distro)
         }
     }
 
     stage('Compare') {
         // Get up to noReferenceBuilds json results to use as a reference
         referenceBuilds = []
-        for (build in getGoodBuildNumbers(env.JOB_NAME)) {
-            copyArtifacts(filter: runperfResultsFilter, optional: true,
+        for (build in runperf.getGoodBuildNumbers(env.JOB_NAME)) {
+            copyArtifacts(filter: runperf.runperfResultsFilter, optional: true,
                           fingerprintArtifacts: true, projectName: env.JOB_NAME, selector: specific("${build}"),
                           target: "reference_builds/${build}/")
             if (findFiles(glob: "reference_builds/${build}/result*/*/*/*/*.json")) {
@@ -250,19 +185,19 @@ node(workerNode) {
             }
         }
         // Get src build's json results to compare against
-        copyArtifacts(filter: runperfResultsFilter, optional: true,
+        copyArtifacts(filter: runperf.runperfResultsFilter, optional: true,
                       fingerprintArtifacts: true, projectName: env.JOB_NAME, selector: specific(srcBuild),
                       target: 'src_result/')
         // If model build set get the model from it's job
         if (cmpModelBuild) {
             if (cmpModelBuild == '-1') {
-                copyArtifacts(filter: modelJson, optional: false, fingerprintArtifacts: true,
-                              projectName: cmpModelJob, selector: lastSuccessful(), target: thisPath)
+                copyArtifacts(filter: runperf.modelJson, optional: false, fingerprintArtifacts: true,
+                              projectName: cmpModelJob, selector: lastSuccessful(), target: runperf.thisPath)
             } else {
-                copyArtifacts(filter: modelJson, optional: false, fingerprintArtifacts: true,
-                              projectName: cmpModelJob, selector: specific(cmpModelBuild), target: thisPath)
+                copyArtifacts(filter: runperf.modelJson, optional: false, fingerprintArtifacts: true,
+                              projectName: cmpModelJob, selector: specific(cmpModelBuild), target: runperf.thisPath)
             }
-            cmpExtra = '--model-linear-regression ' + modelJson
+            cmpExtra = '--model-linear-regression ' + runperf.modelJson
         } else {
             cmpExtra = ''
         }
@@ -270,17 +205,18 @@ node(workerNode) {
         status = sh(returnStatus: true,
                     script: ('python3 scripts/compare-perf --log compare.log ' +
                              '--tolerance ' + cmpTolerance + ' --stddev-tolerance ' + cmpStddevTolerance +
-                             " --xunit ${resultXml} --html ${htmlIndex} --html-small-file " + cmpExtra +
+                             " --xunit ${runperf.resultXml} --html ${runperf.htmlIndex} --html-small-file " + cmpExtra +
                              ' -- src_result/* ' + referenceBuilds.reverse().join(' ') +
                              ' $(find . -maxdepth 1 -type d ! -name "*.tar.*" -name "result*")'))
-        if (fileExists(resultXml)) {
+        if (fileExists(runperf.resultXml)) {
             if (status) {
                 // This could mean there were no tests to compare or other failures, interrupt the build
                 echo "Non-zero exit status: ${status}"
             }
         } else {
-            currentBuild.result = 'FAILED'
-            error "Missing ${resultXml}, exit code: ${status}"
+            runperf.failBuild('Compare-perf execution failed',
+                              "Missing ${runperf.resultXml}, exit code: ${status}",
+                              distro)
         }
     }
 
@@ -288,15 +224,15 @@ node(workerNode) {
         // Build description
         currentBuild.description = "${descriptionPrefix}${srcBuild} ${currentBuild.number} ${distro}"
         // Store and publish html results
-        archiveArtifacts allowEmptyArchive: true, artifacts: htmlIndex
-        if (fileExists(htmlPath)) {
-            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true, reportDir: htmlPath,
-                         reportFiles: htmlFile, reportName: 'HTML Report', reportTitles: ''])
+        archiveArtifacts allowEmptyArchive: true, artifacts: runperf.htmlIndex
+        if (fileExists(runperf.htmlPath)) {
+            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true, reportDir: runperf.htmlPath,
+                         reportFiles: runperf.htmlFile, reportName: 'HTML Report', reportTitles: ''])
         }
         // Junit results
-        junit allowEmptyResults: true, testResults: resultXml
+        junit allowEmptyResults: true, testResults: runperf.resultXml
         // Remove the unnecessary big files
-        sh runperfArchFilterRmCmd
+        sh runperf.runperfArchFilterRmCmd
         // Publish the results
         if (githubPublisherProject) {
             build(job: 'rp-publish-results-git',
@@ -311,22 +247,4 @@ node(workerNode) {
                    wait: false)
         }
     }
-}
-
-@NonCPS
-List getGoodBuildNumbers(String jobName) {
-    // Build is non-serializable object, we have to use NonCPS
-    // on the other hand we can not use copyArtifacts inside NonCPS
-    // therefore we have to only query for all descriptions and
-    // then iterate throught them, because we don't know how many
-    // builds we are going to need (copyArtifacts can fail)
-    builds = []
-    for (build in Jenkins.instance.getJob(jobName).builds) {
-        if (build?.description?.startsWith('BAD')) {
-            println("skip ${build.description} ${build.number}")
-        } else {
-            builds.add(build.number)
-        }
-    }
-    return builds
 }
