@@ -1,6 +1,8 @@
 // Pipeline to run runperf and compare to given results
-// Following `params` have to be defined in job (eg. via jenkins-job-builder)
+// groovylint-disable-next-line
+@Library('runperf') _
 
+// Following `params` have to be defined in job (eg. via jenkins-job-builder)
 // Machine to be provisioned and tested
 machine = params.MACHINE.trim()
 // target machine's architecture
@@ -48,16 +50,6 @@ workerNode = 'runperf-slave'
 gitBranch = 'main'
 // extra runperf arguments
 extraArgs = ''
-// Fio-nbd setup
-fioNbdScript = ('\n\n# FIO_NBD_SETUP' +
-                  '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img libaio-devel' +
-                  '\ncd /tmp' +
-                  '\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz' +
-                  '\ncd fio-fio-3.19' +
-                  '\n./configure --enable-libnbd' +
-                  '\nmake -j 8' +
-                  '\nmake install')
-pythonDeployCmd = 'python3 setup.py develop --user'
 
 String getBkrInstallCmd(String hostBkrLinks, String hostBkrLinksFilter, String arch) {
     return ('\nfor url in ' + hostBkrLinks + '; do dnf install -y --allowerasing ' +
@@ -68,62 +60,19 @@ String getBkrInstallCmd(String hostBkrLinks, String hostBkrLinksFilter, String a
 
 node(workerNode) {
     stage('Preprocess') {
-        // User-defined distro or use bkr to get latest RHEL-8.0*
-        if (distro) {
-            echo "Using distro ${distro} from params"
-        } else {
-            distro = sh(returnStdout: true,
-                        script: ('echo -n $(bkr distro-trees-list --arch x86_64 --name="%8.0%.n.%" '
-                                 '--family RedHatEnterpriseLinux8 --limit 1 --labcontroller '
-                                 '$ENTER_LAB_CONTROLLER_URL | grep Name: | cut -d":" -f2 | xargs | '
-                                 'cut -d" " -f1)'))
-            echo "Using latest distro ${distro} from bkr"
-        }
-        if (!guestDistro) {
-            guestDistro == distro
-        }
-        if (guestDistro == distro) {
-            echo "Using the same guest distro ${distro}"
-        } else {
-            echo "Using different guest distro: ${guestDistro} from host: ${distro}"
-        }
+        (distro, guestDistro, descriptionPrefix) = runperf.preprocessDistros(distro, guestDistro,
+                                                                             arch, descriptionPrefix)
+        currentBuild.description = "${distro} - in progress"
     }
 
     stage('Measure') {
-        git branch: gitBranch, url: 'https://github.com/distributed-system-analysis/run-perf.git'
-        // This way we add downstream plugins and other configuration
-        dir('downstream_config') {
-            git branch: gitBranch, url: 'git://PATH_TO_YOUR_REPO_WITH_PIPELINES/runperf_config.git'
-            sh pythonDeployCmd
-        }
-        // Remove files that might have been left behind
-        sh '\\rm -Rf result* src_result* reference_builds html *.log'
-        sh 'mkdir html'
-        sh pythonDeployCmd
+        runperf.deployDownstreamConfig(gitBranch)
+        runperf.deployRunperf(gitBranch)
         metadata = ''
-        // Use grubby to update default args on host
-        if (hostKernelArgs) {
-            hostScript += "\ngrubby --args '${hostKernelArgs}' --update-kernel=\$(grubby --default-kernel)"
-        }
-        // Ugly way of installing all arch's rpms from a site, allowing a filter
-        // this is usually used on koji/brew to allow updating certain packages
-        // warning: It does not work when the url rpm is older.
-        if (hostBkrLinks) {
-            hostScript += getBkrInstallCmd(hostBkrLinks, hostBkrLinksFilter, arch)
-        }
-        // The same on guest
-        if (guestKernelArgs) {
-            workerScript += "\ngrubby --args '${guestKernelArgs}' --update-kernel=\$(grubby --default-kernel)"
-        }
-        // The same on guest
-        if (guestBkrLinks) {
-            workerScript += getBkrInstallCmd(guestBkrLinks, guestBkrLinksFilter, arch)
-        }
-        // Install deps and compile custom fio with nbd ioengine
-        if (fioNbdSetup) {
-            hostScript += fioNbdScript
-            workerScript += fioNbdScript
-        }
+        hostScript = runperf.setupScript(hostScript, hostKernelArgs, hostBkrLinks, hostBkrLinksFilter,
+                                         arch, fioNbdSetup)
+        workerScript = runperf.setupScript(workerScript, guestKernelArgs, guestBkrLinks, guestBkrLinksFilter,
+                                           arch, fioNbdSetup)
         if (hostScript) {
             writeFile file: 'host_script', text: hostScript
             extraArgs += ' --host-setup-script host_script --host-setup-script-reboot'

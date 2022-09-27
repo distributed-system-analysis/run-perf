@@ -2,6 +2,9 @@
 import java.util.regex.Pattern
 import java.util.regex.Matcher
 
+// groovylint-disable-next-line
+@Library('runperf') _
+
 // Following `params` have to be defined in job (eg. via jenkins-job-builder)
 // Job with results
 job = params.JOB
@@ -32,16 +35,10 @@ gitUrl = 'git@github.com:ldoktor/tmp.git'
 gitName = 'Lukas Doktor'
 gitEmail = 'someones_email@domain.org'
 // misc variables
-resultXml = 'result.xml'
 resultGit = 'resultGit'
 sortablePath = resultGit + '/sortable.js'
 cssPath = resultGit + '/style.css'
-htmlIndex = 'html/index.html'
-modelJson = 'model.json'
 buildArtifacts = 'internal'
-runperfResultsFilter = ('result*/*/*/*/*.json,result*/RUNPERF_METADATA,html/index.html,' +
-                        'result*/**/__error*__/**,result*/**/__sysinfo*__/**')
-pythonDeployCmd = 'python3 setup.py develop --user'
 int i = 0
 
 indexTemplate = '''<html>
@@ -186,7 +183,7 @@ void updateLinkFile(String path, String link, String missingTemplate) {
 
 node('runperf-slave') {
     sh "rm -rf $buildArtifacts/"
-    copyArtifacts(filter: runperfResultsFilter, optional: false,
+    copyArtifacts(filter: runperf.runperfResultsFilter, optional: false,
                   fingerprintArtifacts: true, projectName: job, selector: specific(build),
                   target: buildArtifacts)
     dir(resultGit) {
@@ -197,8 +194,8 @@ node('runperf-slave') {
     if (stripResults) {
         // Deploy run-perf to get strip tool
         dir('run-perf') {
-            git branch: 'main', url: 'https://github.com/distributed-system-analysis/run-perf.git'
-            sh pythonDeployCmd
+            git branch: gitBranch, url: 'https://github.com/distributed-system-analysis/run-perf.git'
+            sh runperf.pythonDeployCmd
         }
         sh "rm -Rf '.$buildArtifacts'"
         sh "mv '$buildArtifacts' '.$buildArtifacts'"
@@ -216,9 +213,9 @@ node('runperf-slave') {
             '\\mv -f "$PTH" "$SAFE_PTH"; done')
     }
     // Get versions
-	if (! osVersion || ! qemuSHA) {
-		(osVersion, qemuSHA) = getVersions(runperfResults)
-	}
+    if (!osVersion || !qemuSHA) {
+        (osVersion, qemuSHA) = getVersions(runperfResults)
+    }
     // In case project page does not exists, provide a template
     updateLinkFile("$resultGit/index.html", project, indexTemplate)
     updateLinkFile("$resultGit/${project}.html", "$project/$qemuTag", projectTemplate)
@@ -249,11 +246,11 @@ node('runperf-slave') {
     } else {
         writeFile(file: resultGit + "/$project/$qemuTag/${thisResult}.html", text: 'Missing file')
     }
-	if (fileExists(runperfResults)) {
-	    dir(runperfResults) {
-	        sh "tar -cf ../../${resultGit}/$project/$qemuTag/${thisResult}.tar.xz *"
-	    }
-	}
+    if (fileExists(runperfResults)) {
+        dir(runperfResults) {
+            sh "tar -cf ../../${resultGit}/$project/$qemuTag/${thisResult}.tar.xz *"
+        }
+    }
     // Add the result by replacing the last </tr>
     // We are using 'tac' so we need to reverse the order
     if (status) {
