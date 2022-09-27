@@ -1248,7 +1248,7 @@ def closest_result(src_path, dst_path_groups, flatten_coefficient=1):
     dst_paths = [item for sublist in dst_path_groups for item in sublist]
     groups = [len(_) for _ in dst_path_groups]
     storage = _process_results(dst_paths)
-    no_results = len(dst_paths)
+    no_results = len(groups)
     stats = _calculate_stats(src, storage, groups)
     selection = range(no_results)
     for i, values in enumerate(stats):
