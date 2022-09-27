@@ -1191,6 +1191,16 @@ def closest_result(src_path, dst_path_groups, flatten_coefficient=1):
                 idx = idx + group_len
             return grp_norm_score
 
+        def _format_grp_list(values, groups):
+            """Report values per groups"""
+            out = []
+            idx = 0
+            for group_len in groups:
+                end = idx + group_len
+                out.append(values[idx:end])
+                idx = end
+            return out
+
         # stats is a list of per-cathegory similarities
         # [0] => distances of primary scores
         # [1] => distances of secondary scores
@@ -1221,9 +1231,11 @@ def closest_result(src_path, dst_path_groups, flatten_coefficient=1):
             for idx, result_score in enumerate(grp_norm_score):
                 this_cathegory[idx] += result_score
             if primary:
-                LOG.info("P %s: %s", test, grp_norm_score)
+                LOG.info("P %s: %s %s", test, grp_norm_score,
+                         _format_grp_list(norm_score, groups))
             else:
-                LOG.debug("S %s: %s", test, grp_norm_score)
+                LOG.debug("S %s: %s %s", test, grp_norm_score,
+                          _format_grp_list(norm_score, groups))
         return stats
 
     def _process_src(src_path):
