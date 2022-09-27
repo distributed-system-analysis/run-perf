@@ -148,14 +148,21 @@ List getDistroRange(List range, String workerNode, String arch) {
         common += '%d'
     }
     node(workerNode) {
-        // TODO: Use getLatestDistros instead
-        distroRange = sh(returnStdout: true,
-                          script: ('echo -n $(bkr distro-trees-list --arch ' + arch +
-                                   ' --name=' + common + '% ' +
-                                   '--limit 100 --labcontroller ENTER_LAB_CONTROLLER_URL ' +
-                                   '--format json | grep \'"distro_name"\' | cut -d\'"\' -f4 | ' +
-                                   'sed -n \'/^' + last + '/,/^' +
-                                   first + '/p\')')).trim().split().reverse()
+        distros = getLatestDistros(common + '%', 100, arch).reverse();
+        distroRange = [];
+        i = 0;
+        while (i < distros.size()) {
+            if (distros[i] == last) {
+                break;
+            }
+            ++i;
+        }
+        while (i < distros.size()) {
+            distroRange.add(distros[i]);
+            if (distros[i++] == first) {
+                break;
+            }
+        }
     }
     return(distroRange)
 }
