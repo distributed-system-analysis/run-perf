@@ -50,12 +50,18 @@ class PBenchTest(Selftest):
                                   distro=distro)
         host = DummyHost(logging.getLogger(''), 'Test', 'addr', distro,
                          args)
+        if klass in (tests.PBenchFio, tests.UPerf):
+            exec_side_effect = ["0"]
+        else:
+            exec_side_effect = ["prefix+self._cmd", "0"]
         mock_args = {'cmd_status.return_value': 0,
                      'cmd_output.side_effect': (
                          [0] +
                          prepend_host_cmd_output_side_effect +
-                         ["prefix+self._cmd", "0", result_path]),
-                     'cmd_status_output.return_value': [1, ""]}
+                         exec_side_effect + [result_path]),
+                     'cmd_status_output.return_value': [1, ""],
+                     "prompt": "PROMPT",
+                     'read_nonblocking.return_value': 'PROMPT'}
         host.mock_session = mock.Mock(**mock_args)
         host.profile = mock.Mock()
         host.profile.name = profile
