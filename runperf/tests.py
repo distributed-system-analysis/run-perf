@@ -16,6 +16,7 @@
 import json
 import os
 import pipes
+import re
 import tempfile
 import time
 
@@ -149,6 +150,7 @@ class PBenchTest(BaseTest):
     args = ""
     default_args = ()
     timeout = 172800
+    watchdog_timeout = 0
 
     def __init__(self, host, workers, base_output_path,
                  metadata, extra):
@@ -177,6 +179,10 @@ class PBenchTest(BaseTest):
             # Skip "__*" keys
             if key.startswith("__"):
                 continue
+            if key == "runtime":
+                # Allow 2-times runtime output stalls, min 60s to avoid failing
+                # on sysinfo collection
+                self.watchdog_timeout = max(60, int(value) * 2)
             # __PER_WORKER_CPUS__ == no cpus perf worker
             if value == "__PER_WORKER_CPUS__":
                 for _workers in self.workers:
@@ -272,6 +278,34 @@ class PBenchTest(BaseTest):
                 with worker.get_session_cont(hop=self.host) as wsession:
                     wsession.cmd_status(nuke_cmd)
 
+    @staticmethod
+    def _run_with_watchdog(cmd, session, timeout, watchdog_timeout):
+        """
+        Run a command while reading it's output ensuring it keeps producing
+        output at least every `watchdog_timeout`s
+        """
+        session.read_nonblocking(0.2, 10)
+        session.sendline(cmd)
+        end_time = time.time() + timeout
+        watchdog_next = time.time() + watchdog_timeout
+        re_prompt = re.compile(session.prompt)
+        output = ""
+        while time.time() < end_time:
+            out = session.read_nonblocking(1, min(1, end_time - time.time()))
+            if not out:
+                if watchdog_next <= time.time():
+                    raise RuntimeError(f"Output of {cmd} stalled for more "
+                                       f"than {watchdog_timeout}s. Output so "
+                                       "far:\n\n" + output)
+                continue
+            output += out
+            nonempty_lines = [_ for _ in output.splitlines() if _.strip()]
+            if nonempty_lines and re_prompt.search(nonempty_lines[-1]):
+                return output
+            watchdog_next = time.time() + watchdog_timeout
+        raise RuntimeError(f"{cmd} execution took longer than the {timeout}s. "
+                           "output so far:\n\n" + output)
+
     def _run(self):
         # We only need one group of workers
         src = None
@@ -287,9 +321,14 @@ class PBenchTest(BaseTest):
                 # FIXME: Return this when https://github.com/distributed
                 # -system-analysis/pbench/issues/1743 is resolved
                 session.cmd(". /opt/pbench-agent/base")
-                # And now run the test
-                session.cmd_output(prefix + self._cmd,
-                                   timeout=self.timeout)
+                if self.watchdog_timeout:
+                    # Run the test while checking the output for stalls
+                    self._run_with_watchdog(prefix + self._cmd, session,
+                                            self.timeout,
+                                            self.watchdog_timeout)
+                else:
+                    session.cmd_output(prefix + self._cmd,
+                                       timeout=self.timeout)
                 # Let the system to rest a bit after heavy load
                 session.read_nonblocking(5)
                 ret = session.cmd_output(session.status_test_command, 10)
