@@ -182,7 +182,7 @@ class PBenchTest(BaseTest):
             if key == "runtime":
                 # Allow 2-times runtime output stalls, or 180s to avoid failing
                 # on sysinfo collection
-                self.watchdog_timeout = max(180, int(value) * 2)
+                self.watchdog_timeout = max(360, int(value) * 3)
             # __PER_WORKER_CPUS__ == no cpus perf worker
             if value == "__PER_WORKER_CPUS__":
                 for _workers in self.workers:
