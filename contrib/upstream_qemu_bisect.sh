@@ -103,6 +103,7 @@ VERSION=$(git rev-parse HEAD)
 make -j $(getconf _NPROCESSORS_ONLN) || { echo "Qemu make FAILed"; exit -1; }
 make install || { echo "Qemu make install FAILed"; exit -1; }
 chcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"
+chcon -Rt virt_image_t /usr/local/share/qemu/
 cp -f build/config.status /usr/local/share/qemu/
 popd
 INNEREOF
