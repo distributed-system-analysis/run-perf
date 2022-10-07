@@ -115,6 +115,7 @@ node(workerNode) {
             hostScript += '--with-pkgversion="$VERSION"'
             hostScript += runperf.makeInstallCmd
             hostScript += '\nchcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"'
+            hostScript += '\nchcon -Rt virt_image_t /usr/local/share/qemu/'
             hostScript += '\n\\cp -f build/config.status /usr/local/share/qemu/'
             hostScript += '\ncd $OLD_PWD'
         }
