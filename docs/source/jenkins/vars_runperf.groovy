@@ -24,7 +24,7 @@ import groovy.transform.Field
                        '\n./configure --enable-libnbd\n' +
                        makeInstallCmd)
 
-@Field String labController = 'ENTER_LAB_CONTROLLER_URL'
+@Field String bkrExtraArgs = ' --labcontroller ENTER_LAB_CONTROLLER_URL '
 @Field String ownerEmail = 'ENTER_OPERATOR_EMAIL_ADDR
 
 void failBuild(String subject, String details, String distro=distro) {
@@ -90,8 +90,8 @@ List getLatestDistros(String name, Integer limit, String arch) {
     // Return latest $limit distros matching the name (use % to match anything)
     distros = sh(returnStdout: true,
                  script: ('echo -n $(bkr distro-trees-list --arch  ' + arch + ' --name=' + name +
-                          ' --limit ' + limit + ' --labcontroller ' + bkrLabController +
-                          ' --format json | grep \'"distro_name"\' | cut -d\'"\' -f4)'
+                          ' --limit ' + limit + bkrExtraArgs + ' --format json ' +
+                          '| grep \'"distro_name"\' | cut -d\'"\' -f4)'
                          )).trim().split()
     return(distros)
 }
