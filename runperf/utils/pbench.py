@@ -145,6 +145,9 @@ def register_tools(session, tools, clients):
             csession.cmd_output("rm -rf /var/lib/pbench-agent/tools-*default")
     # Register tools on all clients
     addrs = ','.join(_.get_addr() for _ in clients)
+    if not tools:
+        session.cmd_output("mkdir /var/lib/pbench-agent/tools-default "
+                           "/var/lib/pbench-agent/tools-v1-default")
     for tool in tools:
         if ':' in tool:
             tool, params = tool.split(':', 1)
