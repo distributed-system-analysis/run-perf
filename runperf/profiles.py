@@ -326,6 +326,9 @@ class PersistentProfile(BaseProfile):
         else:
             self._set('persistent_setup/rc_local', rc_local_content, True)
         self._write_file("/etc/rc.d/rc.local", rc_local, False)
+        if rc_local_content != -1:
+            self._write_file("/etc/rc.d/rc.local", "\n\n" + rc_local_content,
+                             True)
         self.session.cmd("chmod 755 /etc/rc.d/rc.local")
 
     def _persistent_tuned_adm(self, profile):
