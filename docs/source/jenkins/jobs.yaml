@@ -29,6 +29,7 @@
     param-metadata: ''
     param-host-script: ''
     param-worker-script: ''
+    param-job: "{name}-run"
     trigger-on: "H 17 * * *"
     disabled: false
 
@@ -578,7 +579,6 @@
 #    param-cmp-model-job: "rp-example-manual-identify"
 #    param-cmp-model-build: 1
 #    param-pbench-publish: false
-#    param-job: "{name}-run"
 #    trigger-on: ""
 #    jobs:
 #        - "{name}-run"
