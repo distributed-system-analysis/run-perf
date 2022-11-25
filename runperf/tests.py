@@ -323,7 +323,9 @@ class PBenchTest(BaseTest):
                 session.cmd(". /opt/pbench-agent/base")
                 if self.watchdog_timeout:
                     # Run the test while checking the output for stalls
-                    self._run_with_watchdog(prefix + self._cmd, session,
+                    cmd = prefix + self._cmd
+                    self.host.log.debug("Sending command: %s", cmd)
+                    self._run_with_watchdog(cmd, session,
                                             self.timeout,
                                             self.watchdog_timeout)
                 else:
