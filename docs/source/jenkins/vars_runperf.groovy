@@ -202,6 +202,10 @@ List getGoodBuildNumbers(String jobName) {
             println("skip ${build.description} ${build.number}")
         } else {
             builds.add(build.number)
+            if (build?.description?.startsWith('STOP')) {
+                print("stop processing, STOP build detected ${build.description} ${build.number}")
+                break
+            }
         }
     }
     return builds
