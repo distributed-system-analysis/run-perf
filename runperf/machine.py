@@ -63,6 +63,10 @@ def get_distro_info(machine):
         if session.cmd_status("which rpm", print_func='mute') == 0:
             out["rpm"] = session.cmd("rpm -qa | sort", print_func='mute',
                                      ignore_all_errors=True)
+        out["runperf_sysinfo"] = session.cmd("cat /var/lib/runperf/sysinfo "
+                                             "| uniq | sort",
+                                             print_func='mute',
+                                             ignore_all_errors=True)
     return out
 
 
