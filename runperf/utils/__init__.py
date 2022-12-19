@@ -451,6 +451,8 @@ def ssh_copy_id(log, addr, passwords, hop=None):
 def shell_write_content_cmd(path, content, append=False):
     """
     Generate shell cmd to safely write/append content to file
+
+    With big files it might fail, use ``shell_write_content`` in such cases.
     """
     while True:
         eof = random_string(6)
@@ -458,6 +460,34 @@ def shell_write_content_cmd(path, content, append=False):
             break
     return (f"cat {'>>' if append else '>'} {pipes.quote(path)} << "
             f"\\{eof}\n{content}\n{eof}")
+
+
+def shell_write_content(run, path, content, append=False):
+    """
+    Write bigger files per 4096 chunks
+
+    :param run: Command that accepts cmd as first argument
+    :param path: Path to which we want to write to
+    :param content: New content
+    :param append: Whether to append or overwrite the file
+    """
+    def _shell_write_content_cmd(path, content, append=False):
+        """shell_write_content_cmd without the extra newline at the end"""
+        while True:
+            eof = random_string(6)
+            if eof + '\n' not in content:
+                break
+        return (f"head -c -1 <<\\{eof} | cat {'>>' if append else '>'} "
+                f"{pipes.quote(path)}\n{content}\n{eof}")
+    size = 4096
+    if len(content) < size:
+        return run(shell_write_content_cmd(path, content, append))
+    run(_shell_write_content_cmd(path, content[:size], append))
+    for offset in range(size, len(content), size):
+        run(_shell_write_content_cmd(path, content[offset:offset + size],
+                                     True))
+    # Add extra \n required by aexpect to be able to read the files
+    run(shell_write_content_cmd(path, '', True))
 
 
 def shell_find_command(session, command):

@@ -369,15 +369,12 @@ class Pbench(unittest.TestCase):
         session = mock.Mock()
         pbench = utils.pbench.Dnf(session, {}, "test")
         session.cmd_status.side_effect = [0]
-        self.assertTrue(pbench._check_test_installed(), "which should report "
+        self.assertTrue(pbench._check_test_installed(), "rpm should report "
                         f"installed\n{session.mock_calls}")
         session.cmd_status.side_effect = [1, 0]
         self.assertTrue(pbench._check_test_installed(), "rpm should report "
-                        f"installed\n{session.mock_calls}")
-        session.cmd_status.side_effect = [1, 1, 0]
-        self.assertTrue(pbench._check_test_installed(), "rpm should report "
                         f"pbench-$name installed\n{session.mock_calls}")
-        session.cmd_status.side_effect = [1, 1, 1]
+        session.cmd_status.side_effect = [1, 1]
         self.assertFalse(pbench._check_test_installed(), "Should not report "
                          f"installed\n{session.mock_calls}")
 

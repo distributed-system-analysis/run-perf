@@ -313,11 +313,17 @@ build metadata file. Before the execution it gathers:
   to the first target machine is stored here. It's used by the html
   plugin to add a link to the target machine (eg. beaker where one can
   see the hw info)
+* ``environment_*`` - system(s) environment per each profile.
 
-Additionally on profile revert a profile environment is being collected and
-in the end all target system environment is also gathered and injected
-into the metadata json file. These can be used to compare the environments
-in case of a change.
+  * ``general`` - hostname and distro name
+  * ``kernel`` - kernel cmdline
+  * ``mitigations`` - mitigations reported by kernel
+  * ``rpm`` - ``rpm -qa`` (if available)
+  * ``systemctl`` - list of services with some dynamic services excluded
+  * ``runperf_sysinfo`` - content of ``/var/lib/runperf/sysinfo`` file (free-form
+                      user keys, sorted by line to allow diffing)
+  * ``params`` - machine params (coming from runperf params)
+
 
 .. note:: For test environment changes run-perf relies on pbench result
    file format where benchmark params are stored under

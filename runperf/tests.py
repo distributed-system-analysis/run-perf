@@ -110,9 +110,9 @@ class BaseTest:
         if session.cmd_status(f"[ -d '{dir_path}' ]") == 0:
             result_path = os.path.join(dir_path, "RUNPERF_METADATA.json")
             results_json = json.dumps(meta, indent=4, sort_keys=True)
-            session.cmd(utils.shell_write_content_cmd(result_path,
-                                                      results_json),
-                        timeout=600, print_func='mute')
+            utils.shell_write_content(
+                lambda cmd: session.cmd(cmd, timeout=600, print_func='mute'),
+                result_path, results_json)
 
     def cleanup(self):
         """

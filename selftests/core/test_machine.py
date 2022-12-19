@@ -172,40 +172,53 @@ class GetDistroInfo(Selftest):
                              "resume=/dev/mapper/fedora-swap ro "
                              "root=/dev/mapper/fedora-root",
                'mitigations': VULNERABILITIES,
-               'rpm': 'mc-4.8.24-4.fc32.x86_64\n'}
+               'rpm': 'mc-4.8.24-4.fc32.x86_64\n',
+               'systemctl': 'abrtd.service loaded active running ABRT '
+               'Automated Bug Reporting Tool\n...\nvirtlogd.socket loaded '
+               'active listening Virtual machine log manager socket\n',
+               'runperf_sysinfo': ''}
         kernel, cmdline = exp['kernel_raw'].rsplit('\n', 1)
-        cmd = [kernel, cmdline, exp['mitigations'], exp['rpm']]
+        cmd = [kernel, cmdline, exp['mitigations'], exp['rpm'],
+               exp['systemctl'], exp['runperf_sysinfo']]
         cmd_status = 0
         self.check(cmd, cmd_status, exp)
 
     def test_order(self):
         # Check ordering works well including filtering
-        self.check(["1.2.3", "c a=1.2.3 b", ""], 1,
+        self.check(["1.2.3", "c a=1.2.3 b", "", "", ""], 1,
                    {'general': 'Name:My Machine\nDistro:My Distro',
                     'kernel': '1.2.3\na=FILTERED b c',
                     'kernel_raw': '1.2.3\nc a=1.2.3 b',
-                    'mitigations': ''})
+                    'mitigations': '',
+                    'systemctl': '',
+                    'runperf_sysinfo': ''})
         # kernel must be equal for the following 2 commands even though the
         # last item with \n is different
         self.check(["1.2.3\nuname -v\nuname -m\n", "a=b c=d\n",
-                    ""], 1,
+                    "", "", ""], 1,
                    {'general': 'Name:My Machine\nDistro:My Distro',
                     'kernel': '1.2.3\nuname -v\nuname -m\n\na=b c=d',
                     'kernel_raw': '1.2.3\nuname -v\nuname -m\n\na=b c=d\n',
-                    'mitigations': ''})
+                    'mitigations': '',
+                    'systemctl': '',
+                    'runperf_sysinfo': ''})
         self.check(["1.2.3\nuname -v\nuname -m\n", "c=d a=b\n",
-                    ""], 1,
+                    "", "", ""], 1,
                    {'general': 'Name:My Machine\nDistro:My Distro',
                     'kernel': '1.2.3\nuname -v\nuname -m\n\na=b c=d',
                     'kernel_raw': '1.2.3\nuname -v\nuname -m\n\nc=d a=b\n',
-                    'mitigations': ''})
+                    'mitigations': '',
+                    'systemctl': '',
+                    'runperf_sysinfo': ''})
 
     def test_no_output(self):
-        self.check(["", "", ""], 1,
+        self.check(["", "", "", "", ""], 1,
                    {'general': 'Name:My Machine\nDistro:My Distro',
                     'kernel': '\nFILTERED',
                     'kernel_raw': '\n',
-                    'mitigations': ''})
+                    'mitigations': '',
+                    'systemctl': '',
+                    'runperf_sysinfo': ''})
 
 
 class ControllerTests(Selftest):
