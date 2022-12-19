@@ -319,6 +319,7 @@ build metadata file. Before the execution it gathers:
   * ``kernel`` - kernel cmdline
   * ``mitigations`` - mitigations reported by kernel
   * ``rpm`` - ``rpm -qa`` (if available)
+  * ``systemctl`` - list of services with some dynamic services excluded
   * ``runperf_sysinfo`` - content of ``/var/lib/runperf/sysinfo`` file (free-form
                       user keys, sorted by line to allow diffing)
   * ``params`` - machine params (coming from runperf params)

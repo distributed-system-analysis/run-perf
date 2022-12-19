@@ -108,7 +108,7 @@ class ProfileUnitTests(Selftest):
             if "rpm" in info:  # rpm is only there when rpm command available
                 info.remove("rpm")
             self.assertEqual(["general", "kernel_raw", "kernel",
-                              "mitigations", "runperf_sysinfo",
+                              "mitigations", "systemctl", "runperf_sysinfo",
                               "params"], info)
             # revert not applied profile
             profile.revert()
@@ -253,11 +253,11 @@ class RunPerfTest(Selftest):
                 info.remove("rpm")
                 info.remove("guest0_rpm")
             self.assertEqual(['general', 'kernel_raw', 'kernel',
-                              'mitigations', 'runperf_sysinfo',
+                              'mitigations', 'systemctl', 'runperf_sysinfo',
                               'params', 'persistent',
                               'guest0_general', 'guest0_kernel_raw',
                               'guest0_kernel', 'guest0_mitigations',
-                              'guest0_runperf_sysinfo',
+                              'guest0_systemctl', 'guest0_runperf_sysinfo',
                               'guest0_params'], info)
             # Revert the profile
             session.cmd_status.side_effect = (0, 1, 0, 0, 0, 0)
