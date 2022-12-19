@@ -531,6 +531,97 @@ class PBenchNBD(PBenchFio):
         PBenchFio.cleanup(self)
 
 
+class PBenchLibblkio(PBenchFio):
+    """
+    Executes PBenchFio with a custom job to test libblkio
+
+    By default it creates and distributes the job-file using "libblkio.fio"
+    from assets but you can override the job-file path and distribute your
+    own version. In such case you have to make sure to use the right paths
+    and format.
+
+    On top of the default params it also supports:
+
+    * hipri - sets corresponding fio option in the file (single value 0 or 1)
+    * target - changes the exported target path (by default /dev/ram0)
+    * __SETUP_RAMDISK__ - whether to setup ramdisk by "modprobe brd ..."
+    * __STORAGE_DAEMON_CMD__ - override the usual "qemu-storage-daemon" cmd
+      (you have to use %s as the target filename to be replaced here)
+    """
+
+    name = "fio-libblkio"
+    default_args = (("numjobs", 1),
+                    ("job-file", "/var/lib/runperf/runperf-libblkio/"
+                     "libblkio.fio"))
+    base_path = "/var/lib/runperf/runperf-libblkio/"
+
+    def __init__(self, host, workers, base_output_path, metadata, extra):
+        self._params = {}
+        self._params["hipri"] = extra.pop("hipri", 0)
+        self._params["target"] = extra.pop("target", "/dev/ram0")
+        self._params["setup_ramdisk"] = extra.pop("__SETUP_RAMDISK__", True)
+        socket_path = os.path.join(self.base_path, "vhost-user-blk.sock")
+        storage_daemon_cmd = extra.pop(
+            "__STORAGE_DAEMON_CMD__", "qemu-storage-daemon --blockdev "
+            "driver=host_device,node-name=file,filename=%s,cache.direct=on "
+            "--object iothread,id=iothread0 "
+            "--export type=vhost-user-blk,iothread=iothread0,id=export,"
+            "node-name=file,addr.type=unix,addr.path=%s,"
+            "writable=on")
+        try:
+            self._params["storage_daemon_cmd"] = (storage_daemon_cmd
+                                                  % (self._params["target"],
+                                                     socket_path))
+        except TypeError as details:
+            raise exceptions.TestSkip("Failed to format __STORAGE_DAEMON_CMD__"
+                                      "; expecting 2 %s (target and socket)"
+                                      % details)
+        self.fio_job_file = extra.get("job-file", self.base_path +
+                                      "libblkio.fio")
+        super().__init__(host, workers, base_output_path, metadata, extra)
+
+    def setup(self):
+        PBenchFio.setup(self)
+        with open(os.path.join(os.path.dirname(__file__), "assets", "pbench",
+                               "libblkio.fio"),
+                  encoding="utf-8") as fio:
+            fio_tpl = utils.shell_write_content_cmd(
+                self.fio_job_file, fio.read() % self._params["hipri"])
+        for workers in self.workers:
+            for worker in workers:
+                with worker.get_session_cont() as session:
+                    session.runperf_stage("Start libblkio export")
+                    if self._params.get("setup_ramdisk"):
+                        session.cmd("modprobe brd rd_nr=1 rd_size=1048576 "
+                                    "max_part=0")
+                    session.cmd("mkdir -p " + self.base_path)
+                    session.cmd(f"nohup {self._params['storage_daemon_cmd']} "
+                                "&> "
+                                f"$(mktemp {self.base_path}/libblkio_XXXX.log)"
+                                f" & echo $! >> {self.base_path}/kill_pids")
+                    # Sometimes nohup is not enough, use disown
+                    session.cmd(f"for PID in $(cat {self.base_path}/kill_pids)"
+                                "; do disown -h $PID; done")
+        with self.host.get_session_cont(hop=self.host) as session:
+            session.cmd("mkdir -p " + self.base_path)
+            session.cmd(fio_tpl)
+
+    def cleanup(self):
+        for workers in self.workers:
+            for worker in workers:
+                with worker.get_session_cont() as session:
+                    pids = session.cmd(f"cat {self.base_path}/kill_pids "
+                                       "2>/dev/null || true")
+                    for pid in pids.splitlines():
+                        session.cmd_status(f"kill -9 '{pid}'")
+                    if self._params.get("setup_ramdisk"):
+                        session.cmd_status("rmmod brd")
+                    session.cmd("rm -Rf " + self.base_path)
+        with self.host.get_session_cont(hop=self.host) as session:
+            session.cmd(f"rm -Rf {self.base_path}")
+        PBenchFio.cleanup(self)
+
+
 def get(name, extra):
     """
     Get list of test classes based on test name
