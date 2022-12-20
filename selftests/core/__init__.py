@@ -57,10 +57,10 @@ class Selftest(unittest.TestCase):
         """
         i = 0
         for call in acts:
-            if exps[i] in str(call):
+            while exps[i] in str(call):
                 i += 1
                 if len(exps) == i:
-                    break
+                    return
         self.assertEqual(i, len(exps), "Some calls were not present at all or"
                          " in the expected order. Expected:\n%s\n\nActual:\n%s"
                          % ("\n".join(str(_) for _ in exps),
