@@ -1,0 +1,35 @@
+# To use fio to test libblkio:
+#
+# # Setup ramdisk (if needed)
+# modprobe brd rd_nr=1 rd_size=1048576 max_part=0
+#
+# qemu-storage-daemon \
+#        --blockdev driver=host_device,node-name=file,filename=/dev/ram0,cache.direct=on \
+#        --object iothread,id=iothread0 \
+#        --export type=vhost-user-blk,iothread=iothread0,id=export,node-name=file,addr.type=unix,addr.path=vhost-user-blk.sock,writable=on
+# fio libblkio.fio
+# killall qemu-storage-daemon
+
+[global]
+bs=$@
+ioengine=libblkio
+libblkio_driver=virtio-blk-vhost-user
+libblkio_path=/var/lib/runperf/runperf-libblkio/vhost-user-blk.sock
+rw=$@
+iodepth=1
+hipri=%s        # Can not be set by pbench-fio, use 0 or 1
+direct=1
+sync=0
+time_based=1
+clocksource=gettimeofday
+ramp_time=5
+runtime=10
+write_bw_log=fio
+write_iops_log=fio
+write_lat_log=fio
+log_avg_msec=1000
+write_hist_log=fio
+log_hist_msec=10000
+# log_hist_coarseness=4 # 76 bins
+
+[job0]

@@ -198,11 +198,18 @@ running via Run-perf as it might lead to unpredictable consequences.
 Fio-nbd
 -------
 
-This is a special case of :ref:`test-fio` test but it is spawning qemu-nbd
+This is a special case of :ref:`test-fio` test which is spawning qemu-nbd
 export on each worker and tests the speed of the exported device. You can
 still tweak various params (like type, ...) but note that the ``targets``,
 ``numjobs`` and ``job-file`` should be set automatically to suit the
 configuration.
+
+Fio-libblkio
+------------
+
+This is a special case of :ref:`test-fio` test which is using
+qemu-storage-daemon and libblkio to utilize it's functions. It comes
+with a custom job-file, but it allows tweaking.
 
 Uperf
 -----

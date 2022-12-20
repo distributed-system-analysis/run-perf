@@ -179,6 +179,71 @@ class PBenchTest(Selftest):
         self.assertTrue(os.path.exists(os.path.join(
             self.tmpdir, "Custom_name")), os.listdir(self.tmpdir))
 
+    def test_libblkio(self):
+        tst = self.check(tests.PBenchLibblkio, {}, {"target": "/dev/other"},
+                         'pbench-fio  --job-file=/var/lib/runperf/'
+                         'runperf-libblkio/libblkio.fio --numjobs=1 '
+                         '--clients=addr2')
+        # Ensure proper setup
+        self.check_calls(
+            tst.host.mock_session.method_calls,
+            ['cat > /var/lib/runperf/runperf-libblkio/libblkio.fio <<',
+             'libblkio_driver=virtio-blk-vhost-user',
+             'iodepth=1',
+             'hipri=0',
+             'pbench-fio',
+             'rm -Rf /var/lib/runperf/runperf-libblkio'])
+        self.check_calls(
+            tst.workers[0][0].mock_session.method_calls,
+            ['modprobe brd rd_nr=1 rd_size=1048576 max_part=0',
+             'mkdir -p /var/lib/runperf/runperf-libblkio/',
+             'nohup qemu-storage-daemon --blockdev driver=host_device,' +
+             'node-name=file,filename=/dev/other,cache.direct=on --object' +
+             ' iothread,id=iothread0 --export type=vhost-user-blk,' +
+             'iothread=iothread0,id=export,node-name=file,addr.type=unix,' +
+             'addr.path=/var/lib/runperf/runperf-libblkio/' +
+             'vhost-user-blk.sock,writable=on &> $(mktemp ' +
+             '/var/lib/runperf/runperf-libblkio//libblkio_XXXX.log) ' +
+             '& echo $! >> /var/lib/runperf/runperf-libblkio//kill_pids',
+             'for PID in $(cat /var/lib/runperf/runperf-libblkio' +
+             '//kill_pids); do disown -h $PID; done',
+             'cat /var/lib/runperf/runperf-libblkio//kill_pids' +
+             ' 2>/dev/null || true',
+             'rmmod brd'])
+
+    def test_libblkio_custom(self):
+        tst = self.check(tests.PBenchLibblkio, {},
+                         {"hipri": 1, "target": "/dev/sdb",
+                          "__SETUP_RAMDISK__": False,
+                          "__STORAGE_DAEMON_CMD__": "target %s socket %s"},
+                         'pbench-fio  --job-file=/var/lib/runperf/'
+                         'runperf-libblkio/libblkio.fio --numjobs=1 '
+                         '--clients=addr2')
+        # Ensure proper setup
+        self.check_calls(
+            tst.host.mock_session.method_calls,
+            ['cat > /var/lib/runperf/runperf-libblkio/libblkio.fio <<',
+             'libblkio_driver=virtio-blk-vhost-user',
+             'iodepth=1',
+             'hipri=1',
+             'pbench-fio',
+             'rm -Rf /var/lib/runperf/runperf-libblkio'])
+        self.check_calls(
+            tst.workers[0][0].mock_session.method_calls,
+            ['mkdir -p /var/lib/runperf/runperf-libblkio/',
+             'nohup target /dev/sdb socket /var/lib/runperf/runperf-' +
+             'libblkio/vhost-user-blk.sock &> $(mktemp /var/lib/runperf' +
+             '/runperf-libblkio//libblkio_XXXX.log) & echo $! >> ' +
+             '/var/lib/runperf/runperf-libblkio//kill_pids',
+             'for PID in $(cat /var/lib/runperf/runperf-libblkio' +
+             '//kill_pids); do disown -h $PID; done',
+             'cat /var/lib/runperf/runperf-libblkio//kill_pids' +
+             ' 2>/dev/null || true'])
+        for call in tst.workers[0][0].mock_session.method_calls:
+            call = str(call)
+            for key in ('modprobe brd', 'rmmod brd'):
+                self.assertNotIn(key, call)
+
 
 if __name__ == '__main__':
     unittest.main()
