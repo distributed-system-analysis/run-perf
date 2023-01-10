@@ -50,7 +50,8 @@ html_result: develop
 	sed -i -E 's/timestamp="[^"]+"/timestamp="FILTERED"/' selftests/.assets/results/result.xunit
 
 json_model: develop
-	python3 scripts/analyze-perf -l selftests/.assets/results/1_base/linear_model.json -c selftests/.assets/results/data.csv -- selftests/.assets/results/1_base/result_20200726_080654 selftests/.assets/results/1_base/result_20200726_091827 selftests/.assets/results/1_base/result_20200726_092842 selftests/.assets/results/1_base/result_20200726_093220 selftests/.assets/results/1_base/result_20200726_093657 || true
+	python3 scripts/analyze-perf -l selftests/.assets/results/1_base/linear_model.json -s selftests/.assets/results/1_base/stddev_model.json -c selftests/.assets/results/data.csv -- selftests/.assets/results/1_base/result_20200726_080654 selftests/.assets/results/1_base/result_20200726_091827 selftests/.assets/results/1_base/result_20200726_092842 selftests/.assets/results/1_base/result_20200726_093220 selftests/.assets/results/1_base/result_20200726_093657 || true
+	python3 scripts/analyze-perf --rebase-model selftests/.assets/results/1_base/stddev_model.json -s selftests/.assets/results/2_kernel_update/rebased_model.json -- selftests/.assets/results/2_kernel_update/result_20200726_114437 || true
 
 install:
 	$(PYTHON) -m pip install .
