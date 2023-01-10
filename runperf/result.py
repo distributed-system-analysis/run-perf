@@ -168,7 +168,7 @@ class ModelLinearRegression(Model):
         :note: currently uses self.mean_tolerance for all tolerances
         """
         if "__metadata__" not in self.model:
-            self.model["__metadata__"] = {"version": 1}
+            self.model["__metadata__"] = {"version": 2}
         self.model["__metadata__"]["tolerance"] = self.mean_tolerance
         too_strict_coefficient = (self.mean_tolerance / 100 /
                                   self.TOO_STRICT_COEFFICIENT)
@@ -198,14 +198,15 @@ class ModelLinearRegression(Model):
                 continue
             if test not in self.model:
                 self.model[test] = {}
-            if LOG.isEnabledFor(logging.DEBUG):
-                LOG.debug("%s: MIN %s->%s MAX %s->%s", test,
-                          -self.mean_tolerance,
-                          (min_value - average) / average * 100,
-                          self.mean_tolerance,
-                          (max_value - average) / average * 100)
             self.model[test]["equation"] = model
             self.model[test]["raw"] = average
+            self.model[test]["mmin"] = (min_value - average) / average * 100
+            self.model[test]["mmax"] = (max_value - average) / average * 100
+            LOG.debug("%s: MIN %s->%s MAX %s->%s", test,
+                      -self.mean_tolerance,
+                      self.model[test]["mmin"],
+                      self.mean_tolerance,
+                      self.model[test]["mmax"])
         return self.model
 
     def rebase(self, data):
@@ -278,14 +279,15 @@ class ModelStdev(ModelLinearRegression):
                 continue
             if test not in self.model:
                 self.model[test] = {}
-            if LOG.isEnabledFor(logging.DEBUG):
-                LOG.debug("%s: MIN %s->%s MAX %s->%s", test,
-                          -self.mean_tolerance,
-                          (min_value - average) / average * 100,
-                          self.mean_tolerance,
-                          (max_value - average) / average * 100)
             self.model[test]["equation"] = model
             self.model[test]["raw"] = average
+            self.model[test]["mmin"] = (min_value - average) / average * 100
+            self.model[test]["mmax"] = (max_value - average) / average * 100
+            LOG.debug("%s: MIN %s->%s MAX %s->%s", test,
+                      -self.mean_tolerance,
+                      self.model[test]["mmin"],
+                      self.mean_tolerance,
+                      self.model[test]["mmax"])
         return self.model
 
 
@@ -677,6 +679,10 @@ class ResultsContainer:
         self.src_name = src_name
         self.src_results = {test: (score, primary, params)
                             for test, score, primary, params in iter_results(src_path, True)}
+        for model in self.models:
+            for test, params in model.model.items():
+                if "mmin" in params and test in self.src_results:
+                    self.src_results[test] = self.src_results[test] + ([params["mmax"], params["mmin"]],)
         self.src_metadata = self._parse_metadata(src_name, src_path)
         self.modifiers = modifiers
 

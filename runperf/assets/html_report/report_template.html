@@ -10483,6 +10483,15 @@ a {font-family: monospace;}
   visibility: visible;
   opacity: 1;
 }
+
+.supsub {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: space-between;
+    vertical-align: middle;
+    font-size: 9px;
+    line-height: 7px;
+}
 </style>
 
 <style>
@@ -10654,8 +10663,30 @@ a {font-family: monospace;}
     </tr>{% for builds_status in builds_statuses %}{% set tests_loop = loop %}
     {#- FIXME: Bring unique back; probably using [] and append #}
     <tr class=" status_{{builds_status[-1][0]}} {% for status, _, _, _ in builds_status %}{% if loop.index > 2 %}any_status_{{status}} {% endif %}{% endfor %}">{% for status, details, score, params in builds_status %}
-        <td class="status_{{status}}"><div class="tooltip" onclick="elementValueToClipboard('env-test-{{tests_loop.index}}-{{loop.index}}-raw')">{{score}}{% if params[1] or (loop.index == 1 and params[0]) %}<textarea style="position: absolute; left: -9999px;"  id="env-test-{{tests_loop.index}}-{{loop.index}}-raw">{{params[0]}}</textarea>&#x1f527;{% endif %}<span class="tooltiptext">{{details}}{% if params[1] %}<br><a href='#'>Test params differ (click to copy raw value):</a><pre>
-{{params[1]}}</pre>{% elif loop.index == 1 and params[0] %}<br><a href='#'>Click to copy raw src test params</a>{% endif %}</span></div></td>{% endfor %}
+        <td class="status_{{status}}">
+        	<div class="tooltip" onclick="elementValueToClipboard('env-test-{{tests_loop.index}}-{{loop.index}}-raw')">
+        		{{score}}
+        		{%- if params[1] or (loop.index == 1 and params[0]) -%}
+        		<textarea style="position: absolute; left: -9999px;"  id="env-test-{{tests_loop.index}}-{{loop.index}}-raw">{{params[0]}}</textarea>
+        		&#x1f527;
+        		{%- endif -%}
+       			{%- if loop.index == 1 and params|length > 2 %}
+       			<span class="supsub">
+				    <span>{{"%0.1f"|format(params[2][0])}}</span>
+				    <span>{{"%0.1f"|format(params[2][1])}}</span>
+				</span>
+        		{% endif -%}
+        		<span class="tooltiptext">
+        			{{details}}
+        			{%- if params[1] -%}
+        				<br><a href='#'>Test params differ (click to copy raw value):</a>
+        				<pre>{{params[1]}}</pre>
+					{%- elif loop.index == 1 and params[0] -%}
+						<br><a href='#'>Click to copy raw src test params</a>
+					{%- endif -%}
+				</span>
+			</div>
+		</td>{% endfor %}
     </tr>{% endfor %}
     </table>
 </div>

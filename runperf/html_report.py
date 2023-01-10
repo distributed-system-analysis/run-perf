@@ -336,7 +336,7 @@ def generate_report(path, results, with_charts=False, small_file=False):
             key: anonymize_test_params_dict(value[2])
             for key, value in results.src_results.items()
             if value[1] is True}
-        src["test_params"] = {key: value[2]
+        src["test_params"] = {key: value[2:]
                               for key, value in results.src_results.items()
                               if value[1] is True}
         builds.append(src)
@@ -628,7 +628,7 @@ def generate_report(path, results, with_charts=False, small_file=False):
         builds_statuses = []
         group_statuses = []
         src_params_raw = values["src"]["test_params"]
-        src_result_diff_raw = {test: (params, "")
+        src_result_diff_raw = {test: (params, "") if len(params) <= 1 else (params[0], "", params[1])
                                for test, params in src_params_raw.items()}
         for name in sorted(statuses.keys()):
             builds_statuses.append(
