@@ -108,6 +108,7 @@ String getBkrInstallCmd(String hostBkrLinks, String hostBkrLinksFilter, String a
 
 List getLatestDistros(String name, Integer limit, String arch) {
     // Return latest $limit distros matching the name (use % to match anything)
+    println("getLatestDistros $name")
     distros = sh(returnStdout: true,
                  script: ('echo -n $(bkr distro-trees-list --arch  ' + arch + ' --name=' + name +
                           ' --limit ' + limit + bkrExtraArgs + ' --format json ' +
@@ -153,6 +154,7 @@ List getDistroRange(String[] range, String workerNode, String arch) {
 
 List getDistroRange(List range, String workerNode, String arch) {
     // Find all distros between range[0] and range[1] revision (max 100 versions)
+    println("getDistroRange ${range}")
     first = range[0]
     last = range[1]
     common = ''
@@ -172,14 +174,14 @@ List getDistroRange(List range, String workerNode, String arch) {
         distroRange = [];
         i = 0;
         while (i < distros.size()) {
-            if (distros[i] == last) {
+            if (distros[i] == first) {
                 break;
             }
             ++i;
         }
         while (i < distros.size()) {
             distroRange.add(distros[i]);
-            if (distros[i++] == first) {
+            if (distros[i++] == last) {
                 break;
             }
         }
