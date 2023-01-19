@@ -34,7 +34,7 @@ githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT.trim()
 // LIST OF VALUES
 // Iterations of each combination
 if (params.NO_ITERATIONS) {
-    iterations = 1..params.NO_ITERATIONS.toInteger()
+    iterations = (1..params.NO_ITERATIONS.toInteger()).toList()
 } else {
     iterations = [1]
 }
