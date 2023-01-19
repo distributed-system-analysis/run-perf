@@ -16,13 +16,15 @@ import groovy.transform.Field
 @Field String makeInstallCmd = '\nmake -j $(getconf _NPROCESSORS_ONLN)\nmake install'
 @Field String pythonDeployCmd = 'python3 setup.py develop --user'
 @Field String kojiUrl = 'https://koji.fedoraproject.org/koji/'
-@Field fioNbdScript = ('\n\n# FIO_NBD_SETUP' +
-                       '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img libaio-devel' +
-                       '\ncd /tmp' +
-                       '\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz' +
-                       '\ncd fio-fio-3.19' +
-                       '\n./configure --enable-libnbd\n' +
-                       makeInstallCmd)
+@Field String fioNbdScript = ('\n\n# FIO_NBD_SETUP' +
+                              '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img libaio-devel' +
+                              '\ncd /tmp' +
+                              '\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz' +
+                              '\ncd fio-fio-3.19' +
+                              '\n./configure --enable-libnbd\n' +
+                              makeInstallCmd +
+                              '\nmkdir -p /var/lib/runperf/' +
+                              '\necho "fio 3.19" >> /var/lib/runperf/sysinfo')
 
 @Field String bkrExtraArgs = ' --labcontroller ENTER_LAB_CONTROLLER_URL '
 @Field String ownerEmail = 'ENTER_OPERATOR_EMAIL_ADDR
