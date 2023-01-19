@@ -73,10 +73,10 @@ node(workerNode) {
                                          arch, fioNbdSetup)
         workerScript = runperf.setupScript(workerScript, guestKernelArgs, guestBkrLinks, guestBkrLinksFilter,
                                            arch, fioNbdSetup)
-        if (hostScript) {
-            writeFile file: 'host_script', text: hostScript
-            extraArgs += ' --host-setup-script host_script --host-setup-script-reboot'
-        }
+        writeFile file: 'host_script', text: hostScript
+        setupQemu = String.format(runperf.upstreamQemuScript, upstreamQemuGood, upstreamQemuGood)
+        writeFile(file: 'host_script_with_qemu',
+                  text: hostScript + '\n\n' + setupQemu)
         if (workerScript) {
             writeFile file: 'worker_script', text: workerScript
             extraArgs += ' --worker-setup-script worker_script'
@@ -92,6 +92,7 @@ node(workerNode) {
             sh '$KINIT'
             // First run the provisioning and dummy test to age the machine a bit
             sh("python3 scripts/run-perf ${extraArgs} -v --hosts ${machine} --distro ${distro} " +
+               '--host-setup-script host_script_with_qemu --host-setup-script-reboot ' +
                '--provisioner Beaker --default-password YOUR_DEFAULT_PASSWORD ' +
                '--profiles DefaultLibvirt --paths ./downstream_config --log prejob.log -- ' +
               '\'fio:{"runtime": "30", "targets": "/fio", "block-sizes": "4", "test-types": "read", ' +

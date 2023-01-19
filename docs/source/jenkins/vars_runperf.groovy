@@ -25,6 +25,24 @@ import groovy.transform.Field
                               makeInstallCmd +
                               '\nmkdir -p /var/lib/runperf/' +
                               '\necho "fio 3.19" >> /var/lib/runperf/sysinfo')
+// Usage: String.format(upstreamQemuScript, upstreamCommit, upstreamCommit)
+@Field String upstreamQemuScript = """# UPSTREAM_QEMU_SETUP
+OLD_PWD="\$PWD"
+dnf install --skip-broken -y python3-devel zlib-devel gtk3-devel glib2-static spice-server-devel usbredir-devel make gcc libseccomp-devel numactl-devel libaio-devel git ninja-build
+cd /root
+[ -e "qemu" ] || { mkdir qemu; cd qemu; git init; git remote add origin https://gitlab.com/qemu-project/qemu.git; cd ..; }
+cd qemu
+git fetch --depth=1 origin %s
+git checkout -f %s
+git submodule update --init
+VERSION=\$(git rev-parse HEAD)
+git diff --quiet || VERSION+="-dirty"
+./configure --target-list="\$(uname -m)"-softmmu --disable-werror --enable-kvm --enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp --enable-usb-redir --disable-opengl --disable-virglrenderer --with-pkgversion="\$VERSION"
+$makeInstallCmd
+chcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"\$(uname -m)"
+chcon -Rt virt_image_t /usr/local/share/qemu/
+\\cp -f build/config.status /usr/local/share/qemu/
+cd \$OLD_PWD"""
 
 @Field String bkrExtraArgs = ' --labcontroller ENTER_LAB_CONTROLLER_URL '
 @Field String ownerEmail = 'ENTER_OPERATOR_EMAIL_ADDR

@@ -95,29 +95,7 @@ node(workerNode) {
                 println("Using qemu $githubPublisherTag commit $upstreamQemuVersion")
             }
             sh '\\rm -Rf upstream_qemu'
-            hostScript += '\n\n# UPSTREAM_QEMU_SETUP'
-            hostScript += '\nOLD_PWD="$PWD"'
-            hostScript += '\ndnf install --skip-broken -y python3-devel zlib-devel gtk3-devel glib2-static '
-            hostScript += 'spice-server-devel usbredir-devel make gcc libseccomp-devel numactl-devel '
-            hostScript += 'libaio-devel git ninja-build'
-            hostScript += '\ncd /root'
-            hostScript += '\n[ -e "qemu" ] || { mkdir qemu; cd qemu; git init; git remote add origin '
-            hostScript += 'https://gitlab.com/qemu-project/qemu.git; cd ..; }'
-            hostScript += '\ncd qemu'
-            hostScript += "\ngit fetch --depth=1 origin ${upstreamQemuVersion}"
-            hostScript += "\ngit checkout -f ${upstreamQemuVersion}"
-            hostScript += '\ngit submodule update --init'
-            hostScript += '\nVERSION=$(git rev-parse HEAD)'
-            hostScript += '\ngit diff --quiet || VERSION+="-dirty"'
-            hostScript += '\n./configure --target-list="$(uname -m)"-softmmu --disable-werror --enable-kvm '
-            hostScript += '--enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp '
-            hostScript += '--enable-usb-redir --disable-opengl --disable-virglrenderer '
-            hostScript += '--with-pkgversion="$VERSION"'
-            hostScript += runperf.makeInstallCmd
-            hostScript += '\nchcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"'
-            hostScript += '\nchcon -Rt virt_image_t /usr/local/share/qemu/'
-            hostScript += '\n\\cp -f build/config.status /usr/local/share/qemu/'
-            hostScript += '\ncd $OLD_PWD'
+            hostScript += '\n\n' + String.format(runperf.upstreamQemuScript, upstreamQemuVersion, upstreamQemuVersion)
         }
         // Install the latest kernel from koji (Fedora rpm)
         if (fedoraLatestKernel) {
