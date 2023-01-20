@@ -1,4 +1,5 @@
 import groovy.transform.Field
+import java.util.regex.Pattern
 
 // Use this by adding: @Library('runperf') _
 
@@ -16,13 +17,33 @@ import groovy.transform.Field
 @Field String makeInstallCmd = '\nmake -j $(getconf _NPROCESSORS_ONLN)\nmake install'
 @Field String pythonDeployCmd = 'python3 setup.py develop --user'
 @Field String kojiUrl = 'https://koji.fedoraproject.org/koji/'
-@Field fioNbdScript = ('\n\n# FIO_NBD_SETUP' +
-                       '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img libaio-devel' +
-                       '\ncd /tmp' +
-                       '\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz' +
-                       '\ncd fio-fio-3.19' +
-                       '\n./configure --enable-libnbd\n' +
-                       makeInstallCmd)
+@Field String fioNbdScript = ('\n\n# FIO_NBD_SETUP' +
+                              '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img libaio-devel' +
+                              '\ncd /tmp' +
+                              '\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz' +
+                              '\ncd fio-fio-3.19' +
+                              '\n./configure --enable-libnbd\n' +
+                              makeInstallCmd +
+                              '\nmkdir -p /var/lib/runperf/' +
+                              '\necho "fio 3.19" >> /var/lib/runperf/sysinfo')
+// Usage: String.format(upstreamQemuScript, upstreamCommit, upstreamCommit)
+@Field String upstreamQemuScript = """# UPSTREAM_QEMU_SETUP
+OLD_PWD="\$PWD"
+dnf install --skip-broken -y python3-devel zlib-devel gtk3-devel glib2-static spice-server-devel usbredir-devel make gcc libseccomp-devel numactl-devel libaio-devel git ninja-build
+cd /root
+[ -e "qemu" ] || { mkdir qemu; cd qemu; git init; git remote add origin https://gitlab.com/qemu-project/qemu.git; cd ..; }
+cd qemu
+git fetch --depth=1 origin %s
+git checkout -f %s
+git submodule update --init
+VERSION=\$(git rev-parse HEAD)
+git diff --quiet || VERSION+="-dirty"
+./configure --target-list="\$(uname -m)"-softmmu --disable-werror --enable-kvm --enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp --enable-usb-redir --disable-opengl --disable-virglrenderer --with-pkgversion="\$VERSION"
+$makeInstallCmd
+chcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"\$(uname -m)"
+chcon -Rt virt_image_t /usr/local/share/qemu/
+\\cp -f build/config.status /usr/local/share/qemu/
+cd \$OLD_PWD"""
 
 @Field String bkrExtraArgs = ' --labcontroller ENTER_LAB_CONTROLLER_URL '
 @Field String ownerEmail = 'ENTER_OPERATOR_EMAIL_ADDR
@@ -77,17 +98,140 @@ void deployDownstreamConfig(gitBranch) {
     }
 }
 
-String getBkrInstallCmd(String hostBkrLinks, String hostBkrLinksFilter, String arch) {
-    // Constructs bash script to install pkgs from beaker
-    return ('\ndnf remove -y --skip-broken qemu-kvm;' +
-            '\nfor url in ' + hostBkrLinks + '; do dnf install -y --allowerasing --skip-broken ' +
-            '$(curl -k \$url | grep -oP \'href="\\K[^"]*(noarch|' + arch + ')\\.rpm\' | ' +
-            'sed -e "/^http/! s#^#$url/#" | grep -v $(for expr in ' + hostBkrLinksFilter + '; do ' +
-            'echo -n " -e $expr"; done)); done')
+@NonCPS
+List urlFindRpms(String url, String rpmFilter, String arch) {
+    // Searches html pages for links to RPMs based on the filter
+    //
+    // The filters to find RPMs is ">${rpmFilter}.*($arch|noarch).rpm<"
+    // and it searches (urlList: https://example.com/rpms):
+    // 1. the provided $urlList page
+    //    - eg: https://example.com/rpms
+    // 2. all pages linked from $urlList page using "$arch/?" filter
+    //    - eg: https://example.com/rpms/x86_64
+    println("urlFindRpms $url $rpmFilter $arch")
+    def matches
+    try {
+        page = new URL(url).text
+    } catch(java.io.IOException details) {
+        println("Failed to get url $url")
+        return []
+    }
+    // Look for rpmFilter-ed rpms on base/link/arch/ page
+    matches = page =~ Pattern.compile("href=\"($rpmFilter[^\"]*(noarch|$arch)\\.rpm)\"[^>]*>[^<]+<")
+    if (matches.size() > 0) {
+        // Links found, translate relative path and report it
+        links = []
+        matches.each {link ->
+            links.add(new URL(new URL(url), link[1]).toString())
+        }
+        return links
+    }
+    // No RPM pkgs found, check if arch link is available
+    matches = page =~ Pattern.compile("href=\"([^\"]+)\"[^>]*>$arch/?<")
+    for (match in matches) {
+        urlTarget = new URL(new URL(url), match[1]).toString()
+        links = urlFindRpms(urlTarget, rpmFilter, arch)
+        if (links.size() > 0) {
+            return links
+        }
+    }
+    // No matches in any $arch link
+    return []
+}
+
+@NonCPS
+String cmdInstallRpmsFromURLs(String param, String arch) {
+    // Wrapper to run urlFindLinksToRpms on jenkins params
+    //
+    // The param format is:
+    // $pkgFilter;$rpmFilter;$urlList\n
+    // $urlList\n
+    // ...
+    //
+    // Where $pkgFilter and $rpmFilter is Java regular expression or
+    // one can use '!foo|bar|baz in order to match anything but the
+    // passed items (translates into "(?!.*(foo|bar|baz))")
+    allLinks = []
+    for (String line in param.split('\n')) {
+        args = line.split("(?<!\\\\);")
+        if (args.size() == 1) {
+            // Only $urlList specified
+            links = urlFindLinksToRpms(args[0], '', '', arch)
+        } else if (args.size() == 3) {
+            // $urlList, $pkgFilter and $rpmFilter specified
+            for (i in [0, 1]) {
+                if (args[i].startsWith("!")) {
+                    // Add simplification for inverse match
+                    args[i] = '(?!.*(' + args[i][1 .. -1] + '))'
+                }
+            }
+            links = urlFindLinksToRpms(args[2], args[0], args[1], arch)
+        } else {
+            println("Incorrect parameter ${line}")
+            continue
+        }
+        if (links.size() > 0) {
+            for (link in links) {
+                allLinks.add(link.replace('\n', ''))
+            }
+        } else {
+            println("No matches for $line")
+        }
+    }
+    if (allLinks.size() > 0) {
+        return 'dnf install -y --allowerasing --skip-broken ' + allLinks.join(' ')
+    }
+    return ''
+}
+
+@NonCPS
+List urlFindLinksToRpms(String urlList, String pkgFilter='', String rpmFilter='', String arch='') {
+    // Searches html page and it's links for links to RPMs based on the filters
+    //
+    // The filters to find RPMs is ">${rpmFilter}.*($arch|noarch).rpm<"
+    // and it searches (urlList: https://example.com/rpms):
+    // 1. the provided $urlList page
+    //    - eg: https://example.com/rpms
+    // 2. all pages linked from $urlList page using "$arch/?" filter
+    //    - eg: https://example.com/rpms/x86_64
+    // 3. all pages linked from $urlList page using $pkgFilter filter
+    //    - eg: https://example.com/rpms/2023-01-01
+    // 4. all pages linkef from the $pkgFilter-ed pages using "$arch/?" filter
+    //    - eg: https://example.com/rpms/2023-01-01/x86_64
+    //
+    // pkgFilter/rpmFilter uses Java regular expression, you can use things like
+    // 'kernel' to match "^kernel-XYZ"
+    // '[^\"]*kernel' to match "whateverkernel-XYZ"
+    // '(?!.*(debug|doc))[^\"]*extra' to match "whatever-extra-whatever" that does
+    //     not contain "debug", nor "doc"
+    println("urlFindLinksToRpms $urlList $pkgFilter $rpmFilter $arch")
+    def matches
+    // First try looking for RPMs directly on this page
+    links = urlFindRpms(urlList, rpmFilter, arch)
+    if (links.size() > 0) {
+        return links
+    }
+    try {
+        page = new URL(urlList).text
+    } catch(java.io.IOException details) {
+        println("Failed to get url $urlList")
+        return []
+    }
+    // Look for pkgFilter-ed links
+    matches = page =~ Pattern.compile("href=\"([^\"]+)\"[^>]*>$pkgFilter[^<]*<")
+    for (match in matches) {
+        urlTarget = new URL(new URL(urlList), match[1]).toString()
+        links = urlFindRpms(urlTarget, rpmFilter, arch)
+        if (links) {
+            return links
+        }
+    }
+    return []
 }
 
 List getLatestDistros(String name, Integer limit, String arch) {
     // Return latest $limit distros matching the name (use % to match anything)
+    println("getLatestDistros $name")
     distros = sh(returnStdout: true,
                  script: ('echo -n $(bkr distro-trees-list --arch  ' + arch + ' --name=' + name +
                           ' --limit ' + limit + bkrExtraArgs + ' --format json ' +
@@ -133,6 +277,7 @@ List getDistroRange(String[] range, String workerNode, String arch) {
 
 List getDistroRange(List range, String workerNode, String arch) {
     // Find all distros between range[0] and range[1] revision (max 100 versions)
+    println("getDistroRange ${range}")
     first = range[0]
     last = range[1]
     common = ''
@@ -152,14 +297,14 @@ List getDistroRange(List range, String workerNode, String arch) {
         distroRange = [];
         i = 0;
         while (i < distros.size()) {
-            if (distros[i] == last) {
+            if (distros[i] == first) {
                 break;
             }
             ++i;
         }
         while (i < distros.size()) {
             distroRange.add(distros[i]);
-            if (distros[i++] == first) {
+            if (distros[i++] == last) {
                 break;
             }
         }
@@ -211,7 +356,7 @@ List getGoodBuildNumbers(String jobName) {
     return builds
 }
 
-String setupScript(output, kernelArgs, bkrLinks, bkrFilter, arch, fioNbdSetup) {
+String setupScript(output, kernelArgs, rpmFromURLs, arch, fioNbdSetup) {
     // Generate additional parts of the setup script
     if (kernelArgs) {
         output += "\ngrubby --args '${kernelArgs}' --update-kernel=\$(grubby --default-kernel)"
@@ -219,8 +364,8 @@ String setupScript(output, kernelArgs, bkrLinks, bkrFilter, arch, fioNbdSetup) {
     // Ugly way of installing all arch's rpms from a site, allowing a filter
     // this is usually used on koji/brew to allow updating certain packages
     // warning: It does not work when the url rpm is older.
-    if (bkrLinks) {
-        output += getBkrInstallCmd(bkrLinks, bkrFilter, arch)
+    if (rpmFromURLs) {
+        output += cmdInstallRpmsFromURLs(rpmFromURLs, arch)
     }
     // Install deps and compile custom fio with nbd ioengine
     if (fioNbdSetup) {
@@ -233,8 +378,8 @@ String setupScript(output, kernelArgs, bkrLinks, bkrFilter, arch, fioNbdSetup) {
 @NonCPS
 def triggerRunperf(String jobName, Boolean waitForStart, String distro, String guestDistro,
                    String machine, String arch, String tests, String profiles, String srcBuild,
-                   String hostKernelArgs, String hostBkrLinks, String hostBkrLinksFilter,
-                   String guestKernelArgs, String guestBkrLinks, String guestBkrLinksFilter,
+                   String hostKernelArgs, String hostRpmFromURLs,
+                   String guestKernelArgs, String guestRpmFromURLs,
                    String upstreamQemuCommit, String descriptionPrefix,
                    Boolean pbenchPublish, Boolean fioNbdSetup, String noReferenceBuilds,
                    String cmpModelJob, String cmpModelBuild, String cmpTolerance,
@@ -252,11 +397,9 @@ def triggerRunperf(String jobName, Boolean waitForStart, String distro, String g
         new StringParameterValue('PROFILES', profiles),
         new StringParameterValue('SRC_BUILD', srcBuild),
         new StringParameterValue('HOST_KERNEL_ARGS', hostKernelArgs),
-        new StringParameterValue('HOST_BKR_LINKS', hostBkrLinks),
-        new StringParameterValue('HOST_BRK_LINKS_FILTER', hostBkrLinksFilter),
+        new TextParameterValue('HOST_RPM_FROM_URLS', hostRpmFromURLs),
         new StringParameterValue('GUEST_KERNEL_ARGS', guestKernelArgs),
-        new StringParameterValue('GUEST_BKR_LINKS', guestBkrLinks),
-        new StringParameterValue('GUEST_BKR_LINKS_FILTER', guestBkrLinksFilter),
+        new TextParameterValue('GUEST_RPM_FROM_URLS', guestRpmFromURLs),
         new StringParameterValue('UPSTREAM_QEMU_COMMIT', upstreamQemuCommit),
         new StringParameterValue('DESCRIPTION_PREFIX', descriptionPrefix),
         new BooleanParameterValue('PBENCH_PUBLISH', pbenchPublish),
@@ -298,8 +441,8 @@ void tryOtherDistros(String rawDistro, String arch) {
     }
     triggerRunperf(env.JOB_NAME, false, latestDistro, params.GUEST_DISTRO, params.MACHINE, params.ARCH,
                    params.TESTS, params.PROFILES, params.SRC_BUILD, params.HOST_KERNEL_ARGS,
-                   params.HOST_BKR_LINKS, params.HOST_BRK_LINKS_FILTER, params.GUEST_KERNEL_ARGS,
-                   params.GUEST_BKR_LINKS, params.GUEST_BKR_LINKS_FILTER, params.UPSTREAM_QEMU_COMMIT,
+                   params.HOST_RPM_FROM_URLS, params.GUEST_KERNEL_ARGS,
+                   params.GUEST_RPM_FROM_URLS, params.UPSTREAM_QEMU_COMMIT,
                    params.DESCRIPTION_PREFIX, params.PBENCH_PUBLISH, params.FIO_NBD_SETUP,
                    params.NO_REFERENCE_BUILDS, params.CMP_MODEL_JOB, params.CMP_MODEL_BUILD,
                    params.CMP_TOLERANCE, params.CMP_STDDEV_TOLERANCE, params.GITHUB_PUBLISHER_PROJECT,

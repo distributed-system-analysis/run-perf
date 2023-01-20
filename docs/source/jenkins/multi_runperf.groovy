@@ -4,6 +4,7 @@
 @Library('runperf') _
 
 csvSeparator = ';'
+doubleEnter = '\n\n'
 
 // SHARED VALUES FOR ALL JOBS
 // Job name to be triggered
@@ -33,7 +34,7 @@ githubPublisherProject = params.GITHUB_PUBLISHER_PROJECT.trim()
 // LIST OF VALUES
 // Iterations of each combination
 if (params.NO_ITERATIONS) {
-    iterations = 1..params.NO_ITERATIONS.toInteger()
+    iterations = (1..params.NO_ITERATIONS.toInteger()).toList()
 } else {
     iterations = [1]
 }
@@ -45,15 +46,11 @@ guestDistrosRaw = params.GUEST_DISTROS.split(csvSeparator)
 // Add custom kernel arguments on host
 hostKernelArgss = params.HOST_KERNEL_ARGSS.split(csvSeparator)
 // Install rpms from (beaker) urls
-hostBkrLinkss = params.HOST_BKR_LINKSS.split(csvSeparator)
-// filters for hostBkrLinks
-hostBkrLinksFilter = params.HOST_BKR_LINKS_FILTER
+hostRpmFromURLss = params.HOST_RPM_FROM_URLS.trim().split(doubleEnter)
 // Add custom kernel argsuments on workers/guests
 guestKernelArgss = params.GUEST_KERNEL_ARGSS.split(csvSeparator)
 // Install rpms from (beaker) urls
-guestBkrLinkss = GUEST_BKR_LINKSS.split(csvSeparator)
-// filters for guestBkrLinks
-guestBkrLinksFilter = params.GUEST_BKR_LINKS_FILTER
+guestRpmFromURLss = params.GUEST_RPM_FROM_URLS.trim().split(doubleEnter)
 // Add steps to checkout, compile and install the upstream qemu from git
 upstreamQemuCommits = params.UPSTREAM_QEMU_COMMITS.split(csvSeparator)
 // Custom host/guest setups cript
@@ -71,7 +68,7 @@ guestDistros = runperf.getDistrosRange(guestDistrosRaw, workerNode, arch)
 
 referenceBuilds = 0
 srcBuild = srcBuildUnset
-paramTypes = [iterations, guestBkrLinkss, guestKernelArgss, hostBkrLinkss, hostKernelArgss,
+paramTypes = [iterations, hostRpmFromURLss, guestKernelArgss, guestRpmFromURLss, hostKernelArgss,
                upstreamQemuCommits, guestDistros, distros]
 for (params in paramTypes.combinations()) {
     println("Triggering with: $params")
@@ -84,8 +81,8 @@ for (params in paramTypes.combinations()) {
     // Use a cleanup job to remove host-setup-script things
     srcBuild = runperf.triggerRunperf(env.JOB_NAME, srcBuild == srcBuildUnset, params[7], params[6],
                                       machine, arch, tests, profiles, srcBuild, params[4],
-                                      params[3], hostBkrLinksFilter, params[2], params[1],
-                                      guestBkrLinksFilter, params[5], prefix, pbenchPublish,
+                                      params[3], params[2], params[1],
+                                      params[5], prefix, pbenchPublish,
                                       fioNbdSetup, Math.max(0, referenceBuilds).toString(),
                                       cmpModelJob, cmpModelBuild, cmpTolerance, cmpStddevTolerance,
                                       githubPublisherProject, hostScript, workerScript)

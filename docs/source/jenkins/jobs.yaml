@@ -21,7 +21,7 @@
     param-cmp-stddev-tolerance: 10
     param-cmp-model-job: ''
     param-cmp-model-build: ''
-    param-host-bkr-links: ''
+    param-host-rpm-from-urls: ''
     param-no-reference-builds: 14
     param-fio-nbd-setup: false
     param-upstream-qemu-commit: ''
@@ -91,26 +91,18 @@
             name: HOST_KERNEL_ARGS
             description: Add custom kernel arguments on host
             default: ""
-        - string:
-            name: HOST_BKR_LINKS
-            description: 'Space separated list of urls to be grepped for "http.*$arch\\.rpm" and "http.*noarch\\.rpm", filtered by HOST_BKR_LINKS_FILTER and then set to be installed on host/workers with "--allowerase". Intended usage is to use koji/beaker link like: https://koji.fedoraproject.org/koji/buildinfo?buildID=1534744'
-            default: "{param-host-bkr-links}"
-        - string:
-            name: HOST_BKR_LINKS_FILTER
-            description: 'Filter to be split and applied via "grep -v -e EXPR1 -e EXPR2 ..."'
-            default: "debug"
+        - text:
+            name: HOST_RPM_FROM_URLS
+            description: 'Specify pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            default: "{param-host-rpm-from-urls}"
         - string:
             name: GUEST_KERNEL_ARGS
             description: Add custom kernel argsuments on workers/guests
             default: ""
-        - string:
-            name: GUEST_BKR_LINKS
-            description: 'Space separated list of urls to be grepped for "http.*$arch\\.rpm" and "http.*noarch\\.rpm", filtered by GUEST_BKR_LINKS_FILTER and then set to be installed on host/workers with "--allowerase". Intended usage is to use koji/beaker link like: https://koji.fedoraproject.org/koji/buildinfo?buildID=1534744'
+        - text:
+            name: GUEST_RPM_FROM_URLS
+            description: 'Specify pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
             default: ""
-        - string:
-            name: GUEST_BKR_LINKS_FILTER
-            description: 'Filter to be split and applied via "grep -v -e EXPR1 -e EXPR2 ..."'
-            default: "debug"
         - bool:
             name: PBENCH_PUBLISH
             description: 'Push the pbench results to company pbench server'
@@ -205,26 +197,18 @@
             name: HOST_KERNEL_ARGS
             description: Add custom kernel arguments on host
             default: ""
-        - string:
-            name: HOST_BKR_LINKS
-            description: 'Space separated list of urls to be grepped for "http.*$arch\\.rpm" and "http.*noarch\\.rpm", filtered by HOST_BKR_LINKS_FILTER and then set to be installed on host/workers with "--allowerase". Intended usage is to use koji/beaker link like: https://koji.fedoraproject.org/koji/buildinfo?buildID=1534744'
-            default: ""
-        - string:
-            name: HOST_BKR_LINKS_FILTER
-            description: 'Filter to be split and applied via "grep -v -e EXPR1 -e EXPR2 ..."'
-            default: "debug"
+        - text:
+            name: HOST_RPM_FROM_URLS
+            description: 'Specify pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            default: "{param-host-rpm-from-urls}"
         - string:
             name: GUEST_KERNEL_ARGS
             description: Add custom kernel argsuments on workers/guests
             default: ""
-        - string:
-            name: GUEST_BKR_LINKS
-            description: 'Space separated list of urls to be grepped for "http.*$arch\\.rpm" and "http.*noarch\\.rpm", filtered by GUEST_BKR_LINKS_FILTER and then set to be installed on host/workers with "--allowerase". Intended usage is to use koji/beaker link like: https://koji.fedoraproject.org/koji/buildinfo?buildID=1534744'
+        - text:
+            name: GUEST_RPM_FROM_URLS
+            description: 'Specify pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
             default: ""
-        - string:
-            name: GUEST_BKR_LINKS_FILTER
-            description: 'Filter to be split and applied via "grep -v -e EXPR1 -e EXPR2 ..."'
-            default: "debug"
         - bool:
             name: PBENCH_PUBLISH
             description: 'Push the pbench results to company pbench server'
@@ -344,26 +328,18 @@
             name: HOST_KERNEL_ARGSS
             description: '`;` separated list of Add custom kernel arguments on host'
             default: ""
-        - string:
-            name: HOST_BKR_LINKSS
-            description: '`;` separated list of space separated lists of urls to be grepped for "http.*$arch\\.rpm" and "http.*noarch\\.rpm", filtered by HOST_BKR_LINKS_FILTER and then set to be installed on host/workers with "--allowerase". Intended usage is to use koji/beaker link like: https://koji.fedoraproject.org/koji/buildinfo?buildID=1534744'
-            default: "{param-host-bkr-links}"
-        - string:
-            name: HOST_BKR_LINKS_FILTER
-            description: 'Filter to be split and applied via "grep -v -e EXPR1 -e EXPR2 ..."'
-            default: "debug"
+        - text:
+            name: HOST_RPM_FROM_URLSS
+            description: 'Double enter (\\n\\n) separated list of Single enter (\\n) separated list of pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            default: "{param-host-rpm-from-urls}"
         - string:
             name: GUEST_KERNEL_ARGSS
             description: '`;` separated list of custom kernel argsuments on workers/guests'
             default: ""
-        - string:
-            name: GUEST_BKR_LINKSS
-            description: '`;` separated list of space separated lists of urls to be grepped for "http.*$arch\\.rpm" and "http.*noarch\\.rpm", filtered by GUEST_BKR_LINKS_FILTER and then set to be installed on host/workers with "--allowerase". Intended usage is to use koji/beaker link like: https://koji.fedoraproject.org/koji/buildinfo?buildID=1534744'
+        - text:
+            name: GUEST_RPM_FROM_URLSS
+            description: 'Double enter (\\n\\n) separated list of Single enter (\\n) separated list of pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
             default: ""
-        - string:
-            name: GUEST_BKR_LINKS_FILTER
-            description: 'Filter to be split and applied via "grep -v -e EXPR1 -e EXPR2 ..."'
-            default: "debug"
         - string:
             name: UPSTREAM_QEMU_COMMITS
             description: '`;` separated list of qemu commit/tags to be deployed from the upstream git. Use it by using $PROFILE:{{"qemu_bin": "/usr/local/bin/qemu-system-$ARCH"}} when specifying profiles.'

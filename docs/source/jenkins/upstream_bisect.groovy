@@ -19,15 +19,11 @@ profiles = params.PROFILES.trim()
 // Add custom kernel arguments on host
 hostKernelArgs = params.HOST_KERNEL_ARGS.trim()
 // Install rpms from (beaker) urls
-hostBkrLinks = params.HOST_BKR_LINKS.trim()
-// filters for hostBkrLinks
-hostBkrLinksFilter = params.HOST_BKR_LINKS_FILTER.trim()
+hostRpmFromURLs = params.HOST_RPM_FROM_URLS.trim()
 // Add custom kernel argsuments on workers/guests
 guestKernelArgs = params.GUEST_KERNEL_ARGS.trim()
 // Install rpms from (beaker) urls
-guestBkrLinks = GUEST_BKR_LINKS.trim()
-// filters for guestBkrLinks
-guestBkrLinksFilter = params.GUEST_BKR_LINKS_FILTER.trim()
+guestRpmFromURLs = params.GUEST_RPM_FROM_URLS.trim()
 // Add steps to fetch, compile and install the upstream fio with nbd ioengine compiled in
 fioNbdSetup = params.FIO_NBD_SETUP
 // Specify the bisection range
@@ -69,14 +65,12 @@ node(workerNode) {
         runperf.deployDownstreamConfig(gitBranch)
         runperf.deployRunperf(gitBranch)
         metadata = ''
-        hostScript = runperf.setupScript(hostScript, hostKernelArgs, hostBkrLinks, hostBkrLinksFilter,
-                                         arch, fioNbdSetup)
-        workerScript = runperf.setupScript(workerScript, guestKernelArgs, guestBkrLinks, guestBkrLinksFilter,
-                                           arch, fioNbdSetup)
-        if (hostScript) {
-            writeFile file: 'host_script', text: hostScript
-            extraArgs += ' --host-setup-script host_script --host-setup-script-reboot'
-        }
+        hostScript = runperf.setupScript(hostScript, hostKernelArgs, HostRpmFromURLs, arch, fioNbdSetup)
+        workerScript = runperf.setupScript(workerScript, guestKernelArgs, GuestRpmFromURLs, arch, fioNbdSetup)
+        writeFile file: 'host_script', text: hostScript
+        setupQemu = String.format(runperf.upstreamQemuScript, upstreamQemuGood, upstreamQemuGood)
+        writeFile(file: 'host_script_with_qemu',
+                  text: hostScript + '\n\n' + setupQemu)
         if (workerScript) {
             writeFile file: 'worker_script', text: workerScript
             extraArgs += ' --worker-setup-script worker_script'
@@ -92,6 +86,7 @@ node(workerNode) {
             sh '$KINIT'
             // First run the provisioning and dummy test to age the machine a bit
             sh("python3 scripts/run-perf ${extraArgs} -v --hosts ${machine} --distro ${distro} " +
+               '--host-setup-script host_script_with_qemu --host-setup-script-reboot ' +
                '--provisioner Beaker --default-password YOUR_DEFAULT_PASSWORD ' +
                '--profiles DefaultLibvirt --paths ./downstream_config --log prejob.log -- ' +
               '\'fio:{"runtime": "30", "targets": "/fio", "block-sizes": "4", "test-types": "read", ' +

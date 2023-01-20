@@ -28,15 +28,11 @@ cmpStddevTolerance = params.CMP_STDDEV_TOLERANCE.trim()
 // Add custom kernel arguments on host
 hostKernelArgs = params.HOST_KERNEL_ARGS.trim()
 // Install rpms from (beaker) urls
-hostBkrLinks = params.HOST_BKR_LINKS.trim()
-// filters for hostBkrLinks
-hostBkrLinksFilter = params.HOST_BKR_LINKS_FILTER.trim()
+hostRpmFromURLs = params.HOST_RPM_FROM_URLS.trim()
 // Add custom kernel argsuments on workers/guests
 guestKernelArgs = params.GUEST_KERNEL_ARGS.trim()
 // Install rpms from (beaker) urls
-guestBkrLinks = GUEST_BKR_LINKS.trim()
-// filters for guestBkrLinks
-guestBkrLinksFilter = params.GUEST_BKR_LINKS_FILTER.trim()
+guestRpmFromURLs = params.GUEST_RPM_FROM_URLS.trim()
 // Add steps to fetch, compile and install the upstream fio with nbd ioengine compiled in
 fioNbdSetup = params.FIO_NBD_SETUP
 // Add steps to checkout, compile and install the upstream qemu from git
@@ -76,11 +72,14 @@ node(workerNode) {
     stage('Measure') {
         runperf.deployDownstreamConfig(gitBranch)
         runperf.deployRunperf(gitBranch)
+        if (fedoraLatestKernel) {
+            kernelURL = '\nkernel-;!debug|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8'
+            hostRpmFromURLs += kernelURL
+            guestRpmFromURLs += kernelURL
+        }
         // Use grubby to update default args on host
-        hostScript = runperf.setupScript(hostScript, hostKernelArgs, hostBkrLinks, hostBkrLinksFilter,
-                                         arch, fioNbdSetup)
-        workerScript = runperf.setupScript(workerScript, guestKernelArgs, guestBkrLinks, guestBkrLinksFilter,
-                                           arch, fioNbdSetup)
+        hostScript = runperf.setupScript(hostScript, hostKernelArgs, hostRpmFromURLs, arch, fioNbdSetup)
+        workerScript = runperf.setupScript(workerScript, guestKernelArgs, guestRpmFromURLs, arch, fioNbdSetup)
         // Build custom qemu
         if (upstreamQemuCommit) {
             // Always translate the user input into the actual commit and also get the description
@@ -95,41 +94,7 @@ node(workerNode) {
                 println("Using qemu $githubPublisherTag commit $upstreamQemuVersion")
             }
             sh '\\rm -Rf upstream_qemu'
-            hostScript += '\n\n# UPSTREAM_QEMU_SETUP'
-            hostScript += '\nOLD_PWD="$PWD"'
-            hostScript += '\ndnf install --skip-broken -y python3-devel zlib-devel gtk3-devel glib2-static '
-            hostScript += 'spice-server-devel usbredir-devel make gcc libseccomp-devel numactl-devel '
-            hostScript += 'libaio-devel git ninja-build'
-            hostScript += '\ncd /root'
-            hostScript += '\n[ -e "qemu" ] || { mkdir qemu; cd qemu; git init; git remote add origin '
-            hostScript += 'https://gitlab.com/qemu-project/qemu.git; cd ..; }'
-            hostScript += '\ncd qemu'
-            hostScript += "\ngit fetch --depth=1 origin ${upstreamQemuVersion}"
-            hostScript += "\ngit checkout -f ${upstreamQemuVersion}"
-            hostScript += '\ngit submodule update --init'
-            hostScript += '\nVERSION=$(git rev-parse HEAD)'
-            hostScript += '\ngit diff --quiet || VERSION+="-dirty"'
-            hostScript += '\n./configure --target-list="$(uname -m)"-softmmu --disable-werror --enable-kvm '
-            hostScript += '--enable-vhost-net --enable-attr --enable-fdt --enable-vnc --enable-seccomp '
-            hostScript += '--enable-usb-redir --disable-opengl --disable-virglrenderer '
-            hostScript += '--with-pkgversion="$VERSION"'
-            hostScript += runperf.makeInstallCmd
-            hostScript += '\nchcon -Rt qemu_exec_t /usr/local/bin/qemu-system-"$(uname -m)"'
-            hostScript += '\nchcon -Rt virt_image_t /usr/local/share/qemu/'
-            hostScript += '\n\\cp -f build/config.status /usr/local/share/qemu/'
-            hostScript += '\ncd $OLD_PWD'
-        }
-        // Install the latest kernel from koji (Fedora rpm)
-        if (fedoraLatestKernel) {
-            kernelBuild = sh(returnStdout: true,
-                             script: ("curl '$runperf.kojiUrl/packageinfo?packageID=8' | " +
-                                      'grep -B 4 "complete" | grep "kernel" | ' +
-                                      'grep "git" | grep -m 1 -o -e \'href="[^"]*"\'')
-                             ).trim()[6..-2]
-            kernelBuildUrl = runperf.kojiUrl + kernelBuild
-            kernelBuildFilter = 'debug bpftool kernel-tools perf kernel-selftests kernel-doc'
-            hostScript += runperf.getBkrInstallCmd(kernelBuildUrl, kernelBuildFilter, arch)
-            workerScript += runperf.getBkrInstallCmd(kernelBuildUrl, kernelBuildFilter, arch)
+            hostScript += '\n\n' + String.format(runperf.upstreamQemuScript, upstreamQemuVersion, upstreamQemuVersion)
         }
         if (hostScript) {
             writeFile file: 'host_script', text: hostScript
