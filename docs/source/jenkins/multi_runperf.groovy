@@ -46,11 +46,11 @@ guestDistrosRaw = params.GUEST_DISTROS.split(csvSeparator)
 // Add custom kernel arguments on host
 hostKernelArgss = params.HOST_KERNEL_ARGSS.split(csvSeparator)
 // Install rpms from (beaker) urls
-hostRpmFromURLss = params.HOST_RPM_FROM_URLS.trim().split(doubleEnter)
+hostRpmFromURLss = params.HOST_RPM_FROM_URLSS.trim().split(doubleEnter)
 // Add custom kernel argsuments on workers/guests
 guestKernelArgss = params.GUEST_KERNEL_ARGSS.split(csvSeparator)
 // Install rpms from (beaker) urls
-guestRpmFromURLss = params.GUEST_RPM_FROM_URLS.trim().split(doubleEnter)
+guestRpmFromURLss = params.GUEST_RPM_FROM_URLSS.trim().split(doubleEnter)
 // Add steps to checkout, compile and install the upstream qemu from git
 upstreamQemuCommits = params.UPSTREAM_QEMU_COMMITS.split(csvSeparator)
 // Custom host/guest setups cript
