@@ -505,7 +505,8 @@ class PBenchNBD(PBenchFio):
                         raise exceptions.TestSkip(
                             f"Fio {session.cmd('which fio')} does not support "
                             f"ioengine=nbd on worker {worker}")
-                    session.cmd(f"truncate -s 256M {self.base_path}/disk.img")
+                    session.cmd("dd bs=1M count=256 if=/dev/urandom "
+                                f"of='{self.base_path}/disk.img'")
                     session.cmd(f"nohup qemu-nbd -t -k {self.base_path}/socket"
                                 f" -f raw {self.base_path}/disk.img &> "
                                 f"$(mktemp {self.base_path}/qemu_nbd_XXXX.log)"
