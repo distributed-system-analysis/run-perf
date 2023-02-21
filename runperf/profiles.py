@@ -495,7 +495,7 @@ class DefaultLibvirt(PersistentProfile):
     def _prerequisities(self, session):
         if self._custom_qemu:
             deps = self.deps + " git"
-            session.cmd(f"yum install -y {deps}")
+            session.cmd(f"yum -y --skip-broken install {deps}", timeout=600)
         else:
             deps = self.deps
 
@@ -503,7 +503,8 @@ class DefaultLibvirt(PersistentProfile):
                 session.cmd_status("which virt-install")):
             if not self._custom_qemu:
                 # with custom qemu we force-install prior to libvirt check
-                session.cmd(f"yum install -y {deps}")
+                session.cmd(f"yum -y --skip-broken install {deps}",
+                            timeout=600)
             session.cmd("systemctl start libvirtd")
 
     def _image_up_to_date(self, session, pubkey, image, setup_script,

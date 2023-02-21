@@ -122,7 +122,7 @@ class BaseProvider:
             self.session.cmd(utils.shell_write_content_cmd(
                 self.setup_script, self.setup_script_content))
             cloudinit += f" --run '{self.setup_script}'"
-        self.session.cmd(cloudinit, timeout=720)
+        self.session.cmd(cloudinit, timeout=1200)
         return ""
 
 
