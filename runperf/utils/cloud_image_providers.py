@@ -114,9 +114,9 @@ class BaseProvider:
         self.session.cmd(f"rm -Rf {self.image}.tmp")
         # Use "yum -y update" instead of "--update", because of the order the
         # commands are executed (we need repos uploaded)
-        cloudinit = (f"virt-customize -v -x -a '{self.image}' --root-password "
-                     f"password:{default_password} --ssh-inject "
-                     f"'root:file:{self.pubkey}' ")
+        cloudinit = (f"virt-customize --smp=8 -v -x -a '{self.image}' "
+                     f"--root-password password:{default_password} "
+                     f"--ssh-inject 'root:file:{self.pubkey}' ")
         cloudinit = self._extend_cloudinit_cmd(cloudinit)
         if self.setup_script_content:
             self.session.cmd(utils.shell_write_content_cmd(
