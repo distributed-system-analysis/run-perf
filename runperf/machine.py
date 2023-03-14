@@ -598,7 +598,7 @@ class Host(BaseMachine):
                             '~/.ssh/id_rsa -q -N ""')
             return session.cmd_output('cat ~/.ssh/id_rsa.pub')
 
-    def run_script(self, script, timeout=1200):
+    def run_script(self, script, timeout=3600):
         """
         Runs a script on the machine
         """
