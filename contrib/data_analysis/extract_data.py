@@ -109,7 +109,7 @@ def process(path_glob, variant, out, average):
             no_labels = max(no_labels, len(sample))
         sys.stdout.write("\n")
         color_idx += 1
-        color_idx %= 7
+        color_idx %= len(COLORS)
     out.write(f"        ],\n        labels: {list(range(no_labels))}\n")
     out.write(CHART2)
 
