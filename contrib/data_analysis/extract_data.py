@@ -67,7 +67,8 @@ def parse_args():
     parser.add_argument("-o", "--output", help="Output filename (%(default)s)",
                         default="output.html")
     parser.add_argument("-a", "--average", help="Specify how many values "
-                        "should we average to smooth the curves", default=0)
+                        "should we average to smooth the curves", default=0,
+                        type=int)
     return parser.parse_args()
 
 
