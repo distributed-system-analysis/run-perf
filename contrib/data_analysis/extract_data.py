@@ -80,7 +80,7 @@ def process(path_glob, variant, out, average):
     name_expr = ['*' in _ for _ in path_glob.split(os.path.sep)]
     color_idx = 0
     no_labels = 0
-    for path in glob.glob(path_glob):
+    for path in sorted(glob.glob(path_glob)):
         split_path = path.split(os.path.sep)
         name = '/'.join([split_path[i]
                          for i in range(len(name_expr)) if name_expr[i]])
