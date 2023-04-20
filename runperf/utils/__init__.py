@@ -505,6 +505,16 @@ def shell_find_command(session, command):
     return ''
 
 
+def shell_dnf_install_cmd(pkgs):
+    """
+    Helper to generate dnf command to install rpms via dnf
+
+    :param pkgs: List of pkg names to be installed
+    :return: Command to install all packages
+    """
+    escaped_pkgs = [pipes.quote(_) for _ in pkgs]
+    return f"dnf install -y --nobest --skip-broken {' '.join(escaped_pkgs)}"
+
 def wait_for_machine_calms_down(session, timeout=600):
     """
     Wait until 1m system load calms below 1.0

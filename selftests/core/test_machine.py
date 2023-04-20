@@ -63,7 +63,8 @@ class DummyController(Controller):
                                   worker_setup_script=__file__,
                                   provisioner=None, host_setup_script=None,
                                   host_setup_script_reboot=False, metadata={},
-                                  output=output)
+                                  output=output, host_rpms=[],
+                                  worker_rpms=[])
         super().__init__(args, mock.Mock())
         # Make sure we will not harm localhost
         for host in self.hosts:

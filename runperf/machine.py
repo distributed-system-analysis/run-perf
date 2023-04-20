@@ -365,8 +365,11 @@ class Controller:
             with open(self._args.host_setup_script,
                       encoding="utf-8") as script:
                 self.for_each_host(self.hosts, 'run_script', [script.read()])
-            if self._args.host_setup_script_reboot:
-                self.for_each_host(self.hosts, "reboot")
+        if self._args.host_rpms:
+            cmd = utils.shell_dnf_install_cmd(self._args.host_rpms)
+            self.for_each_host(self.hosts, 'run_script', [cmd])
+        if self._args.host_setup_script_reboot:
+            self.for_each_host(self.hosts, "reboot")
         shared_pub_key = self.main_host.generate_ssh_key()
         world_versions = []
         for host in self.hosts:
@@ -410,12 +413,16 @@ class Controller:
         # Allow 5 attempts, one to revert previous profile, one to
         # apply and 3 extra in case one boot fails to get resources
         # (eg. hugepages)
+        setup_script = None
         if self._args.worker_setup_script:
             with open(self._args.worker_setup_script,
                       encoding="utf-8") as setup_script_fd:
                 setup_script = setup_script_fd.read()
-        else:
-            setup_script = None
+        if self._args.worker_rpms:
+            if not setup_script:
+                setup_script = '#!/bin/bash\n'
+            setup_script += '\n\nInstall rpms specified by --worker-rpms\n'
+            setup_script += utils.shell_dnf_install_cmd(self._args.worker_rpms)
         self.for_each_host_retry(5, self.hosts, 'apply_profile',
                                  (profile, extra, setup_script,
                                   self.paths))

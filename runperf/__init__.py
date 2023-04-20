@@ -117,10 +117,12 @@ def _parse_args():
                         type=parse_host)
     parser.add_argument("--provisioner", help="Use plugin to provision the "
                         "hosts", type=item_with_params)
-    parser.add_argument("--host-rpm", help="Url/path(s) to rpm packages to be "
-                        "installed on host", nargs="+")
-    parser.add_argument("--guest-rpm", help="Url/path(s) to rpm packages to be"
-                        " installed on guest(s)", nargs="+")
+    parser.add_argument("--host-rpms", help="Url/path(s) to rpm packages or "
+                        "page with links to rpms to be installed on host via "
+                        "'dnf install -y '", nargs="+")
+    parser.add_argument("--worker-rpms", help="Url/path(s) to rpm packages or "
+                        "page with links to rpms to be installed on workers "
+                        "via 'dnf install -y '", nargs="+")
     parser.add_argument("--keep-tmp-files", action="store_true", help="Keep "
                         "the temporary files (local/remote)")
     parser.add_argument("--output",
