@@ -30,6 +30,8 @@ def get_filtered_links(page, link_filter=None, name_filter=None):
     :param name_filter: link name filter
     :return: list of links found on the page
     """
+    if not page.startswith('http://') and not page.startswith('https://'):
+        return []
     if link_filter is None:
         link_filter = '[^"]*'
     if name_filter is None:
