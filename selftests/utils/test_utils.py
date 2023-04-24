@@ -129,6 +129,10 @@ class BasicUtils(unittest.TestCase):
         self.assertNotEqual(match, None)
         self.assertEqual(match[1], match[2])
 
+    def test_shell_dnf_install_cmd(self):
+        self.assertEqual("dnf install -y --nobest --skip-broken foo 'b a r'",
+                         utils.shell_dnf_install_cmd(["foo", "b a r"]))
+
     def test_entry_points(self):
         class EP:
             def __init__(self, name=None, loaded_name=None):

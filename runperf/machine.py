@@ -261,13 +261,8 @@ class Controller:
 
     def __init__(self, args, log):
         self.log = log
-        self._output_dir = args.output  # place to store results
+        self._args = args
         self._provisioner = args.provisioner
-        # path to setup script to be executed per each host
-        self._host_setup_script = args.host_setup_script
-        # path to setup script to be applied on workers
-        self._worker_setup_script = args.worker_setup_script
-        self._host_setup_script_reboot = args.host_setup_script_reboot
         self.default_passwords = args.default_passwords
         self.paths = args.paths
 
@@ -366,11 +361,15 @@ class Controller:
         self.for_each_host_retry(2, self.hosts, "setup")
 
         # Allow to customize host
-        if self._host_setup_script:
-            with open(self._host_setup_script, encoding="utf-8") as script:
+        if self._args.host_setup_script:
+            with open(self._args.host_setup_script,
+                      encoding="utf-8") as script:
                 self.for_each_host(self.hosts, 'run_script', [script.read()])
-            if self._host_setup_script_reboot:
-                self.for_each_host(self.hosts, "reboot")
+        if self._args.host_rpms:
+            cmd = utils.shell_dnf_install_cmd(self._args.host_rpms)
+            self.for_each_host(self.hosts, 'run_script', [cmd])
+        if self._args.host_setup_script_reboot:
+            self.for_each_host(self.hosts, "reboot")
         shared_pub_key = self.main_host.generate_ssh_key()
         world_versions = []
         for host in self.hosts:
@@ -380,7 +379,7 @@ class Controller:
 
     def write_metadata(self, key, value):
         """Append the key:value to the RUNPERF_METADATA file"""
-        with open(os.path.join(self._output_dir, "RUNPERF_METADATA"),
+        with open(os.path.join(self._args.output, "RUNPERF_METADATA"),
                   'a', encoding="utf-8") as out:
             out.write(f"\n{key}:")
             out.write(value)
@@ -400,7 +399,7 @@ class Controller:
                 try:
                     return func(*args, **kwargs)
                 except Exception as exc:
-                    err_path = utils.record_failure(self._output_dir, exc)
+                    err_path = utils.record_failure(self._args.output, exc)
                     try:
                         self.fetch_logs(err_path)
                     except Exception:   # pylint: disable=W0703
@@ -414,12 +413,16 @@ class Controller:
         # Allow 5 attempts, one to revert previous profile, one to
         # apply and 3 extra in case one boot fails to get resources
         # (eg. hugepages)
-        if self._worker_setup_script:
-            with open(self._worker_setup_script,
+        setup_script = None
+        if self._args.worker_setup_script:
+            with open(self._args.worker_setup_script,
                       encoding="utf-8") as setup_script_fd:
                 setup_script = setup_script_fd.read()
-        else:
-            setup_script = None
+        if self._args.worker_rpms:
+            if not setup_script:
+                setup_script = '#!/bin/bash\n'
+            setup_script += '\n\nInstall rpms specified by --worker-rpms\n'
+            setup_script += utils.shell_dnf_install_cmd(self._args.worker_rpms)
         self.for_each_host_retry(5, self.hosts, 'apply_profile',
                                  (profile, extra, setup_script,
                                   self.paths))
@@ -473,7 +476,7 @@ class Controller:
         :param workers: list of workers to be made available for execution
         """
         test = test_class(self.main_host, workers,
-                          os.path.join(self._output_dir, self.profile),
+                          os.path.join(self._args.output, self.profile),
                           self.metadata, extra.copy())
         name = test.name
         CONTEXT.set(1, test.output, "Running test")

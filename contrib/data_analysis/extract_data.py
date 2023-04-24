@@ -49,8 +49,9 @@ CHART2 = """    },
 </div>
 """
 
-COLORS = ["#{0:02x}0000", "#00{0:02x}00", "#0000{0:02x}", "#{0:02x}{0:02x}00",
-          "#{0:02x}00{0:02x}", "#00{0:02x}{0:02x}", "#{0:02x}{0:02x}{0:02x}"]
+COLORS = ["#{0:02x}0000", "#{0:02x}0000", "#{0:02x}0000", "#00{0:02x}00",
+          "#00{0:02x}00", "#00{0:02x}00", "#0000{0:02x}", "#0000{0:02x}",
+          "#0000{0:02x}"]
 
 
 def parse_args():
@@ -67,7 +68,8 @@ def parse_args():
     parser.add_argument("-o", "--output", help="Output filename (%(default)s)",
                         default="output.html")
     parser.add_argument("-a", "--average", help="Specify how many values "
-                        "should we average to smooth the curves", default=0)
+                        "should we average to smooth the curves", default=0,
+                        type=int)
     return parser.parse_args()
 
 
@@ -79,7 +81,7 @@ def process(path_glob, variant, out, average):
     name_expr = ['*' in _ for _ in path_glob.split(os.path.sep)]
     color_idx = 0
     no_labels = 0
-    for path in glob.glob(path_glob):
+    for path in sorted(glob.glob(path_glob)):
         split_path = path.split(os.path.sep)
         name = '/'.join([split_path[i]
                          for i in range(len(name_expr)) if name_expr[i]])
@@ -108,7 +110,7 @@ def process(path_glob, variant, out, average):
             no_labels = max(no_labels, len(sample))
         sys.stdout.write("\n")
         color_idx += 1
-        color_idx %= 7
+        color_idx %= len(COLORS)
     out.write(f"        ],\n        labels: {list(range(no_labels))}\n")
     out.write(CHART2)
 

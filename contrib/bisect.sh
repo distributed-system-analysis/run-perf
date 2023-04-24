@@ -172,7 +172,7 @@ case $1 in
             fi
             idx=$((idx+1))
         done
-        "$@" --html "${DIFFDIR}/report.html" -- "${DIFFDIR}/good" "${RESULTS[@]}" "${DIFFDIR}/bad"
+        "$@" --html "${DIFFDIR}/report.html" -- "${DIFFDIR}/"good* "${RESULTS[@]}" "${DIFFDIR}/"bad*
         echo "${DIFFDIR}/report.html"
         ;;
     "clean")
