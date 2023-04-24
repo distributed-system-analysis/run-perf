@@ -21,6 +21,26 @@ import sys
 import urllib.request
 
 
+def get_filtered_links(page, link_filter=None, name_filter=None):
+    """
+    Get links from http/https page and filter it according to filters
+
+    :param page: Target url
+    :param link_filter: link url filter
+    :param name_filter: link name filter
+    :return: list of links found on the page
+    """
+    if link_filter is None:
+        link_filter = '[^"]*'
+    if name_filter is None:
+        name_filter = '[^<]*'
+    regex = f"href=\"({link_filter})\"[^>]*>({name_filter})<"
+    sys.stderr.write(f'Looking for {regex} on {page}\n')
+    with urllib.request.urlopen(page) as req:
+        content = req.read().decode('utf-8')
+    return re.findall(regex, content)
+
+
 def find_rpms(url, pkg_names, pkg_filter, arch):
     """
     Parse argument into list of links
@@ -32,17 +52,6 @@ def find_rpms(url, pkg_names, pkg_filter, arch):
     :return: list of individual links (eg.:
         ["example.org/foo", "example.org/bar"])
     """
-
-    def get_filtered_links(page, link_filter=None, name_filter=None):
-        if link_filter is None:
-            link_filter = '[^"]*'
-        if name_filter is None:
-            name_filter = '[^<]*'
-        regex = f"href=\"({link_filter})\"[^>]*>({name_filter})<"
-        sys.stderr.write(f'Looking for {regex} on {page}\n')
-        with urllib.request.urlopen(page) as req:
-            content = req.read().decode('utf-8')
-        return re.findall(regex, content)
 
     link_filter = '[^\"]*'
     if pkg_filter:
