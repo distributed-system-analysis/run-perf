@@ -615,7 +615,7 @@ class Host(BaseMachine):
         self.log.debug("  Rebooting...")
         with self.get_session_cont() as session:
             session.sendline("reboot -f")
-        time.sleep(30)
+            time.sleep(30)
         with self.get_session_cont(360):
             # Just checking whether it's obtainable
             pass
