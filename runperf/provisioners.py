@@ -48,7 +48,7 @@ class Beaker:
         # Wait for 3 minutes to let beaker to restart the machine
         time.sleep(180)
 
-        with machine.get_session_cont(2400) as session:
+        with machine.get_session_cont(3000) as session:
             if not utils.wait_for_machine_calms_down(session, 1800):
                 machine.log.warning("Machine did not stabilize in 1800s, "
                                     "proceeding on a loaded machine!")
