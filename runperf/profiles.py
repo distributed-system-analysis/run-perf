@@ -487,7 +487,7 @@ class DefaultLibvirt(PersistentProfile):
         ret = self._start_vms()
         # Make sure vms are accessible
         for vm in self.vms:
-            with vm.get_session_cont() as session:
+            with vm.get_session_cont(timeout=360) as session:
                 session.cmd("true")
         self._set("applied_profile", self.name)
         return ret
