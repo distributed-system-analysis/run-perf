@@ -146,6 +146,7 @@ case $1 in
                     move_result $RET3 1
                     move_result $RET3 2
                     move_result $RET3
+                    RET=$RET3
                 fi
             else
                 # Just use this result
