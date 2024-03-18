@@ -339,7 +339,7 @@ class Pbench(unittest.TestCase):
                 count += 1
                 self.assertIn("copr enable ndokos/pbench", call, "Enabling "
                               f"copr that is not ndokos/pbench\n{calls}")
-        self.assertEqual(count, 1, f"Multiple copr enable calls\n{calls}")
+        self.assertEqual(count, 2, f"Multiple copr enable calls\n{calls}")
 
     def test_install_fedora_coprs(self):
         """Pretend to be Fedora and verify custom coprs"""
