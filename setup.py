@@ -44,7 +44,7 @@ def _get_git_version():
         try:
             subprocess.check_output([git, "diff", "--quiet"])  # nosec
         except subprocess.CalledProcessError:
-            version += "+dirty"
+            version += ".dirty"
     except (OSError, subprocess.SubprocessError, NameError):
         return '0.0'
     finally:

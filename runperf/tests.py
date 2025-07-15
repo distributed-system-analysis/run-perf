@@ -15,8 +15,8 @@
 
 import json
 import os
-import pipes
 import re
+import shlex
 import tempfile
 import time
 
@@ -60,7 +60,7 @@ class BaseTest:
                 for worker in workers:
                     sessions.append(worker.get_session(hop=self.host))
             msg = f"C{time.time():.0f}: {self.host.profile.name}: {msg}"
-            cmd = f"echo runperf: W$(date +%s): {pipes.quote(msg)} > /dev/kmsg"
+            cmd = f"echo runperf: W$(date +%s): {shlex.quote(msg)} > /dev/kmsg"
             for session in sessions:
                 session.sendline(cmd)
             for session in sessions:

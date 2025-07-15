@@ -13,8 +13,8 @@
 # Copyright: Red Hat Inc. 2020
 # Author: Lukas Doktor <ldoktor@redhat.com>
 import os
-import pipes
 import re
+import shlex
 from urllib.request import urlopen
 
 from runperf import utils
@@ -92,7 +92,7 @@ class BaseProvider:
         """
         # To be sure remove image and per-vm images as well
         self.session.cmd("rm -f " +
-                         ' '.join(pipes.quote(_) for _ in self.paths))
+                         ' '.join(shlex.quote(_) for _ in self.paths))
         # Store shared ssh key to allow checking for the same pub ssh key
         # when reusing the image.
         self.session.cmd(utils.shell_write_content_cmd(self.pubkey,

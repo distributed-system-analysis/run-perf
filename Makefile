@@ -1,7 +1,6 @@
 ifndef PYTHON
 PYTHON=$(shell which python3 2>/dev/null || which python 2>/dev/null)
 endif
-PYTHON_DEVELOP_ARGS=$(shell if ($(PYTHON) setup.py develop --help 2>/dev/null | grep -q '\-\-user'); then echo "--user"; else echo ""; fi)
 
 all:
 	@echo
@@ -26,12 +25,11 @@ coverage: clean develop
 	./selftests/run_coverage
 
 develop:
-	$(PYTHON) setup.py develop $(PYTHON_DEVELOP_ARGS)
+	$(PYTHON) -m pip install -e .
 
 clean:
-	$(PYTHON) setup.py clean
+	$(PYTHON) -m pip uninstall -y runperf
 	rm -rf build/ MANIFEST BUILD BUILDROOT SPECS RPMS SRPMS SOURCES dist/ docs/build/
-	$(PYTHON) setup.py develop --uninstall $(PYTHON_DEVELOP_ARGS)
 	rm -rf *.egg-info
 	find . -name '*.pyc' -delete
 

@@ -5,8 +5,8 @@
 FROM fedora
 MAINTAINER Lukas Doktor ldoktor@redhat.com
 
-RUN dnf -y module enable avocado:latest && dnf install -y python3-pip git python3-pyyaml python3-numpy python3-aexpect python3-jinja2 rsync && dnf clean all
-RUN python3 -m pip install git+https://github.com/distributed-system-analysis/run-perf.git
+RUN dnf install -y python3-avocado python3-pip git python3-pyyaml python3-numpy python3-jinja2 rsync && dnf clean all
+RUN python3 -m pip install git+https://github.com/distributed-system-analysis/run-perf.git git+https://github.com/avocado-framework/aexpect.git
 RUN ssh-keygen -t ed25519 -N "" -f /root/.ssh/id_ed25519
 RUN curl https://raw.githubusercontent.com/distributed-system-analysis/run-perf/master/contrib/bisect.sh > /usr/local/bin/bisect.sh && chmod +x /usr/local/bin/bisect.sh
 RUN curl https://raw.githubusercontent.com/distributed-system-analysis/run-perf/master/contrib/upstream_qemu_bisect.sh > /usr/local/bin/upstream_qemu_bisect.sh && chmod +x /usr/local/bin/upstream_qemu_bisect.sh
