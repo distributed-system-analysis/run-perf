@@ -14,7 +14,7 @@ same stored directory can be used to add your hosts definitions.
 
 You can get a simple help by running the container::
 
-    podman run --rm -it ldoktor/fedora-runperf
+    podman run --rm -it quay.io/ldoktor/fedora-runperf
 
 Let's define a target machine ``$NAME`` (details about hosts in :ref:`runperf-hosts`)::
 
@@ -37,10 +37,10 @@ Let's define a target machine ``$NAME`` (details about hosts in :ref:`runperf-ho
 
 And now let's run linpack 2 times on that machine and generate a comparison::
 
-    podman run --rm -it -v `pwd`:/results ldoktor/fedora-runperf run-perf -vvv --hosts $HOST_NAME  --distro Fedora-33 --default-password $PASSWORD --profiles DefaultLibvirt --paths /results -- linpack:'{"threads": "32"}'
-    podman run --rm -it -v `pwd`:/results ldoktor/fedora-runperf run-perf -vvv --hosts $HOST_NAME  --distro Fedora-33 --default-password $PASSWORD --profiles DefaultLibvirt --paths /results -- linpack:'{"threads": "32"}'
-    podman run --rm -it -v `pwd`:/results ldoktor/fedora-runperf compare-perf --html comparison.html result_*
+    podman run --rm -it -v `pwd`:/results quay.io/ldoktor/fedora-runperf run-perf -vvv --hosts $HOST_NAME  --distro Fedora-33 --default-password $PASSWORD --profiles DefaultLibvirt --paths /results -- linpack:'{"threads": "32"}'
+    podman run --rm -it -v `pwd`:/results quay.io/ldoktor/fedora-runperf run-perf -vvv --hosts $HOST_NAME  --distro Fedora-33 --default-password $PASSWORD --profiles DefaultLibvirt --paths /results -- linpack:'{"threads": "32"}'
+    podman run --rm -it -v `pwd`:/results quay.io/ldoktor/fedora-runperf compare-perf --html comparison.html result_*
 
 An example of upstream qemu bisection using a built-in contrib script::
 
-    podman run --rm -it -v `pwd`:/results ldoktor/fedora-runperf upstream_qemu_bisect.sh /results/qemu 5.1.0 5.2.0 run-perf -vvv --hosts $HOST_NAME  --distro Fedora-33 --default-password $PASSWORD --profiles DefaultLibvirt --paths /results -- linpack:'{"threads": "32"}'
+    podman run --rm -it -v `pwd`:/results quay.io/ldoktor/fedora-runperf upstream_qemu_bisect.sh /results/qemu 5.1.0 5.2.0 run-perf -vvv --hosts $HOST_NAME  --distro Fedora-33 --default-password $PASSWORD --profiles DefaultLibvirt --paths /results -- linpack:'{"threads": "32"}'
