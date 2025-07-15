@@ -20,8 +20,8 @@ import hashlib
 import itertools
 import logging
 import os
-import pipes
 import random
+import shlex
 import shutil
 import string
 import subprocess  # nosec
@@ -275,7 +275,7 @@ def check_output(*args, **kwargs):
                               args[0], str(args[1:]), str(kwargs))
             else:
                 logging.debug("Running: %s (%s, %s)",
-                              " ".join(pipes.quote(_) for _ in args[0]),
+                              " ".join(shlex.quote(_) for _ in args[0]),
                               str(args[1:]), str(kwargs))
         try:
             return subprocess.check_output(*args, **kwargs).decode("utf-8")  # nosec
@@ -458,7 +458,7 @@ def shell_write_content_cmd(path, content, append=False):
         eof = random_string(6)
         if eof + '\n' not in content:
             break
-    return (f"cat {'>>' if append else '>'} {pipes.quote(path)} << "
+    return (f"cat {'>>' if append else '>'} {shlex.quote(path)} << "
             f"\\{eof}\n{content}\n{eof}")
 
 
@@ -478,7 +478,7 @@ def shell_write_content(run, path, content, append=False):
             if eof + '\n' not in content:
                 break
         return (f"head -c -1 <<\\{eof} | cat {'>>' if append else '>'} "
-                f"{pipes.quote(path)}\n{content}\n{eof}")
+                f"{shlex.quote(path)}\n{content}\n{eof}")
     size = 4096
     if len(content) < size:
         return run(shell_write_content_cmd(path, content, append))
@@ -512,7 +512,7 @@ def shell_dnf_install_cmd(pkgs):
     :param pkgs: List of pkg names to be installed
     :return: Command to install all packages
     """
-    escaped_pkgs = [pipes.quote(_) for _ in pkgs]
+    escaped_pkgs = [shlex.quote(_) for _ in pkgs]
     return f"dnf install -y --nobest --skip-broken {' '.join(escaped_pkgs)}"
 
 def wait_for_machine_calms_down(session, timeout=600):
