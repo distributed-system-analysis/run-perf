@@ -6,7 +6,7 @@ all:
 	@echo
 	@echo "Development related targets:"
 	@echo "check:    Executes selftests"
-	@echo "develop:  Runs 'python setup.py --develop' on this tree alone"
+	@echo "develop:  Deploy run-perf editable from this directory"
 	@echo "clean:    Get rid of scratch, byte files and removes the links to other subprojects"
 	@echo "docs:     Build html docs in docs/build/html/ dir"
 	@echo "html_result:  Refresh the docs/source/_static/html_result.html from selftests/.assets/results"
@@ -25,7 +25,7 @@ coverage: clean develop
 	./selftests/run_coverage
 
 develop:
-	$(PYTHON) -m pip install -e .
+	$(PYTHON) -m pip install -e ".[dev]"
 
 clean:
 	$(PYTHON) -m pip uninstall -y runperf
@@ -36,8 +36,8 @@ clean:
 docs: develop
 	make -C docs html
 
-pypi: clean develop
-	RUNPERF_RELEASE=yes $(PYTHON) setup.py sdist bdist_wheel
+pypi: clean
+	$(PYTHON) -m build
 	@echo
 	@echo
 	@echo "Use 'python3 -m twine upload dist/*'"

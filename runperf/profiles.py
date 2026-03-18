@@ -16,7 +16,7 @@ import logging
 import os
 import time
 
-from pkg_resources import iter_entry_points as pkg_entry_points
+from importlib.metadata import entry_points
 
 from . import utils
 
@@ -549,7 +549,7 @@ class DefaultLibvirt(PersistentProfile):
                 self.log.debug("Image %s ready", self._guest["distro"])
                 return plugin.image
         providers = ", ".join(str(_)
-                              for _ in pkg_entry_points(entry_point))
+                              for _ in entry_points(group=entry_point))
         raise RuntimeError(f"Fail to fetch {self._guest['distro']} "
                            f"using {providers} providers")
 

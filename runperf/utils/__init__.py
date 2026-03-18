@@ -29,7 +29,7 @@ import sys
 import threading
 import time
 import traceback
-import pkg_resources
+from importlib.metadata import entry_points
 
 import aexpect
 
@@ -544,7 +544,7 @@ def sorted_entry_points(group):
 
     :param group: entry-point group
     """
-    return sorted(pkg_resources.iter_entry_points(group),
+    return sorted(entry_points(group=group),
                   key=lambda ep: ep.name)
 
 

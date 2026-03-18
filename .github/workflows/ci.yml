@@ -15,36 +15,32 @@ jobs:
         python-version: [3.12]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 500
-      - name: Fetch tags required for run-perf version
-        run: git fetch --tags --depth 500
-      - uses: actions/setup-python@v2
+          fetch-depth: 1
+          fetch-tags: true
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install missing aexpect dependency (remove when https://github.com/avocado-framework/aexpect/pull/81 is merged)
         run: pip install six numpy
-      - run: pip install -r requirements.txt
+      - run: pip install -e .[dev]
       - run: make check
 
   code_coverage:
     name: CodeCoverage
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 500
-      - name: Fetch tags required for run-perf version
-        run: git fetch --tags --depth 500
-      - uses: actions/setup-python@v2
+          fetch-depth: 1
+          fetch-tags: true
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.12"
       - name: Install missing aexpect dependency (remove when https://github.com/avocado-framework/aexpect/pull/81 is merged)
         run: pip install six
-      - run: pip install -r requirements.txt
+      - run: pip install -e .[dev]
       - run: |
           pip install coverage
           curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
