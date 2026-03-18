@@ -143,28 +143,23 @@ class BasicUtils(unittest.TestCase):
                 plugin.name = self.loaded_name
                 plugin.plugin = self.name
                 return plugin
-        entries = lambda _: [EP("10"), EP("20"), EP("30")]
-        with mock.patch("runperf.utils.pkg_resources.iter_entry_points",
-                        entries):
+        entries = lambda group: [EP("10"), EP("20"), EP("30")]
+        with mock.patch("runperf.utils.entry_points", entries):
             self.assertEqual(["10", "20", "30"],
                              [_.name for _ in utils.sorted_entry_points('')])
-        entries = lambda _: [EP("20"), EP("30"), EP("10")]
-        with mock.patch("runperf.utils.pkg_resources.iter_entry_points",
-                        entries):
+        entries = lambda group: [EP("20"), EP("30"), EP("10")]
+        with mock.patch("runperf.utils.entry_points", entries):
             self.assertEqual(["10", "20", "30"],
                              [_.name for _ in utils.sorted_entry_points('')])
-        entries = lambda _: [EP("20", "foo"), EP("30", "foo"), EP("10", "bar")]
-        with mock.patch("runperf.utils.pkg_resources.iter_entry_points",
-                        entries):
+        entries = lambda group: [EP("20", "foo"), EP("30", "foo"), EP("10", "bar")]
+        with mock.patch("runperf.utils.entry_points", entries):
             act = utils.named_entry_point("", "foo")
             self.assertEqual(("foo", "20"), (act.name, act.plugin))
-        entries = lambda _: [EP("30", "foo"), EP("20", "foo"), EP("10", "bar")]
-        with mock.patch("runperf.utils.pkg_resources.iter_entry_points",
-                        entries):
+        entries = lambda group: [EP("30", "foo"), EP("20", "foo"), EP("10", "bar")]
+        with mock.patch("runperf.utils.entry_points", entries):
             act = utils.named_entry_point("", "foo")
             self.assertEqual(("foo", "20"), (act.name, act.plugin))
-        with mock.patch("runperf.utils.pkg_resources.iter_entry_points",
-                        entries):
+        with mock.patch("runperf.utils.entry_points", entries):
             self.assertRaises(KeyError, utils.named_entry_point, "", "missing")
 
     def test_human_to_bool(self):
