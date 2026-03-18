@@ -68,8 +68,11 @@ Homepage = "https://github.com/distributed-system-analysis/run-perf"
 [tool.setuptools.packages.find]
 exclude = ["selftests*"]
 
+[project.scripts]
+runperf-contrib-path = "runperf.contrib:main"
+
 [tool.setuptools.package-data]
-"*" = ["assets/**/*"]
+"*" = ["assets/**/*", "contrib/**/*"]
 
 [tool.setuptools]
 script-files = [
