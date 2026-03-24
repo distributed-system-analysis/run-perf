@@ -15,7 +15,6 @@ import java.util.regex.Pattern
 @Field String runperfArchFilterRmCmd = "\\rm -Rf result* src_result* reference_builds ${htmlPath} *.log"
 @Field String runperfResultsFilter = 'result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**'
 @Field String makeInstallCmd = '\nmake -j $(getconf _NPROCESSORS_ONLN)\nmake install'
-@Field String pythonDeployCmd = 'python3 setup.py develop --user'
 @Field String kojiUrl = 'https://koji.fedoraproject.org/koji/'
 @Field String fioNbdScript = ('\n\n# FIO_NBD_SETUP' +
                               '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img libaio-devel' +
@@ -82,19 +81,10 @@ List preprocessDistros(String distro, String guestDistro, String arch, descripti
     return [distro, guestDistro, descriptionPrefix]
 }
 
-void deployRunperf(gitBranch) {
-    git branch: gitBranch, url: 'https://github.com/distributed-system-analysis/run-perf.git'
-    // Remove files that might have been left behind
-    sh runperfArchFilterRmCmd
-    sh "mkdir ${htmlPath}"
-    sh pythonDeployCmd
-}
-
-void deployDownstreamConfig(gitBranch) {
+void cloneDownstreamConfig(gitBranch) {
     // This way we add downstream plugins and other configuration
     dir('downstream_config') {
         git branch: gitBranch, url: 'git://PATH_TO_YOUR_REPO_WITH_PIPELINES/runperf_config.git'
-        sh pythonDeployCmd
     }
 }
 

@@ -59,7 +59,7 @@ workerScript = params.WORKER_SCRIPT
 
 // Extra variables
 // Provisioner machine
-workerNode = 'runperf-slave'
+workerNode = 'kubernetes'
 // misc variables
 srcBuildUnset = '-1'
 
@@ -81,7 +81,7 @@ for (params in paramTypes.combinations()) {
     // Use a cleanup job to remove host-setup-script things
     srcBuild = runperf.triggerRunperf(env.JOB_NAME, srcBuild == srcBuildUnset, params[7], params[6],
                                       machine, arch, tests, profiles, srcBuild, params[4],
-                                      params[3], params[2], params[1],
+                                      params[1], params[2], params[3],
                                       params[5], prefix, pbenchPublish,
                                       fioNbdSetup, Math.max(0, referenceBuilds).toString(),
                                       cmpModelJob, cmpModelBuild, cmpTolerance, cmpStddevTolerance,

@@ -56,7 +56,7 @@ workerScript = params.WORKER_SCRIPT
 
 // Extra variables
 // Provisioner machine
-workerNode = 'runperf-slave'
+workerNode = 'kubernetes'
 // runperf git branch
 gitBranch = 'main'
 // extra runperf arguments
@@ -70,8 +70,7 @@ node(workerNode) {
     }
 
     stage('Measure') {
-        runperf.deployDownstreamConfig(gitBranch)
-        runperf.deployRunperf(gitBranch)
+        runperf.cloneDownstreamConfig(gitBranch)
         if (fedoraLatestKernel) {
             kernelURL = '\nkernel-;!debug|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8'
             hostRpmFromURLs += kernelURL
@@ -111,7 +110,7 @@ node(workerNode) {
         lock(machine) {
             sh '$KINIT'
             status = sh(returnStatus: true,
-               script: "python3 scripts/run-perf ${extraArgs} -v --hosts ${machine} --distro ${distro} " +
+               script: "run-perf ${extraArgs} -v --hosts ${machine} --distro ${distro} " +
                "--provisioner Beaker --default-password YOUR_DEFAULT_PASSWORD --profiles ${profiles} " +
                '--log run.log --paths ./downstream_config --metadata ' +
                "'build=${currentBuild.number}${descriptionPrefix}' " +
@@ -168,8 +167,9 @@ node(workerNode) {
             cmpExtra = ''
         }
         // Compare the results and generate html as well as xunit results
+        sh "mkdir -p '${runperf.htmlPath}'"
         status = sh(returnStatus: true,
-                    script: ('python3 scripts/compare-perf --log compare.log ' +
+                    script: ('compare-perf --log compare.log ' +
                              '--tolerance ' + cmpTolerance + ' --stddev-tolerance ' + cmpStddevTolerance +
                              " --xunit ${runperf.resultXml} --html ${runperf.htmlIndex} --html-small-file " + cmpExtra +
                              ' -- src_result/* ' + referenceBuilds.reverse().join(' ') +
