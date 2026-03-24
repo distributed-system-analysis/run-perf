@@ -575,8 +575,8 @@
             default: "{param-age}"
             description: How old results should be pruned
     builders:
-        - python:
-            !include-raw-escape: ../scripts/prune_artifacts.py
+      - system-groovy:
+          command: !include-raw-escape ../scripts/prune_artifacts.groovy
 
 
 ##############################################################################
