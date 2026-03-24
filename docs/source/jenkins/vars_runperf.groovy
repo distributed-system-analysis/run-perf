@@ -20,12 +20,12 @@ import java.util.regex.Pattern
 @Field String fioNbdScript = ('\n\n# FIO_NBD_SETUP' +
                               '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img libaio-devel' +
                               '\ncd /tmp' +
-                              '\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz' +
-                              '\ncd fio-fio-3.19' +
+                              '\ncurl -L https://github.com/axboe/fio/archive/refs/tags/fio-3.34.tar.gz | tar xz' +
+                              '\ncd fio-fio-3.34' +
                               '\n./configure --enable-libnbd\n' +
                               makeInstallCmd +
                               '\nmkdir -p /var/lib/runperf/' +
-                              '\necho "fio 3.19" >> /var/lib/runperf/sysinfo')
+                              '\necho "fio 3.34" >> /var/lib/runperf/sysinfo')
 // Usage: String.format(upstreamQemuScript, upstreamCommit, upstreamCommit)
 @Field String upstreamQemuScript = """# UPSTREAM_QEMU_SETUP
 OLD_PWD="\$PWD"
