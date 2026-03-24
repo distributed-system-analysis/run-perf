@@ -29,7 +29,7 @@ import java.util.regex.Pattern
 // Usage: String.format(upstreamQemuScript, upstreamCommit, upstreamCommit)
 @Field String upstreamQemuScript = """# UPSTREAM_QEMU_SETUP
 OLD_PWD="\$PWD"
-dnf install --skip-broken -y python3-devel zlib-devel gtk3-devel glib2-static spice-server-devel usbredir-devel make gcc libseccomp-devel numactl-devel libaio-devel git ninja-build
+dnf install --skip-broken -y python3-devel zlib-devel gtk3-devel glib2-static spice-server-devel usbredir-devel make gcc libseccomp-devel numactl-devel libaio-devel git ninja-build python3-tomli
 cd /root
 [ -e "qemu" ] || { mkdir qemu; cd qemu; git init; git remote add origin https://gitlab.com/qemu-project/qemu.git; cd ..; }
 cd qemu
