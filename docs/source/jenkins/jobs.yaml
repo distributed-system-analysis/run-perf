@@ -93,7 +93,7 @@
             default: ""
         - text:
             name: HOST_RPM_FROM_URLS
-            description: 'Specify pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            description: 'Specify pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\;O=D'
             default: "{param-host-rpm-from-urls}"
         - string:
             name: GUEST_KERNEL_ARGS
@@ -101,7 +101,7 @@
             default: ""
         - text:
             name: GUEST_RPM_FROM_URLS
-            description: 'Specify pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            description: 'Specify pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\;O=D'
             default: ""
         - bool:
             name: PBENCH_PUBLISH
@@ -199,7 +199,7 @@
             default: ""
         - text:
             name: HOST_RPM_FROM_URLS
-            description: 'Specify pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            description: 'Specify pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\;O=D'
             default: "{param-host-rpm-from-urls}"
         - string:
             name: GUEST_KERNEL_ARGS
@@ -207,7 +207,7 @@
             default: ""
         - text:
             name: GUEST_RPM_FROM_URLS
-            description: 'Specify pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            description: 'Specify pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\;O=D'
             default: ""
         - bool:
             name: PBENCH_PUBLISH
@@ -330,7 +330,7 @@
             default: ""
         - text:
             name: HOST_RPM_FROM_URLSS
-            description: 'Double enter (\\n\\n) separated list of Single enter (\\n) separated list of pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            description: 'Double enter (\\n\\n) separated list of Single enter (\\n) separated list of pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\;O=D'
             default: "{param-host-rpm-from-urls}"
         - string:
             name: GUEST_KERNEL_ARGSS
@@ -338,7 +338,7 @@
             default: ""
         - text:
             name: GUEST_RPM_FROM_URLSS
-            description: 'Double enter (\\n\\n) separated list of Single enter (\\n) separated list of pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            description: 'Double enter (\\n\\n) separated list of Single enter (\\n) separated list of pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\;O=D'
             default: ""
         - string:
             name: UPSTREAM_QEMU_COMMITS

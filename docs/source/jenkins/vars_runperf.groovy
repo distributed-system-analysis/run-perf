@@ -156,7 +156,7 @@ String cmdInstallRpmsFromURLs(String param, String arch) {
         args = line.split("(?<!\\\\);")
         if (args.size() == 1) {
             // Only $urlList specified
-            links = urlFindLinksToRpms(args[0], '', '', arch)
+            links = urlFindLinksToRpms(args[0].replace('\\;', ';'), '', '', arch)
         } else if (args.size() == 3) {
             // $urlList, $pkgFilter and $rpmFilter specified
             for (i in [0, 1]) {
@@ -165,7 +165,8 @@ String cmdInstallRpmsFromURLs(String param, String arch) {
                     args[i] = '(?!.*(' + args[i][1 .. -1] + '))'
                 }
             }
-            links = urlFindLinksToRpms(args[2], args[0], args[1], arch)
+            links = urlFindLinksToRpms(args[2].replace('\\;', ';'), args[0].replace('\\;', ';'),
+                                       args[1].replace('\\;', ';'), arch)
         } else {
             println("Incorrect parameter ${line}")
             continue
