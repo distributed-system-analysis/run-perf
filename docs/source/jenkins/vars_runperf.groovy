@@ -15,21 +15,20 @@ import java.util.regex.Pattern
 @Field String runperfArchFilterRmCmd = "\\rm -Rf result* src_result* reference_builds ${htmlPath} *.log"
 @Field String runperfResultsFilter = 'result*/*/*/*/*.json,result*/RUNPERF_METADATA,result*/**/__error*__/**'
 @Field String makeInstallCmd = '\nmake -j $(getconf _NPROCESSORS_ONLN)\nmake install'
-@Field String pythonDeployCmd = 'python3 setup.py develop --user'
 @Field String kojiUrl = 'https://koji.fedoraproject.org/koji/'
 @Field String fioNbdScript = ('\n\n# FIO_NBD_SETUP' +
                               '\ndnf install --skip-broken -y fio gcc zlib-devel libnbd-devel make qemu-img libaio-devel' +
                               '\ncd /tmp' +
-                              '\ncurl -L https://github.com/axboe/fio/archive/fio-3.19.tar.gz | tar xz' +
-                              '\ncd fio-fio-3.19' +
+                              '\ncurl -L https://github.com/axboe/fio/archive/refs/tags/fio-3.34.tar.gz | tar xz' +
+                              '\ncd fio-fio-3.34' +
                               '\n./configure --enable-libnbd\n' +
                               makeInstallCmd +
                               '\nmkdir -p /var/lib/runperf/' +
-                              '\necho "fio 3.19" >> /var/lib/runperf/sysinfo')
+                              '\necho "fio 3.34" >> /var/lib/runperf/sysinfo')
 // Usage: String.format(upstreamQemuScript, upstreamCommit, upstreamCommit)
 @Field String upstreamQemuScript = """# UPSTREAM_QEMU_SETUP
 OLD_PWD="\$PWD"
-dnf install --skip-broken -y python3-devel zlib-devel gtk3-devel glib2-static spice-server-devel usbredir-devel make gcc libseccomp-devel numactl-devel libaio-devel git ninja-build
+dnf install --skip-broken -y python3-devel zlib-devel gtk3-devel glib2-static spice-server-devel usbredir-devel make gcc libseccomp-devel numactl-devel libaio-devel git ninja-build python3-tomli
 cd /root
 [ -e "qemu" ] || { mkdir qemu; cd qemu; git init; git remote add origin https://gitlab.com/qemu-project/qemu.git; cd ..; }
 cd qemu
@@ -82,19 +81,10 @@ List preprocessDistros(String distro, String guestDistro, String arch, descripti
     return [distro, guestDistro, descriptionPrefix]
 }
 
-void deployRunperf(gitBranch) {
-    git branch: gitBranch, url: 'https://github.com/distributed-system-analysis/run-perf.git'
-    // Remove files that might have been left behind
-    sh runperfArchFilterRmCmd
-    sh "mkdir ${htmlPath}"
-    sh pythonDeployCmd
-}
-
-void deployDownstreamConfig(gitBranch) {
+void cloneDownstreamConfig(gitBranch) {
     // This way we add downstream plugins and other configuration
     dir('downstream_config') {
         git branch: gitBranch, url: 'git://PATH_TO_YOUR_REPO_WITH_PIPELINES/runperf_config.git'
-        sh pythonDeployCmd
     }
 }
 
@@ -156,7 +146,7 @@ String cmdInstallRpmsFromURLs(String param, String arch) {
         args = line.split("(?<!\\\\);")
         if (args.size() == 1) {
             // Only $urlList specified
-            links = urlFindLinksToRpms(args[0], '', '', arch)
+            links = urlFindLinksToRpms(args[0].replace('\\;', ';'), '', '', arch)
         } else if (args.size() == 3) {
             // $urlList, $pkgFilter and $rpmFilter specified
             for (i in [0, 1]) {
@@ -165,7 +155,8 @@ String cmdInstallRpmsFromURLs(String param, String arch) {
                     args[i] = '(?!.*(' + args[i][1 .. -1] + '))'
                 }
             }
-            links = urlFindLinksToRpms(args[2], args[0], args[1], arch)
+            links = urlFindLinksToRpms(args[2].replace('\\;', ';'), args[0].replace('\\;', ';'),
+                                       args[1].replace('\\;', ';'), arch)
         } else {
             println("Incorrect parameter ${line}")
             continue

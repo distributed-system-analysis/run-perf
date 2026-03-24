@@ -181,7 +181,7 @@ void updateLinkFile(String path, String link, String missingTemplate) {
     }
 }
 
-node('runperf-slave') {
+node('kubernetes') {
     sh "rm -rf $buildArtifacts/"
     copyArtifacts(filter: runperf.runperfResultsFilter, optional: false,
                   fingerprintArtifacts: true, projectName: job, selector: specific(build),
@@ -192,14 +192,9 @@ node('runperf-slave') {
     runperfResults = sh(returnStdout: true, script: "res=($buildArtifacts/result*); echo \${res[0]}").trim()
     // Strip results if asked for
     if (stripResults) {
-        // Deploy run-perf to get strip tool
-        dir('run-perf') {
-            git branch: gitBranch, url: 'https://github.com/distributed-system-analysis/run-perf.git'
-            sh runperf.pythonDeployCmd
-        }
         sh "rm -Rf '.$buildArtifacts'"
         sh "mv '$buildArtifacts' '.$buildArtifacts'"
-        sh "python3 run-perf/scripts/strip-run-perf -i -s -vvv '.$runperfResults' '$runperfResults'"
+        sh "strip-run-perf -i -s -vvv '.$runperfResults' '$runperfResults'"
         sh "[ -e '.$buildArtifacts/html' ] && mv '.$buildArtifacts/html' '$buildArtifacts/html'"
         sh "rm -Rf '.$buildArtifacts'"
     }

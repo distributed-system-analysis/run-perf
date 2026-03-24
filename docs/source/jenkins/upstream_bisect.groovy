@@ -41,7 +41,7 @@ workerScript = params.WORKER_SCRIPT
 
 // Extra variables
 // Provisioner machine
-workerNode = 'runperf-slave'
+workerNode = 'kubernetes'
 // runperf git branch
 gitBranch = 'main'
 // extra runperf arguments
@@ -55,6 +55,8 @@ String getBkrInstallCmd(String hostBkrLinks, String hostBkrLinksFilter, String a
 }
 
 node(workerNode) {
+    def contribPath = sh(script: 'runperf-contrib-path', returnStdout: true).trim()
+
     stage('Preprocess') {
         (distro, guestDistro, descriptionPrefix) = runperf.preprocessDistros(distro, guestDistro,
                                                                              arch, descriptionPrefix)
@@ -62,11 +64,10 @@ node(workerNode) {
     }
 
     stage('Measure') {
-        runperf.deployDownstreamConfig(gitBranch)
-        runperf.deployRunperf(gitBranch)
+        runperf.cloneDownstreamConfig(gitBranch)
         metadata = ''
-        hostScript = runperf.setupScript(hostScript, hostKernelArgs, HostRpmFromURLs, arch, fioNbdSetup)
-        workerScript = runperf.setupScript(workerScript, guestKernelArgs, GuestRpmFromURLs, arch, fioNbdSetup)
+        hostScript = runperf.setupScript(hostScript, hostKernelArgs, hostRpmFromURLs, arch, fioNbdSetup)
+        workerScript = runperf.setupScript(workerScript, guestKernelArgs, guestRpmFromURLs, arch, fioNbdSetup)
         writeFile file: 'host_script', text: hostScript
         setupQemu = String.format(runperf.upstreamQemuScript, upstreamQemuGood, upstreamQemuGood)
         writeFile(file: 'host_script_with_qemu',
@@ -85,15 +86,15 @@ node(workerNode) {
             sh 'git clone https://gitlab.com/qemu-project/qemu.git upstream_qemu/'
             sh '$KINIT'
             // First run the provisioning and dummy test to age the machine a bit
-            sh("python3 scripts/run-perf ${extraArgs} -v --hosts ${machine} --distro ${distro} " +
+            sh("run-perf ${extraArgs} -v --hosts ${machine} --distro ${distro} " +
                '--host-setup-script host_script_with_qemu --host-setup-script-reboot ' +
                '--provisioner Beaker --default-password YOUR_DEFAULT_PASSWORD ' +
                '--profiles DefaultLibvirt --paths ./downstream_config --log prejob.log -- ' +
               '\'fio:{"runtime": "30", "targets": "/fio", "block-sizes": "4", "test-types": "read", ' +
               '"samples": "1"}\'')
             // And now run the bisection without reprovisioning
-            sh("DIFFPERF='python3 scripts/diff-perf' contrib/upstream_qemu_bisect.sh upstream_qemu/ " +
-               "${upstreamQemuGood} ${upstreamQemuBad} python3 scripts/run-perf ${extraArgs} " +
+            sh("DIFFPERF='diff-perf -v' '${contribPath}/upstream_qemu_bisect.sh' upstream_qemu/ " +
+               "${upstreamQemuGood} ${upstreamQemuBad} run-perf ${extraArgs} " +
                "-v --hosts ${machine} --distro ${distro} --log job.log " +
                "--default-password YOUR_DEFAULT_PASSWORD --profiles ${profiles} " +
                "--paths ./downstream_config --metadata " +
@@ -118,6 +119,6 @@ node(workerNode) {
                          reportFiles: 'index.html', reportName: 'HTML Report', reportTitles: ''])
         }
         // Remove the unnecessary big files
-        sh 'contrib/bisect.sh clean'
+        sh "'${contribPath}/bisect.sh' clean"
     }
 }

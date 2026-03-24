@@ -18,7 +18,7 @@ cmpStddevTolerance = params.CMP_STDDEV_TOLERANCE.trim()
 
 // Extra variables
 // Provisioner machine
-workerNode = 'runperf-slave'
+workerNode = 'kubernetes'
 // runperf git branch
 gitBranch = 'main'
 // misc variables
@@ -29,7 +29,6 @@ lastBuildChr = '-1'
 stage('Analyze') {
     node(workerNode) {
         assert builds.size() >= 2
-        runperf.deployRunperf(gitBranch)
         referenceBuilds = []
         // Get all the reference builds (second to second-to-last ones)
         if (builds.size() > 2) {
@@ -69,9 +68,8 @@ stage('Analyze') {
         status = 0
         lock(workerNode) {
             // Avoid modifying workerNode's environment while executing compareperf
-            sh runperf.pythonDeployCmd
             status = sh(returnStatus: true,
-                        script: ('python3 scripts/compare-perf -vvv --tolerance ' + cmpTolerance +
+                        script: ('compare-perf -vvv --tolerance ' + cmpTolerance +
                                  ' --stddev-tolerance ' + cmpStddevTolerance +
                                  ' --xunit ' + runperf.resultXml + ' --html ' + runperf.htmlIndex + spaceChr +
                                  cmpExtra + ' -- src_result/* ' + referenceBuilds.join(spaceChr) +

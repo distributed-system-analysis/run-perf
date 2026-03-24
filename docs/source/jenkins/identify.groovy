@@ -17,7 +17,7 @@ rebaseModelBuild = params.REBASE_MODEL_BUILD
 
 // Extra variables
 // Provisioner machine
-workerNode = 'runperf-slave'
+workerNode = 'kubernetes'
 // runperf git branch
 gitBranch = 'main'
 // misc variables
@@ -25,7 +25,6 @@ spaceChr = ' '
 
 stage('Analyze') {
     node(workerNode) {
-        runperf.deployRunperf(gitBranch)
         // Get all the specified builds
         for (build in builds) {
             copyArtifacts(filter: 'result*/**/result*.json', optional: false, fingerprintArtifacts: true,
@@ -41,9 +40,8 @@ stage('Analyze') {
         status = 0
         lock(workerNode) {
             // Avoid modifying workerNode's environment while executing compareperf
-            sh 'python3 setup.py develop --user'
             status = sh(returnStatus: true,
-                        script: ('python3 scripts/analyze-perf -vvv --stddev-linear-regression ' +
+                        script: ('analyze-perf -vvv --stddev-linear-regression ' +
                                  runperf.modelJson + spaceChr + extraArgs + ' -- results/*'))
         }
         if (fileExists(runperf.modelJson)) {

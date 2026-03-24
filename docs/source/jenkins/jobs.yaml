@@ -93,7 +93,7 @@
             default: ""
         - text:
             name: HOST_RPM_FROM_URLS
-            description: 'Specify pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            description: 'Specify pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\;O=D'
             default: "{param-host-rpm-from-urls}"
         - string:
             name: GUEST_KERNEL_ARGS
@@ -101,7 +101,7 @@
             default: ""
         - text:
             name: GUEST_RPM_FROM_URLS
-            description: 'Specify pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            description: 'Specify pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\;O=D'
             default: ""
         - bool:
             name: PBENCH_PUBLISH
@@ -185,6 +185,10 @@
             name: PROFILES
             description: 'Space separated list of profiles to be applied'
             default: "{param-profiles}"
+        - string:
+            name: METADATA
+            description: 'Additional run-perf --metadata arguments'
+            default: "{param-metadata}"
         - text:
             name: HOST_SCRIPT
             description: 'Host script to be executed on all --servers'
@@ -199,7 +203,7 @@
             default: ""
         - text:
             name: HOST_RPM_FROM_URLS
-            description: 'Specify pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            description: 'Specify pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\;O=D'
             default: "{param-host-rpm-from-urls}"
         - string:
             name: GUEST_KERNEL_ARGS
@@ -207,7 +211,7 @@
             default: ""
         - text:
             name: GUEST_RPM_FROM_URLS
-            description: 'Specify pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            description: 'Specify pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\;O=D'
             default: ""
         - bool:
             name: PBENCH_PUBLISH
@@ -330,7 +334,7 @@
             default: ""
         - text:
             name: HOST_RPM_FROM_URLSS
-            description: 'Double enter (\\n\\n) separated list of Single enter (\\n) separated list of pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            description: 'Double enter (\\n\\n) separated list of Single enter (\\n) separated list of pages to query for links to RPMs to be installed on host. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\;O=D'
             default: "{param-host-rpm-from-urls}"
         - string:
             name: GUEST_KERNEL_ARGSS
@@ -338,7 +342,7 @@
             default: ""
         - text:
             name: GUEST_RPM_FROM_URLSS
-            description: 'Double enter (\\n\\n) separated list of Single enter (\\n) separated list of pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\\;O=D'
+            description: 'Double enter (\\n\\n) separated list of Single enter (\\n) separated list of pages to query for links to RPMs to be installed on guest. Works well with koji/brew links to package or build page as well as individually published list of pkgs, also tries to find "$arch/" link and search pkgs there.\n\nThe format is:\n$pkgFilter;$rpmFilter;$urlList\nkernel-[^"]*fc38;!debug|bpftool|kernel-tools|perf|kernel-selftests|kernel-doc;https://koji.fedoraproject.org/koji//packageinfo?packageID=8\nhttps://koji.fedoraproject.org/koji//buildinfo?buildID=2110910\n(\d+);;http://example.com/repos/test/MyRepo/?C=M\;O=D'
             default: ""
         - string:
             name: UPSTREAM_QEMU_COMMITS
@@ -353,6 +357,109 @@
                     - main
         script-path: "multi_runperf.groovy"
         lightweight-checkout: true
+
+
+##############################################################################
+# Definition for a bisecter job
+##############################################################################
+- job-template:
+    name: "{name}-bisecter"
+    project-type: pipeline
+    parameters:
+        - string:
+            name: JOB_NAME
+            description: 'Name of the run-perf job to be used for triggering the tests.\nWarning: there might be concurrency issues in case one attempts to concurrently schedule jobs!'
+            default: "{param-job}"
+        - string:
+            name: MACHINE
+            description: 'Machine to be provisioned and tested'
+            default: "{param-machine}"
+        - string:
+            name: ARCH
+            description: 'Target machine architecture'
+            default: "{param-arch}"
+        - string:
+            name: TESTS
+            description: 'Space separated list of tests to be executed (WARNING: fio-nbd test requires the FIO_NBD_SETUP checkbox enabled!)'
+            default: "{param-tests}"
+        - string:
+            name: PROFILES
+            description: 'Space separated list of profiles to be applied'
+            default: "{param-profiles}"
+        - string:
+            name: CMP_MODEL_JOB
+            description: 'Job to copy linear "model.json" from'
+            default: "{param-cmp-model-job}"
+        - string:
+            name: CMP_MODEL_BUILD
+            description: 'Build to copy linear "model.json" from (-1 means lastSuccessful)'
+            default: "{param-cmp-model-build}"
+        - string:
+            name: CMP_TOLERANCE
+            description: Tolerance for mean values
+            default: "{param-cmp-tolerance}"
+        - string:
+            name: CMP_STDDEV_TOLERANCE
+            description: Tolerance for standard deviation values
+            default: "{param-cmp-stddev-tolerance}"
+        - bool:
+            name: FIO_NBD_SETUP
+            description: 'Compile and install fio with nbd ioengine enabled before test execution'
+            default: "{param-fio-nbd-setup}"
+        - string:
+            name: DESCRIPTION_PREFIX
+            description: Description prefix (describe the difference from default)
+            default: ""
+        - bool:
+            name: PBENCH_PUBLISH
+            description: 'Push the pbench results to company pbench server'
+            default: "{param-pbench-publish}"
+        - string:
+            name: GITHUB_PUBLISHER_PROJECT
+            description: 'Github publisher project ID (when you want to publish your results)'
+            default: ""
+        - string:
+            name: METADATA
+            description: 'Additional run-perf --metadata arguments'
+            default: "{param-metadata}"
+        - text:
+            name: HOST_SCRIPT
+            description: 'Host script to be executed on all --servers'
+            default: "{param-host-script}"
+        - text:
+            name: WORKER_SCRIPT
+            description: 'Worker script to be executed on all runperf workers'
+            default: "{param-worker-script}"
+        - bool:
+            name: PROVISION
+            description: 'Provision the machine with "--provisioner Beaker"'
+            default: false
+        - string:
+            name: DISTROS
+            description: '`;` separated list of distributions to be installed/is installed (Fedora-31), when empty latest el8 nightly build is obtained from bkr, when `..` is used it uses bkr to fill all available versions in between the specified versions'
+            default: "{param-distro}"
+        - string:
+            name: GUEST_DISTROS
+            description: '`;` separated list of distribution to be installed on guest, when empty "distro" is used, when `..` is used it uses bkr to fill all available versions in between the specified versions'
+            default: "{param-guest-distro}"
+        - text:
+            name: HOST_RPM_FROM_URLS
+            description: 'Single enter (\\n) separated list of pages to query for links to RPMs to be installed on host. It uses "bisecter -E" format (something like "url://https\\://koji.fedoraproject.org/koji//packageinfo?packageID=8:kernel-5.14:+5")'
+            default: "{param-host-rpm-from-urls}"
+        - text:
+            name: GUEST_RPM_FROM_URLS
+            description: 'Single enter (\\n) separated list of pages to query for links to RPMs to be installed on worker. It uses "bisecter -E" format (something like "url://https\\://koji.fedoraproject.org/koji//packageinfo?packageID=8:kernel-5.14:+5")'
+            default: ""
+    sandbox: true
+    pipeline-scm:
+        scm:
+            - git:
+                url: git://PATH_TO_YOUR_REPO_WITH_PIPELINES.git
+                branches:
+                    - main
+        script-path: "bisecter_bisect.groovy"
+        lightweight-checkout: true
+
 
 
 ##############################################################################
@@ -468,8 +575,8 @@
             default: "{param-age}"
             description: How old results should be pruned
     builders:
-        - python:
-            !include-raw-escape: ../scripts/prune_artifacts.py
+      - system-groovy:
+          command: !include-raw-escape ../scripts/prune_artifacts.groovy
 
 
 ##############################################################################
