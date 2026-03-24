@@ -185,6 +185,10 @@
             name: PROFILES
             description: 'Space separated list of profiles to be applied'
             default: "{param-profiles}"
+        - string:
+            name: METADATA
+            description: 'Additional run-perf --metadata arguments'
+            default: "{param-metadata}"
         - text:
             name: HOST_SCRIPT
             description: 'Host script to be executed on all --servers'
