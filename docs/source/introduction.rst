@@ -20,7 +20,7 @@ or to install directly the latest version from git::
 
     python3 -m pip install git+https://github.com/distributed-system-analysis/run-perf.git
 
-For development purposes please check-out the :any:`clone-and-deploy` section.
+For development purposes please check-out the ``clone-and-deploy`` section in the documentation.
 
 Components
 ==========
