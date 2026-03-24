@@ -22,7 +22,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install missing aexpect dependency (remove when https://github.com/avocado-framework/aexpect/pull/81 is merged)
-        run: pip install six numpy
       - run: pip install -e .[dev]
       - run: make check
